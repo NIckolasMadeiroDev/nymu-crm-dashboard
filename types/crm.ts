@@ -1,0 +1,42 @@
+export interface CrmPipeline {
+  id: string
+  name: string
+  stages: CrmStage[]
+  totalValue: number
+  totalDeals: number
+}
+
+export interface CrmStage {
+  id: string
+  name: string
+  deals: CrmDeal[]
+  totalValue: number
+  dealCount: number
+}
+
+export interface CrmDeal {
+  id: string
+  title: string
+  value: number
+  stageId: string
+  pipelineId: string
+  createdAt: string
+  updatedAt: string
+  owner?: string
+}
+
+export interface CrmMetrics {
+  totalDeals: number
+  totalValue: number
+  averageDealValue: number
+  conversionRate: number
+  dealsByStage: Record<string, number>
+  valueByStage: Record<string, number>
+}
+
+export interface CrmApiResponse<T> {
+  data: T
+  success: boolean
+  message?: string
+}
+

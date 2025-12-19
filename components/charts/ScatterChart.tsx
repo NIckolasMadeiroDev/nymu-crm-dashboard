@@ -1,0 +1,104 @@
+'use client'
+
+import {
+  ScatterChart as RechartsScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts'
+import ChartContainer from './ChartContainer'
+import type { ScatterDataPoint, ChartConfig } from '@/types/charts'
+import { useThemeColors } from './hooks/useThemeColors'
+
+interface ScatterChartProps {
+  config: ChartConfig
+  data: ScatterDataPoint[]
+  series?: Array<{ key: string; name: string; color?: string }>
+  showGrid?: boolean
+  showLegend?: boolean
+  height?: number
+  onDataPointClick?: (data: ScatterDataPoint) => void
+}
+
+export default function ScatterChart({
+  config,
+  data,
+  series = [],
+  showGrid = true,
+  showLegend = true,
+  height = 300,
+  onDataPointClick,
+}: Readonly<ScatterChartProps>) {
+  const themeColors = useThemeColors()
+  
+  return (
+    <ChartContainer
+      title={config.title}
+      subtitle={config.subtitle}
+      onDrillDown={onDataPointClick ? () => {} : undefined}
+    >
+      <ResponsiveContainer width="100%" height={height}>
+        <RechartsScatterChart margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+          {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={themeColors.gridColor} />}
+          <XAxis
+            type="number"
+            dataKey="x"
+            name="X"
+            stroke={themeColors.foreground}
+            style={{ fontSize: '12px' }}
+          />
+          <YAxis
+            type="number"
+            dataKey="y"
+            name="Y"
+            stroke={themeColors.foreground}
+            style={{ fontSize: '12px' }}
+          />
+          <Tooltip
+            cursor={{ strokeDasharray: '3 3' }}
+            contentStyle={{
+              backgroundColor: themeColors.tooltipBackground,
+              border: `1px solid ${themeColors.tooltipBorder}`,
+              borderRadius: '8px',
+              color: themeColors.tooltipText,
+            }}
+          />
+          {showLegend && <Legend />}
+          {series.length > 0 ? (
+            series.map((s, index) => {
+              const color = s.color || themeColors.chartColors[index % themeColors.chartColors.length]
+              return (
+                <Scatter
+                  key={s.key}
+                  name={s.name}
+                  data={data.filter((d) => d.category === s.key)}
+                  fill={color}
+                >
+                  {data.filter((d) => d.category === s.key).map((entry) => (
+                    <Cell key={`cell-${entry.x}-${entry.y}-${s.key}`} fill={color} />
+                  ))}
+                </Scatter>
+              )
+            })
+          ) : (
+            <Scatter
+              name="Data"
+              data={data}
+              fill={themeColors.primary}
+            >
+              {data.map((entry) => (
+                <Cell key={`cell-${entry.x}-${entry.y}`} fill={themeColors.primary} />
+              ))}
+            </Scatter>
+          )}
+        </RechartsScatterChart>
+      </ResponsiveContainer>
+    </ChartContainer>
+  )
+}
+
