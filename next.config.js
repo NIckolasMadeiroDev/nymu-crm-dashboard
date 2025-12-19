@@ -21,7 +21,6 @@ const nextConfig = {
     }
     return config
   },
-  // Melhorar carregamento de chunks
   onDemandEntries: {
     maxInactiveAge: 25 * 1000,
     pagesBufferLength: 2,

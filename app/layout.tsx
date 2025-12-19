@@ -32,7 +32,7 @@ export const metadata: Metadata = {
       { url: '/logos/yellow-logo.png', type: 'image/png', sizes: '180x180' },
     ],
     shortcut: [
-      { url: '/favicon.png', type: 'image/png' },
+      { url: '/logos/yellow-logo.png', type: 'image/png' },
     ],
   },
 }

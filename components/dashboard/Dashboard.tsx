@@ -28,6 +28,7 @@ import LanguageSelector from '@/components/language/LanguageSelector'
 import { themeService } from '@/services/theme/theme-service'
 import { dashboardPreferencesService } from '@/services/preferences/dashboard-preferences-service'
 import { filterPresetsService } from '@/services/filters/filter-presets-service'
+import type { DrillContext } from '@/services/drill/drill-service'
 
 export default function Dashboard() {
   const { t } = useLanguage()
@@ -35,7 +36,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showScheduling, setShowScheduling] = useState(false)
-  const [drillContext, setDrillContext] = useState<any>(null)
+  const [drillContext, setDrillContext] = useState<DrillContext | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   type LogoVariant = 'twocolor' | 'white'
   type ChartLayout = 'one' | 'two' | 'three'
@@ -202,8 +203,6 @@ export default function Dashboard() {
     }
   }
 
-
-  // Função para renderizar um gráfico baseado no ID
   const renderChart = useCallback((chartId: string) => {
     if (!dashboardData) return null
 
@@ -526,7 +525,7 @@ export default function Dashboard() {
               onContextChange={(context) => {
                 setDrillContext(context)
                 if (context) {
-                  handleFilterChange({ ...dashboardData.filters, ...context.filters } as any)
+                  handleFilterChange({ ...dashboardData.filters, ...context.filters } as DashboardData['filters'])
                 }
               }}
             />
