@@ -80,7 +80,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 <div>
                   <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Como Usar:</h4>
                   <p>
-                    Clique no botão <strong>"Filtros"</strong> para abrir o painel de filtros. Configure os critérios desejados e clique em <strong>"Aplicar"</strong>. 
+                    Clique no botão <strong>&quot;Filtros&quot;</strong> para abrir o painel de filtros. Configure os critérios desejados e clique em <strong>&quot;Aplicar&quot;</strong>. 
                     O dashboard será atualizado automaticamente com os dados filtrados. Um badge vermelho no botão indica quantos filtros estão ativos.
                   </p>
                 </div>
@@ -88,30 +88,171 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
             </AccordionItem>
 
             <AccordionItem title="⚙️ Configurações">
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <p>
-                  As <strong>Configurações</strong> permitem personalizar a visualização e comportamento do dashboard.
+                  As <strong>Configurações</strong> permitem personalizar completamente a experiência do dashboard, adaptando-o às suas necessidades de visualização, acessibilidade e produtividade.
                 </p>
-                <div>
-                  <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Opções Disponíveis:</h4>
-                  <ul className="list-disc list-inside space-y-1 ml-4">
-                    <li><strong>Layout dos Gráficos:</strong> Escolha entre 1, 2 ou 3 colunas</li>
-                    <li><strong>Tema:</strong> Alterne entre temas claro, escuro e personalizados</li>
-                    <li><strong>Acessibilidade:</strong> Ajuste tamanho de fonte, espaçamento e contraste</li>
-                    <li><strong>Idioma:</strong> Selecione entre Português, Inglês ou Espanhol</li>
-                  </ul>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 nymu-dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 nymu-dark:border-blue-800 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-200 nymu-dark:text-blue-200">💡 Por que essas configurações existem?</h4>
+                  <p className="text-sm text-blue-800 dark:text-blue-300 nymu-dark:text-blue-300">
+                    Cada configuração foi pensada para atender diferentes necessidades de uso: desde análises detalhadas até apresentações executivas, 
+                    passando por acessibilidade e internacionalização. O objetivo é tornar o dashboard verdadeiramente personalizável e eficiente para cada usuário.
+                  </p>
                 </div>
+
                 <div>
-                  <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Layout dos Gráficos:</h4>
-                  <ul className="list-disc list-inside space-y-1 ml-4">
-                    <li><strong>1 Coluna:</strong> Gráficos em tela cheia, ideal para análise detalhada</li>
-                    <li><strong>2 Colunas:</strong> Visualização balanceada, boa para comparações</li>
-                    <li><strong>3 Colunas:</strong> Visão geral compacta, mostra mais gráficos simultaneamente</li>
-                  </ul>
+                  <h4 className="font-semibold mb-3 text-gray-900 dark:text-white nymu-dark:text-white text-lg">🌐 Idioma</h4>
+                  <div className="space-y-3 ml-4">
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Para que serve:</h5>
+                      <p className="text-sm">
+                        Permite alterar o idioma da interface do dashboard entre <strong>Português 🇧🇷</strong>, <strong>Inglês 🇺🇸</strong> e <strong>Espanhol 🇪🇸</strong>. 
+                        Todos os textos, botões, menus e mensagens são traduzidos automaticamente.
+                      </p>
+                    </div>
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Por que foi pensado dessa forma:</h5>
+                      <p className="text-sm">
+                        Em um ambiente corporativo global, equipes multinacionais precisam acessar o mesmo dashboard em seus idiomas nativos. 
+                        Isso reduz barreiras de comunicação, melhora a compreensão dos dados e aumenta a produtividade de equipes internacionais.
+                      </p>
+                    </div>
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Impacto:</h5>
+                      <ul className="list-disc list-inside space-y-1 text-sm ml-2">
+                        <li><strong>Produtividade:</strong> Usuários trabalham mais rápido quando a interface está em seu idioma nativo</li>
+                        <li><strong>Precisão:</strong> Reduz erros de interpretação causados por barreiras linguísticas</li>
+                        <li><strong>Adoção:</strong> Facilita a adoção do sistema por equipes internacionais</li>
+                        <li><strong>Colaboração:</strong> Permite que diferentes equipes compartilhem o mesmo dashboard mantendo suas preferências linguísticas</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
-                <p>
-                  Você pode reorganizar os gráficos arrastando e soltando. Suas preferências são salvas automaticamente.
-                </p>
+
+                <div>
+                  <h4 className="font-semibold mb-3 text-gray-900 dark:text-white nymu-dark:text-white text-lg">🎨 Tema</h4>
+                  <div className="space-y-3 ml-4">
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Para que serve:</h5>
+                      <p className="text-sm">
+                        Permite escolher entre diferentes esquemas de cores: <strong>🌞 Nymu Claro</strong>, <strong>🌙 Nymu Escuro</strong>, 
+                        <strong>🌞 Claro Alternativo</strong>, <strong>🌙 Escuro Alternativo</strong> e <strong>🎨 Temas Personalizados</strong>.
+                      </p>
+                    </div>
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Por que foi pensado dessa forma:</h5>
+                      <p className="text-sm">
+                        Diferentes ambientes de trabalho e preferências pessoais exigem diferentes esquemas de cores. 
+                        <strong>Temas claros</strong> são ideais para ambientes bem iluminados e apresentações, enquanto <strong>temas escuros</strong> 
+                        reduzem fadiga visual em uso prolongado e são preferidos por muitos desenvolvedores e analistas. 
+                        Os <strong>temas Nymu</strong> mantêm a identidade visual da marca, enquanto os alternativos oferecem opções mais neutras.
+                      </p>
+                    </div>
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Impacto:</h5>
+                      <ul className="list-disc list-inside space-y-1 text-sm ml-2">
+                        <li><strong>Conforto Visual:</strong> Reduz fadiga ocular, especialmente em uso prolongado</li>
+                        <li><strong>Produtividade:</strong> Usuários trabalham por mais tempo sem desconforto</li>
+                        <li><strong>Identidade Visual:</strong> Temas Nymu reforçam a marca em apresentações e compartilhamentos</li>
+                        <li><strong>Flexibilidade:</strong> Adapta-se a diferentes ambientes (escritório, home office, apresentações)</li>
+                        <li><strong>Acessibilidade:</strong> Temas escuros podem ajudar usuários com sensibilidade à luz</li>
+                        <li><strong>Personalização:</strong> Temas customizados permitem alinhar o dashboard com identidades visuais corporativas</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-3 text-gray-900 dark:text-white nymu-dark:text-white text-lg">📏 Altura dos Widgets</h4>
+                  <div className="space-y-3 ml-4">
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Para que serve:</h5>
+                      <p className="text-sm">
+                        Controla a altura vertical dos gráficos e widgets: <strong>Altura Normal</strong>, <strong>Altura Grande</strong> ou <strong>Altura Extra Grande</strong>.
+                      </p>
+                    </div>
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Por que foi pensado dessa forma:</h5>
+                      <p className="text-sm">
+                        Diferentes tipos de análise requerem diferentes níveis de detalhe visual. Gráficos mais altos permitem ver mais nuances nos dados, 
+                        identificar tendências sutis e fazer comparações mais precisas. Gráficos menores economizam espaço e permitem ver mais informações 
+                        simultaneamente. Esta configuração oferece flexibilidade para adaptar o dashboard ao tipo de análise sendo realizada.
+                      </p>
+                    </div>
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Impacto:</h5>
+                      <ul className="list-disc list-inside space-y-1 text-sm ml-2">
+                        <li><strong>Análise Detalhada:</strong> Alturas maiores revelam mais detalhes e padrões nos dados</li>
+                        <li><strong>Visão Geral:</strong> Alturas menores permitem ver mais gráficos de uma vez, facilitando comparações rápidas</li>
+                        <li><strong>Apresentações:</strong> Alturas maiores são ideais para apresentações e relatórios impressos</li>
+                        <li><strong>Eficiência:</strong> Adapta-se ao tipo de tela e resolução disponível</li>
+                        <li><strong>Legibilidade:</strong> Gráficos maiores facilitam a leitura de valores e labels</li>
+                        <li><strong>Scroll:</strong> Alturas menores reduzem a necessidade de rolagem, melhorando a navegação</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-3 text-gray-900 dark:text-white nymu-dark:text-white text-lg">📐 Layout dos Gráficos</h4>
+                  <div className="space-y-3 ml-4">
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Para que serve:</h5>
+                      <p className="text-sm">
+                        Define quantos gráficos aparecem por linha: <strong>1 por linha</strong> (tela cheia), <strong>2 por linha</strong> (grid balanceado) 
+                        ou <strong>3 por linha</strong> (visão compacta).
+                      </p>
+                    </div>
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Por que foi pensado dessa forma:</h5>
+                      <p className="text-sm">
+                        O layout ideal depende do objetivo da análise. <strong>1 coluna</strong> é perfeito para análises profundas e apresentações, 
+                        onde cada gráfico precisa de destaque. <strong>2 colunas</strong> oferecem um equilíbrio entre detalhe e visão geral, 
+                        ideal para comparações lado a lado. <strong>3 colunas</strong> maximizam a quantidade de informação visível simultaneamente, 
+                        perfeito para dashboards de monitoramento contínuo. Esta flexibilidade permite que o mesmo dashboard sirva diferentes propósitos.
+                      </p>
+                    </div>
+                    <div>
+                      <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Impacto:</h5>
+                      <ul className="list-disc list-inside space-y-1 text-sm ml-2">
+                        <li><strong>1 por linha:</strong>
+                          <ul className="list-circle list-inside ml-4 mt-1 space-y-1">
+                            <li>Máximo detalhe e legibilidade</li>
+                            <li>Ideal para análises profundas e apresentações</li>
+                            <li>Melhor para identificar padrões sutis</li>
+                            <li>Requer mais rolagem vertical</li>
+                          </ul>
+                        </li>
+                        <li><strong>2 por linha:</strong>
+                          <ul className="list-circle list-inside ml-4 mt-1 space-y-1">
+                            <li>Balance entre detalhe e quantidade de informação</li>
+                            <li>Perfeito para comparações lado a lado</li>
+                            <li>Boa para análises comparativas</li>
+                            <li>Equilíbrio ideal para uso geral</li>
+                          </ul>
+                        </li>
+                        <li><strong>3 por linha:</strong>
+                          <ul className="list-circle list-inside ml-4 mt-1 space-y-1">
+                            <li>Máxima quantidade de informação visível</li>
+                            <li>Ideal para monitoramento e dashboards executivos</li>
+                            <li>Reduz necessidade de rolagem</li>
+                            <li>Pode comprometer legibilidade em gráficos complexos</li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-green-50 dark:bg-green-900/20 nymu-dark:bg-green-900/20 border border-green-200 dark:border-green-800 nymu-dark:border-green-800 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2 text-green-900 dark:text-green-200 nymu-dark:text-green-200">✨ Dica de Uso:</h4>
+                  <p className="text-sm text-green-800 dark:text-green-300 nymu-dark:text-green-300">
+                    Combine essas configurações para criar a experiência ideal: use <strong>Layout 1 coluna + Altura Grande</strong> para apresentações, 
+                    <strong>Layout 3 colunas + Altura Normal</strong> para monitoramento diário, e <strong>Tema Escuro</strong> para sessões de análise prolongadas. 
+                    Você pode reorganizar os gráficos arrastando e soltando, e todas as preferências são salvas automaticamente para sua próxima sessão.
+                  </p>
+                </div>
               </div>
             </AccordionItem>
 
@@ -134,7 +275,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Como Configurar:</h4>
                   <ol className="list-decimal list-inside space-y-1 ml-4">
                     <li>Configure os filtros desejados no dashboard</li>
-                    <li>Clique em <strong>"Agendar Relatório"</strong></li>
+                    <li>Clique em <strong>&quot;Agendar Relatório&quot;</strong></li>
                     <li>Defina a frequência e horário</li>
                     <li>Adicione os emails dos destinatários</li>
                     <li>Selecione o formato (PDF, Excel ou ambos)</li>
@@ -166,7 +307,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Como Usar:</h4>
                   <ol className="list-decimal list-inside space-y-1 ml-4">
                     <li>Configure os filtros desejados</li>
-                    <li>Clique em <strong>"Compartilhar"</strong></li>
+                    <li>Clique em <strong>&quot;Compartilhar&quot;</strong></li>
                     <li>Configure a validade do link (opcional)</li>
                     <li>Copie o link gerado ou compartilhe via WhatsApp</li>
                     <li>O link pode ser compartilhado com qualquer pessoa</li>
@@ -206,11 +347,11 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Como Exportar:</h4>
                   <ol className="list-decimal list-inside space-y-1 ml-4">
                     <li>Configure os filtros desejados</li>
-                    <li>Clique em <strong>"Exportar"</strong></li>
+                    <li>Clique em <strong>&quot;Exportar&quot;</strong></li>
                     <li>Selecione o formato desejado</li>
                     <li>Escolha quais seções incluir</li>
                     <li>Configure opções de formatação (para PDF)</li>
-                    <li>Clique em <strong>"Baixar"</strong></li>
+                    <li>Clique em <strong>&quot;Baixar&quot;</strong></li>
                   </ol>
                 </div>
               </div>
@@ -298,7 +439,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 <div>
                   <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Funcionalidades:</h4>
                   <ul className="list-disc list-inside space-y-1 ml-4">
-                    <li><strong>Presets Padrão:</strong> Presets pré-configurados como "Hoje", "Este Mês", "Último Trimestre"</li>
+                    <li><strong>Presets Padrão:</strong> Presets pré-configurados como &quot;Hoje&quot;, &quot;Este Mês&quot;, &quot;Último Trimestre&quot;</li>
                     <li><strong>Presets Personalizados:</strong> Crie seus próprios presets com filtros específicos</li>
                     <li><strong>Aplicação Rápida:</strong> Aplique um preset com um único clique</li>
                     <li><strong>Edição:</strong> Modifique presets personalizados a qualquer momento</li>
@@ -309,10 +450,10 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Como Criar um Preset:</h4>
                   <ol className="list-decimal list-inside space-y-1 ml-4">
                     <li>Configure os filtros desejados no dashboard</li>
-                    <li>Clique no botão <strong>"Novo Preset"</strong> (ícone +)</li>
+                    <li>Clique no botão <strong>&quot;Novo Preset&quot;</strong> (ícone +)</li>
                     <li>Digite um nome descritivo para o preset</li>
                     <li>Os filtros atuais serão salvos automaticamente</li>
-                    <li>Clique em <strong>"Criar Preset"</strong></li>
+                    <li>Clique em <strong>&quot;Criar Preset&quot;</strong></li>
                   </ol>
                 </div>
                 <div>
