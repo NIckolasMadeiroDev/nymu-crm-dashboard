@@ -433,7 +433,7 @@ textarea:focus-visible {
 }
 
 
-/* Nymu Light Theme (cores da marca - paleta oficial)
+/* Nymu Light Theme (cores da marca - paleta oficial melhorada)
  * Cor Primária: #FF9D02 (RGB: 251, 180, 28 | CMYK: C:0 M:45 Y:100 K:0)
  * Gradiente: #FFB84C (RGB: 251, 180, 28 | CMYK: C:0 M:32 Y:98 K:0)
  * Cor Secundária Cinza Escuro: #333333 (RGB: 51, 51, 51 | CMYK: C:69 M:63 Y:62 K:58)
@@ -442,69 +442,114 @@ textarea:focus-visible {
 html.nymu-light {
   --theme-primary: #FF9D02; /* Cor primária amarela */
   --theme-secondary: #FFB84C; /* Gradiente amarelo mais claro */
-  --theme-background: #F7F7F7; /* Cor secundária cinza claro */
-  --theme-foreground: #333333; /* Cor primária cinza escuro */
+  --theme-background: #FAFAFA; /* Background mais suave */
+  --theme-foreground: #1F2937; /* Texto mais escuro para melhor contraste */
   --theme-accent: #FF9D02; /* Cor primária amarela */
-  --theme-success: #10b981;
-  --theme-warning: #f59e0b;
-  --theme-error: #ef4444;
-  --theme-info: #06b6d4;
-  --background: #F7F7F7; /* Cor secundária cinza claro */
-  --foreground: #333333; /* Cor primária cinza escuro */
-  --grid-color: #d1d5db;
+  --theme-success: #059669; /* Verde esmeralda mais rico e distinto */
+  --theme-warning: #D97706; /* Laranja mais saturado */
+  --theme-error: #DC2626; /* Vermelho mais vibrante */
+  --theme-info: #0284C7; /* Azul ciano mais profundo */
+  --background: #FAFAFA; /* Background mais suave */
+  --foreground: #1F2937; /* Texto mais escuro para melhor contraste */
+  --grid-color: #E5E7EB; /* Grid mais suave */
 }
 
-/* Nymu Dark Theme (cores da marca - paleta oficial)
+/* Nymu Dark Theme (cores da marca - paleta oficial melhorada)
  * Cor Primária: #FF9D02 (RGB: 251, 180, 28 | CMYK: C:0 M:45 Y:100 K:0)
  * Gradiente: #FFB84C (RGB: 251, 180, 28 | CMYK: C:0 M:32 Y:98 K:0)
  * Cor Secundária Cinza Escuro: #333333 (RGB: 51, 51, 51 | CMYK: C:69 M:63 Y:62 K:58)
  * Cor Secundária Cinza Claro: #F7F7F7 (RGB: 247, 247, 247 | CMYK: C:67 M:60 Y:60 K:46)
  */
 html.nymu-dark {
-  --theme-primary: #FF9D02; /* Cor primária amarela */
-  --theme-secondary: #FFB84C; /* Gradiente amarelo mais claro */
-  --theme-background: #333333; /* Cor primária cinza escuro */
-  --theme-foreground: #F7F7F7; /* Cor secundária cinza claro */
-  --theme-accent: #FF9D02; /* Cor primária amarela */
-  --theme-success: #34d399;
-  --theme-warning: #fbbf24;
-  --theme-error: #f87171;
-  --theme-info: #22d3ee;
-  --background: #333333; /* Cor primária cinza escuro */
-  --foreground: #F7F7F7; /* Cor secundária cinza claro */
-  --grid-color: #4a4a4a;
+  --theme-primary: #FFB84C; /* Amarelo mais claro para melhor visibilidade no escuro */
+  --theme-secondary: #FF9D02; /* Amarelo primário como secundário */
+  --theme-background: #1E1E1E; /* Cinza escuro tradicional */
+  --theme-foreground: #FFFFFF; /* Branco para texto */
+  --theme-accent: #FFB84C; /* Accent mais claro */
+  --theme-success: #4CAF50; /* Verde tradicional harmonioso */
+  --theme-warning: #FF9800; /* Laranja tradicional */
+  --theme-error: #F44336; /* Vermelho tradicional */
+  --theme-info: #2196F3; /* Azul tradicional */
+  --background: #1E1E1E; /* Cinza escuro tradicional */
+  --foreground: #FFFFFF; /* Branco para texto */
+  --grid-color: #3A3A3A; /* Grid cinza médio */
 }
 
-/* Light Theme Alternativo (cores azuis antigas) */
+/* Force white text in nymu-dark theme for text elements */
+html.nymu-dark p,
+html.nymu-dark span,
+html.nymu-dark div:not([class*="bg-"]):not(button):not(a),
+html.nymu-dark h1,
+html.nymu-dark h2,
+html.nymu-dark h3,
+html.nymu-dark h4,
+html.nymu-dark h5,
+html.nymu-dark h6,
+html.nymu-dark label,
+html.nymu-dark li,
+html.nymu-dark td,
+html.nymu-dark th {
+  color: #FFFFFF !important;
+}
+
+/* Keep colored text classes for semantic colors */
+html.nymu-dark .text-blue-600,
+html.nymu-dark .text-green-600,
+html.nymu-dark .text-red-600,
+html.nymu-dark .text-yellow-600,
+html.nymu-dark .text-orange-600,
+html.nymu-dark .text-purple-600,
+html.nymu-dark .text-pink-600,
+html.nymu-dark .text-cyan-600,
+html.nymu-dark .text-indigo-600,
+html.nymu-dark .text-teal-600,
+html.nymu-dark .text-lime-600,
+html.nymu-dark .text-amber-600,
+html.nymu-dark .text-emerald-600,
+html.nymu-dark .text-violet-600,
+html.nymu-dark .text-fuchsia-600,
+html.nymu-dark .text-rose-600,
+html.nymu-dark .text-sky-600 {
+  color: inherit !important;
+}
+
+/* Keep white text on colored buttons */
+html.nymu-dark button[class*="bg-"] .text-white,
+html.nymu-dark button[class*="bg-"] span.text-white,
+html.nymu-dark button[class*="bg-"] div.text-white {
+  color: #FFFFFF !important;
+}
+
+/* Light Theme Alternativo (cores convencionais harmoniosas) */
 html.light {
-  --theme-primary: #3b82f6;
-  --theme-secondary: #10b981;
-  --theme-background: #ffffff;
-  --theme-foreground: #171717;
-  --theme-accent: #8b5cf6;
-  --theme-success: #10b981;
-  --theme-warning: #f59e0b;
-  --theme-error: #ef4444;
-  --theme-info: #06b6d4;
-  --background: #ffffff;
-  --foreground: #171717;
-  --grid-color: #e5e7eb;
+  --theme-primary: #1976D2; /* Azul Material Design tradicional */
+  --theme-secondary: #388E3C; /* Verde Material Design */
+  --theme-background: #FFFFFF; /* Branco puro */
+  --theme-foreground: #212121; /* Cinza escuro tradicional */
+  --theme-accent: #7B1FA2; /* Roxo Material Design */
+  --theme-success: #4CAF50; /* Verde tradicional */
+  --theme-warning: #FF9800; /* Laranja tradicional */
+  --theme-error: #F44336; /* Vermelho tradicional */
+  --theme-info: #2196F3; /* Azul tradicional */
+  --background: #FFFFFF; /* Branco puro */
+  --foreground: #212121; /* Cinza escuro tradicional */
+  --grid-color: #E0E0E0; /* Grid cinza claro */
 }
 
-/* Dark Theme Alternativo (cores azuis antigas) */
+/* Dark Theme Alternativo (cores convencionais harmoniosas) */
 html.dark {
-  --theme-primary: #60a5fa;
-  --theme-secondary: #34d399;
-  --theme-background: #0f172a;
-  --theme-foreground: #f1f5f9;
-  --theme-accent: #a78bfa;
-  --theme-success: #34d399;
-  --theme-warning: #fbbf24;
-  --theme-error: #f87171;
-  --theme-info: #22d3ee;
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --grid-color: #334155;
+  --theme-primary: #64B5F6; /* Azul claro Material Design */
+  --theme-secondary: #81C784; /* Verde claro Material Design */
+  --theme-background: #121212; /* Cinza muito escuro Material Design */
+  --theme-foreground: #FFFFFF; /* Branco para texto */
+  --theme-accent: #BA68C8; /* Roxo claro Material Design */
+  --theme-success: #66BB6A; /* Verde claro tradicional */
+  --theme-warning: #FFB74D; /* Laranja claro tradicional */
+  --theme-error: #EF5350; /* Vermelho claro tradicional */
+  --theme-info: #42A5F5; /* Azul claro tradicional */
+  --background: #121212; /* Cinza muito escuro Material Design */
+  --foreground: #FFFFFF; /* Branco para texto */
+  --grid-color: #2C2C2C; /* Grid cinza médio escuro */
 }
 
 html.custom {
@@ -579,53 +624,98 @@ html.nymu-dark .bg-gray-50 {
   background-color: var(--theme-background) !important;
 }
 
+html.nymu-light .bg-gray-50 {
+  background-color: #FAFAFA !important;
+}
+
+html.nymu-dark .bg-gray-50 {
+  background-color: #1F2937 !important;
+}
+
 html.light .bg-gray-100,
-html.dark .bg-gray-100 {
+html.dark .bg-gray-100,
+html.nymu-light .bg-gray-100,
+html.nymu-dark .bg-gray-100 {
   background-color: var(--grid-color) !important;
 }
 
 html.light .bg-gray-200,
-html.dark .bg-gray-200 {
+html.dark .bg-gray-200,
+html.nymu-light .bg-gray-200,
+html.nymu-dark .bg-gray-200 {
   background-color: var(--grid-color) !important;
 }
 
 html.light .bg-gray-800,
 html.dark .bg-gray-800,
+html.nymu-light .bg-gray-800,
+html.nymu-dark .bg-gray-800,
 html.light .bg-gray-700,
-html.dark .bg-gray-700 {
+html.dark .bg-gray-700,
+html.nymu-light .bg-gray-700,
+html.nymu-dark .bg-gray-700 {
   background-color: var(--theme-background) !important;
 }
 
 /* Text colors - All text uses theme foreground */
 html.light .text-gray-900,
 html.dark .text-gray-900,
+html.nymu-light .text-gray-900,
 html.light .text-gray-800,
 html.dark .text-gray-800,
-html.light .text-gray-700,
-html.dark .text-gray-700 {
+html.nymu-light .text-gray-800 {
   color: var(--theme-foreground) !important;
 }
 
+html.nymu-dark .text-gray-900,
+html.nymu-dark .text-gray-800 {
+  color: #FFFFFF !important;
+}
+
+html.nymu-dark .text-gray-700 {
+  color: #FFFFFF !important;
+}
+
 html.light .text-gray-600,
-html.dark .text-gray-600 {
+html.dark .text-gray-600,
+html.nymu-light .text-gray-600 {
   color: var(--theme-foreground) !important;
   opacity: 0.85;
 }
 
+html.nymu-dark .text-gray-600 {
+  color: #FFFFFF !important;
+  opacity: 0.85;
+}
+
 html.light .text-gray-500,
-html.dark .text-gray-500 {
+html.dark .text-gray-500,
+html.nymu-light .text-gray-500 {
   color: var(--theme-foreground) !important;
   opacity: 0.7;
 }
 
+html.nymu-dark .text-gray-500 {
+  color: #FFFFFF !important;
+  opacity: 0.7;
+}
+
 html.light .text-gray-400,
-html.dark .text-gray-400 {
+html.dark .text-gray-400,
+html.nymu-light .text-gray-400 {
   color: var(--theme-foreground) !important;
   opacity: 0.6;
 }
 
+html.nymu-dark .text-gray-400 {
+  color: #FFFFFF !important;
+  opacity: 0.6;
+}
+
 html.light .text-gray-300,
-html.dark .text-gray-300 {
+html.dark .text-gray-300,
+html.nymu-light .text-gray-300,
+html.nymu-dark .text-gray-300 {
   color: var(--theme-foreground) !important;
   opacity: 0.5;
 }
@@ -633,6 +723,10 @@ html.dark .text-gray-300 {
 html.light .text-white,
 html.dark .text-white {
   color: var(--theme-foreground) !important;
+}
+
+html.nymu-dark .text-white {
+  color: #FFFFFF !important;
 }
 
 /* Buttons with white text on colored backgrounds should stay white */
@@ -648,14 +742,24 @@ html.dark button.bg-red-600 .text-white {
 /* Borders - All borders use grid color */
 html.light .border-gray-200,
 html.dark .border-gray-200,
+html.nymu-light .border-gray-200,
+html.nymu-dark .border-gray-200,
 html.light .border-gray-300,
 html.dark .border-gray-300,
+html.nymu-light .border-gray-300,
+html.nymu-dark .border-gray-300,
 html.light .border-gray-100,
 html.dark .border-gray-100,
+html.nymu-light .border-gray-100,
+html.nymu-dark .border-gray-100,
 html.light .border-gray-600,
 html.dark .border-gray-600,
+html.nymu-light .border-gray-600,
+html.nymu-dark .border-gray-600,
 html.light .border-gray-700,
-html.dark .border-gray-700 {
+html.dark .border-gray-700,
+html.nymu-light .border-gray-700,
+html.nymu-dark .border-gray-700 {
   border-color: var(--grid-color) !important;
 }
 
@@ -816,16 +920,33 @@ html.dark table {
 }
 
 html.light thead,
-html.dark thead {
+html.dark thead,
+html.nymu-light thead {
   background-color: var(--grid-color) !important;
+}
+
+html.nymu-dark thead {
+  background-color: #2C2C2C !important;
+}
+
+html.dark thead {
+  background-color: #2C2C2C !important;
 }
 
 html.light th,
 html.dark th,
+html.nymu-light th,
 html.light td,
-html.dark td {
+html.dark td,
+html.nymu-light td {
   color: var(--theme-foreground) !important;
   border-color: var(--grid-color) !important;
+}
+
+html.nymu-dark th,
+html.nymu-dark td {
+  color: #FFFFFF !important;
+  border-color: #3A3A3A !important;
 }
 
 html.light tr:hover,

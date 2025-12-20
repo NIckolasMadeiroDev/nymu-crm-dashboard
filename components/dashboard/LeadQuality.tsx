@@ -113,19 +113,19 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
     <div className="overflow-auto flex-1 min-h-0 w-full rounded-lg" style={{ maxHeight: '100%' }}>
       <div className="inline-block min-w-full align-middle shadow-sm">
           <table
-          className={`min-w-full divide-y divide-gray-200 bg-white rounded-lg overflow-hidden ${
-            useNewDesign ? '' : 'divide-y divide-gray-200'
+          className={`min-w-full divide-y divide-gray-200 dark:divide-gray-700 nymu-dark:divide-gray-700 bg-white dark:bg-gray-800 nymu-dark:bg-gray-800 rounded-lg overflow-hidden ${
+            useNewDesign ? '' : 'divide-y divide-gray-200 dark:divide-gray-700 nymu-dark:divide-gray-700'
           }`}
             role="table"
             aria-label="Tabela de qualidade dos leads por origem"
           >
-          <thead className={useNewDesign ? 'bg-gradient-to-r from-gray-50 to-gray-100' : 'bg-gray-50'}>
+          <thead className={useNewDesign ? 'bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 nymu-dark:from-gray-800 nymu-dark:to-gray-700' : 'bg-gray-50 dark:bg-gray-800 nymu-dark:bg-gray-800'}>
               <tr role="row">
                 <th
                   role="columnheader"
                   scope="col"
-                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider font-secondary transition-colors ${
-                  sortColumn === 'origin' ? 'bg-blue-50' : ''
+                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-white nymu-dark:text-white uppercase tracking-wider font-secondary transition-colors ${
+                  sortColumn === 'origin' ? 'bg-blue-50 dark:bg-blue-900/30 nymu-dark:bg-blue-900/30' : ''
                 }`}
               >
                 <div className="flex items-center gap-2 group">
@@ -143,8 +143,8 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                 <th
                   role="columnheader"
                   scope="col"
-                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider font-secondary transition-colors ${
-                  sortColumn === 'meetParticipationRate' ? 'bg-blue-50' : ''
+                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-white nymu-dark:text-white uppercase tracking-wider font-secondary transition-colors ${
+                  sortColumn === 'meetParticipationRate' ? 'bg-blue-50 dark:bg-blue-900/30 nymu-dark:bg-blue-900/30' : ''
                 }`}
               >
                 <div className="flex items-center gap-2 group">
@@ -162,8 +162,8 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                 <th
                   role="columnheader"
                   scope="col"
-                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 uppercase tracking-wider font-secondary transition-colors ${
-                  sortColumn === 'purchaseRate' ? 'bg-blue-50' : ''
+                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-white nymu-dark:text-white uppercase tracking-wider font-secondary transition-colors ${
+                  sortColumn === 'purchaseRate' ? 'bg-blue-50 dark:bg-blue-900/30 nymu-dark:bg-blue-900/30' : ''
                 }`}
               >
                 <div className="flex items-center gap-2 group">
@@ -180,7 +180,7 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 nymu-dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 nymu-dark:divide-gray-700">
             {sortedData.map((item, index) => {
                 const rowKey = `lead-quality-${item.origin}`
                 return (
@@ -188,19 +188,19 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                   key={rowKey}
                   className={`transition-colors duration-150 ${
                     useNewDesign
-                      ? 'hover:bg-blue-50 hover:shadow-sm even:bg-gray-50/50'
-                      : 'hover:bg-gray-50'
+                      ? 'hover:bg-blue-50 dark:hover:bg-gray-700 nymu-dark:hover:bg-gray-700 hover:shadow-sm even:bg-gray-50/50 dark:even:bg-gray-700/50 nymu-dark:even:bg-gray-700/50'
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-700 nymu-dark:hover:bg-gray-700'
                   }`}
                 >
                   <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                    <div className="text-sm sm:text-base font-medium text-gray-900 font-secondary">
+                    <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
                         {item.origin}
                       </div>
                     </td>
                   <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                     {useNewDesign ? (
                       <div className="flex items-center gap-2">
-                        <span className="text-sm sm:text-base font-semibold text-gray-900 font-secondary">
+                        <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
                           {item.meetParticipationRate.toFixed(0)}%
                         </span>
                         <div className="w-16 sm:w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -211,7 +211,7 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                         </div>
                       </div>
                     ) : (
-                      <div className="text-sm sm:text-base font-medium text-gray-900 font-secondary">
+                      <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
                         {item.meetParticipationRate.toFixed(0)}%
                       </div>
                     )}
@@ -219,7 +219,7 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                   <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                     {useNewDesign ? (
                       <div className="flex items-center gap-2">
-                        <span className="text-sm sm:text-base font-semibold text-gray-900 font-secondary">
+                        <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
                           {item.purchaseRate.toFixed(0)}%
                         </span>
                         <div className="w-16 sm:w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -230,7 +230,7 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                         </div>
                       </div>
                     ) : (
-                      <div className="text-sm sm:text-base font-medium text-gray-900 font-secondary">
+                      <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
                         {item.purchaseRate.toFixed(0)}%
                       </div>
                     )}

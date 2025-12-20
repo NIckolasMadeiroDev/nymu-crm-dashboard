@@ -5,6 +5,7 @@ import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage from '@/components/ui/ErrorMessage'
+import MobileWarning from '@/components/ui/MobileWarning'
 import GenerationActivationWithControls from './GenerationActivationWithControls'
 import SalesConversionWithControls from './SalesConversionWithControls'
 import ConversionRatesWithControls from './ConversionRatesWithControls'
@@ -40,12 +41,26 @@ export default function Dashboard() {
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [drillContext, setDrillContext] = useState<DrillContext | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   type LogoVariant = 'twocolor' | 'white'
   type ChartLayout = 'one' | 'two' | 'three'
   
   const [logoVariant, setLogoVariant] = useState<LogoVariant>('twocolor')
   const [chartLayout, setChartLayout] = useState<ChartLayout>('three')
   const [showSettingsModal, setShowSettingsModal] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+    }
+  }, [])
 
   const defaultChartOrder = [
     'sales-conversion-chart',
@@ -283,6 +298,10 @@ export default function Dashboard() {
         <ErrorMessage message={error} onRetry={handleRetry} />
       </div>
     )
+  }
+
+  if (isMobile) {
+    return <MobileWarning />
   }
 
   if (!dashboardData) {

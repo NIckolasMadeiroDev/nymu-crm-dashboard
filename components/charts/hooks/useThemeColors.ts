@@ -21,59 +21,115 @@ export interface ThemeColors {
 }
 
 const LIGHT_THEME_COLORS: ThemeColors = {
-  primary: '#3b82f6',
-  secondary: '#10b981',
-  accent: '#8b5cf6',
-  success: '#10b981',
-  warning: '#f59e0b',
-  error: '#ef4444',
-  info: '#06b6d4',
+  primary: '#1976D2', // Azul Material Design tradicional
+  secondary: '#388E3C', // Verde Material Design
+  accent: '#7B1FA2', // Roxo Material Design
+  success: '#4CAF50', // Verde tradicional
+  warning: '#FF9800', // Laranja tradicional
+  error: '#F44336', // Vermelho tradicional
+  info: '#2196F3', // Azul tradicional
   chartColors: [
-    '#3b82f6', // primary - blue
-    '#10b981', // secondary - green
-    '#f59e0b', // warning - amber
-    '#ef4444', // error - red
-    '#8b5cf6', // accent - purple
-    '#ec4899', // pink
-    '#06b6d4', // info - cyan
-    '#84cc16', // lime
-    '#f97316', // orange
-    '#14b8a6', // teal
+    '#1976D2', // Azul primário
+    '#388E3C', // Verde
+    '#FF9800', // Laranja
+    '#F44336', // Vermelho
+    '#7B1FA2', // Roxo
+    '#E91E63', // Rosa
+    '#00BCD4', // Ciano
+    '#8BC34A', // Verde lima
+    '#FF5722', // Laranja vermelho
+    '#0097A7', // Ciano profundo
   ],
-  background: '#ffffff',
-  foreground: '#171717',
-  gridColor: '#e5e7eb',
-  tooltipBackground: '#ffffff',
-  tooltipBorder: '#e5e7eb',
-  tooltipText: '#171717',
+  background: '#FFFFFF',
+  foreground: '#212121',
+  gridColor: '#E0E0E0',
+  tooltipBackground: '#FFFFFF',
+  tooltipBorder: '#BDBDBD',
+  tooltipText: '#212121',
 }
 
 const DARK_THEME_COLORS: ThemeColors = {
-  primary: '#60a5fa',
-  secondary: '#34d399',
-  accent: '#a78bfa',
-  success: '#34d399',
-  warning: '#fbbf24',
-  error: '#f87171',
-  info: '#22d3ee',
+  primary: '#64B5F6', // Azul claro Material Design
+  secondary: '#81C784', // Verde claro Material Design
+  accent: '#BA68C8', // Roxo claro Material Design
+  success: '#66BB6A', // Verde claro tradicional
+  warning: '#FFB74D', // Laranja claro tradicional
+  error: '#EF5350', // Vermelho claro tradicional
+  info: '#42A5F5', // Azul claro tradicional
   chartColors: [
-    '#60a5fa', // primary - light blue
-    '#34d399', // secondary - light green
-    '#fbbf24', // warning - light amber
-    '#f87171', // error - light red
-    '#a78bfa', // accent - light purple
-    '#f472b6', // light pink
-    '#22d3ee', // info - light cyan
-    '#a3e635', // light lime
-    '#fb923c', // light orange
-    '#2dd4bf', // light teal
+    '#64B5F6', // Azul claro
+    '#81C784', // Verde claro
+    '#FFB74D', // Laranja claro
+    '#EF5350', // Vermelho claro
+    '#BA68C8', // Roxo claro
+    '#F48FB1', // Rosa claro
+    '#4DD0E1', // Ciano claro
+    '#AED581', // Verde lima claro
+    '#FF8A65', // Laranja vermelho claro
+    '#4DB6AC', // Ciano profundo claro
   ],
-  background: '#0f172a',
-  foreground: '#f1f5f9',
-  gridColor: '#334155',
-  tooltipBackground: '#1e293b',
-  tooltipBorder: '#334155',
-  tooltipText: '#f1f5f9',
+  background: '#121212',
+  foreground: '#FFFFFF',
+  gridColor: '#2C2C2C',
+  tooltipBackground: '#1E1E1E',
+  tooltipBorder: '#424242',
+  tooltipText: '#FFFFFF',
+}
+
+const NYMU_LIGHT_THEME_COLORS: ThemeColors = {
+  primary: '#FF9D02', // Amarelo primário Nymu
+  secondary: '#FFB84C', // Amarelo secundário Nymu
+  accent: '#FF9D02', // Accent amarelo
+  success: '#059669', // Verde esmeralda distinto
+  warning: '#D97706', // Laranja saturado
+  error: '#DC2626', // Vermelho vibrante
+  info: '#0284C7', // Azul ciano profundo
+  chartColors: [
+    '#FF9D02', // Amarelo Nymu - primário
+    '#059669', // Verde esmeralda - complementar
+    '#D97706', // Laranja - quente
+    '#DC2626', // Vermelho - alerta
+    '#7C3AED', // Roxo - vibrante
+    '#EC4899', // Rosa - suave
+    '#0284C7', // Azul ciano - fresco
+    '#16A34A', // Verde lima - energético
+    '#EA580C', // Laranja vermelho - intenso
+    '#0891B2', // Ciano profundo - calmo
+  ],
+  background: '#FAFAFA',
+  foreground: '#1F2937',
+  gridColor: '#E5E7EB',
+  tooltipBackground: '#FFFFFF',
+  tooltipBorder: '#D1D5DB',
+  tooltipText: '#1F2937',
+}
+
+const NYMU_DARK_THEME_COLORS: ThemeColors = {
+  primary: '#FFB84C', // Amarelo claro Nymu para dark
+  secondary: '#FF9D02', // Amarelo primário Nymu
+  accent: '#FFB84C', // Accent amarelo claro
+  success: '#66BB6A', // Verde claro tradicional
+  warning: '#FFB74D', // Laranja claro tradicional
+  error: '#EF5350', // Vermelho claro tradicional
+  info: '#42A5F5', // Azul claro tradicional
+  chartColors: [
+    '#FFB84C', // Amarelo claro Nymu - primário
+    '#66BB6A', // Verde claro - complementar
+    '#FFB74D', // Laranja claro - quente
+    '#EF5350', // Vermelho claro - alerta
+    '#BA68C8', // Roxo claro - vibrante
+    '#F48FB1', // Rosa claro - suave
+    '#4DD0E1', // Ciano claro - fresco
+    '#AED581', // Verde lima claro - energético
+    '#FF8A65', // Laranja vermelho claro - intenso
+    '#4DB6AC', // Ciano profundo claro - calmo
+  ],
+  background: '#1E1E1E',
+  foreground: '#E5E5E5',
+  gridColor: '#3A3A3A',
+  tooltipBackground: '#2C2C2C',
+  tooltipBorder: '#424242',
+  tooltipText: '#E5E5E5',
 }
 
 export function useThemeColors(): ThemeColors {
@@ -94,27 +150,27 @@ export function useThemeColors(): ThemeColors {
               primary: customTheme.colors.primary,
               secondary: customTheme.colors.secondary,
               accent: customTheme.colors.accent,
-              success: customTheme.colors.secondary,
-              warning: '#f59e0b',
-              error: '#ef4444',
-              info: '#06b6d4',
+              success: '#4CAF50', // Verde tradicional
+              warning: '#FF9800', // Laranja tradicional
+              error: '#F44336', // Vermelho tradicional
+              info: '#2196F3', // Azul tradicional
               chartColors: [
                 customTheme.colors.primary,
                 customTheme.colors.secondary,
                 customTheme.colors.accent,
-                '#f59e0b',
-                '#ef4444',
-                '#ec4899',
-                '#06b6d4',
-                '#84cc16',
-                '#f97316',
-                '#14b8a6',
+                '#FF9800', // Laranja
+                '#F44336', // Vermelho
+                '#E91E63', // Rosa
+                '#00BCD4', // Ciano
+                '#8BC34A', // Verde lima
+                '#FF5722', // Laranja vermelho
+                '#0097A7', // Ciano profundo
               ],
               background: customTheme.colors.background,
               foreground: customTheme.colors.foreground,
-              gridColor: '#e5e7eb',
-              tooltipBackground: customTheme.colors.background,
-              tooltipBorder: '#e5e7eb',
+              gridColor: '#E5E7EB',
+              tooltipBackground: customTheme.colors.background === '#FFFFFF' || customTheme.colors.background === '#FAFAFA' ? '#FFFFFF' : '#1E293B',
+              tooltipBorder: customTheme.colors.background === '#FFFFFF' || customTheme.colors.background === '#FAFAFA' ? '#D1D5DB' : '#475569',
               tooltipText: customTheme.colors.foreground,
             })
             return
@@ -148,6 +204,17 @@ export function useThemeColors(): ThemeColors {
     return customThemeColors
   }
 
-  return theme === 'dark' ? DARK_THEME_COLORS : LIGHT_THEME_COLORS
+  // Retorna cores específicas baseadas no tema
+  switch (theme) {
+    case 'nymu-light':
+      return NYMU_LIGHT_THEME_COLORS
+    case 'nymu-dark':
+      return NYMU_DARK_THEME_COLORS
+    case 'dark':
+      return DARK_THEME_COLORS
+    case 'light':
+    default:
+      return LIGHT_THEME_COLORS
+  }
 }
 
