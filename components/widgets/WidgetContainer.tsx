@@ -5,6 +5,7 @@ import ResizableWidget from './ResizableWidget'
 import ChartTypeSelector, { type ChartType } from '@/components/charts/ChartTypeSelector'
 import AnalysisModal from '@/components/charts/components/AnalysisModal'
 import type { DataAnalysisResult } from '@/services/analytics/data-analysis-service'
+import { useWidgetHeight } from '@/contexts/WidgetHeightContext'
 
 interface WidgetContainerProps {
   readonly id: string
@@ -44,6 +45,25 @@ export default function WidgetContainer({
   const containerRef = useRef<HTMLDivElement>(null)
   const wasMinimizedRef = useRef(isMinimized)
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false)
+  const { widgetHeightPx, widgetHeight } = useWidgetHeight()
+  const [currentHeight, setCurrentHeight] = useState(widgetHeightPx)
+
+  useEffect(() => {
+    setCurrentHeight(widgetHeightPx)
+  }, [widgetHeightPx])
+
+  const getContentHeight = () => {
+    switch (widgetHeight) {
+      case 'normal':
+        return '85%'
+      case 'large':
+        return '88%'
+      case 'extraLarge':
+        return '91%'
+      default:
+        return '85%'
+    }
+  }
 
   // Cria análise padrão se não fornecida
   const defaultAnalysis: DataAnalysisResult = {
@@ -148,8 +168,8 @@ export default function WidgetContainer({
     <div ref={containerRef} className="h-full flex flex-col" data-widget-id={id}>
       <ResizableWidget
         className={`bg-white rounded-lg shadow-sm border-2 border-gray-200 hover:border-[#FF9D02] p-1 sm:p-1.5 md:p-2 flex flex-col ${className}`}
-        minHeight={247}
-        fixedHeight={247}
+        minHeight={currentHeight}
+        fixedHeight={currentHeight}
         autoAdjustHeight={false}
       >
         <div className="mb-0.5 sm:mb-1 md:mb-1.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-0.5 sm:gap-1 border-b border-gray-200 pb-0.5 sm:pb-1 md:pb-1.5">
@@ -268,7 +288,7 @@ export default function WidgetContainer({
             )}
           </div>
         </div>
-        <div className="widget-content flex-1 flex flex-col min-h-0 overflow-y-auto">{children}</div>
+        <div className="widget-content flex-1 flex flex-col min-h-0 overflow-y-auto" style={{ height: getContentHeight(), maxHeight: getContentHeight(), paddingBottom: '12px' }}>{children}</div>
       </ResizableWidget>
 
       {analysis && (

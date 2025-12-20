@@ -35,8 +35,8 @@ export default function LineChart({
       subtitle={config.subtitle}
       onDrillDown={onDataPointClick ? () => {} : undefined}
     >
-      <div className="w-full h-full overflow-hidden">
-        <ResponsiveContainer width="100%" height={responsiveHeight}>
+      <div className="w-full h-full overflow-hidden" style={{ minHeight: responsiveHeight }}>
+        <ResponsiveContainer width="100%" height="100%">
           <RechartsLineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={themeColors.gridColor} />}
             <XAxis

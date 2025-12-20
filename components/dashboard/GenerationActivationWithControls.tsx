@@ -16,7 +16,7 @@ export default function GenerationActivationWithControls({
 }: GenerationActivationWithControlsProps) {
   const chartConfig: ChartConfig = useMemo(() => {
     return {
-      type: 'bar',
+      type: 'area',
       title: 'Geração e Ativação',
       data: data.leadsCreatedByWeek.map((w) => ({
         name: w.label,
@@ -32,7 +32,7 @@ export default function GenerationActivationWithControls({
     <ChartWithControls
       id="generation-activation-chart"
       title="Leads Criados por Semana"
-      initialChartType="bar"
+      initialChartType="area"
       chartConfig={chartConfig}
       availableChartTypes={['bar', 'line', 'area', 'column', 'stackedBar', 'histogram']}
       dragHandleProps={dragHandleProps}

@@ -18,8 +18,8 @@ export default function BubbleChart({
   
   return (
     <ChartContainer title={config.title} subtitle={config.subtitle}>
-      <div className="w-full overflow-hidden">
-        <ResponsiveContainer width="100%" height={responsiveHeight}>
+      <div className="w-full h-full overflow-hidden" style={{ minHeight: responsiveHeight }}>
+        <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: -10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.gridColor} />
             <XAxis

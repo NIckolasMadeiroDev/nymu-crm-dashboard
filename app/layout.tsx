@@ -4,6 +4,7 @@ import './globals.css'
 import { AccessibilityPanel } from '@/components/accessibility/AccessibilityPanel'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ChartMinimizationProvider } from '@/contexts/ChartMinimizationContext'
+import { WidgetHeightProvider } from '@/contexts/WidgetHeightContext'
 import { Toaster } from 'react-hot-toast'
 
 const spaceGrotesk = Space_Grotesk({
@@ -50,7 +51,8 @@ export default function RootLayout({
       <body className={`${spaceGrotesk.variable} ${roboto.variable} antialiased`}>
         <LanguageProvider>
           <ChartMinimizationProvider>
-            {children}
+            <WidgetHeightProvider>
+              {children}
             <AccessibilityPanel />
           <div id="aria-live-region" role="status" aria-live="polite" aria-atomic="true" className="sr-only" />
           <Toaster
@@ -90,6 +92,7 @@ export default function RootLayout({
               },
             }}
           />
+            </WidgetHeightProvider>
           </ChartMinimizationProvider>
         </LanguageProvider>
       </body>

@@ -201,6 +201,18 @@ export function useResponsiveHeight(defaultHeight: number = 300): number {
 
     globalThis.window.addEventListener('resize', handleResize)
 
+    const handleWidgetHeightChange = () => {
+      if (mounted) {
+        containerRef.current = null
+        requestAnimationFrame(() => {
+          findAndObserveContainer()
+          updateHeight()
+        })
+      }
+    }
+
+    globalThis.window.addEventListener('widget-height-changed', handleWidgetHeightChange)
+
     return () => {
       mounted = false
       clearTimeout(timeoutId1)
@@ -211,6 +223,7 @@ export function useResponsiveHeight(defaultHeight: number = 300): number {
         clearInterval(intervalId)
       }
       globalThis.window?.removeEventListener('resize', handleResize)
+      globalThis.window?.removeEventListener('widget-height-changed', handleWidgetHeightChange)
       if (resizeObserverRef.current) {
         resizeObserverRef.current.disconnect()
         resizeObserverRef.current = null

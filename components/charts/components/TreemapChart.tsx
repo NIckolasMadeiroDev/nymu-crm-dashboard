@@ -18,8 +18,8 @@ export default function TreemapChart({ config, data, height = 300 }: Readonly<Tr
 
   return (
     <ChartContainer title={config.title} subtitle={config.subtitle}>
-      <div className="w-full overflow-hidden">
-        <ResponsiveContainer width="100%" height={responsiveHeight}>
+      <div className="w-full h-full overflow-hidden" style={{ minHeight: responsiveHeight }}>
+        <ResponsiveContainer width="100%" height="100%">
           <Treemap
             data={formattedData as any}
             dataKey={valueKey}

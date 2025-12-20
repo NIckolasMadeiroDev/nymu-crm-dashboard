@@ -1,12 +1,14 @@
 import type { DashboardFilters } from '@/types/dashboard'
 
 export type ChartLayout = 'one' | 'two' | 'three'
+export type WidgetHeight = 'normal' | 'large' | 'extraLarge'
 
 export interface DashboardPreferences {
   chartLayout: ChartLayout
   selectedPresetId: string | null
   filters: DashboardFilters | null
   chartOrder?: string[]
+  widgetHeight?: WidgetHeight
 }
 
 const STORAGE_KEY = 'crm-dashboard-preferences'
@@ -16,6 +18,7 @@ class DashboardPreferencesService {
     chartLayout: 'three',
     selectedPresetId: null,
     filters: null,
+    widgetHeight: 'normal',
   }
 
   getPreferences(): DashboardPreferences {
@@ -31,6 +34,7 @@ class DashboardPreferencesService {
           chartLayout: parsed.chartLayout || this.defaultPreferences.chartLayout,
           selectedPresetId: parsed.selectedPresetId ?? this.defaultPreferences.selectedPresetId,
           filters: parsed.filters || this.defaultPreferences.filters,
+          widgetHeight: parsed.widgetHeight || this.defaultPreferences.widgetHeight,
         }
       }
     } catch (error) {
@@ -73,6 +77,28 @@ class DashboardPreferencesService {
 
   getChartOrder(): string[] | undefined {
     return this.getPreferences().chartOrder
+  }
+
+  saveWidgetHeight(height: WidgetHeight): void {
+    this.savePreferences({ widgetHeight: height })
+  }
+
+  getWidgetHeight(): WidgetHeight {
+    return this.getPreferences().widgetHeight || 'normal'
+  }
+
+  getWidgetHeightPx(): number {
+    const height = this.getWidgetHeight()
+    switch (height) {
+      case 'normal':
+        return 320
+      case 'large':
+        return 350
+      case 'extraLarge':
+        return 500
+      default:
+        return 300
+    }
   }
 
   clearPreferences(): void {

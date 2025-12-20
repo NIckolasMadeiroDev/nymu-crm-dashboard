@@ -20,6 +20,7 @@ import FilterPresets from '@/components/filters/FilterPresets'
 import DrillNavigation from '@/components/drill/DrillNavigation'
 import ThemeSelector from '@/components/theme/ThemeSelector'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useWidgetHeight } from '@/contexts/WidgetHeightContext'
 import type { DashboardData } from '@/types/dashboard'
 import { dataSourceAdapter } from '@/services/data/data-source-adapter'
 import { formatCurrency, formatNumber } from '@/utils/format-currency'
@@ -32,6 +33,7 @@ import type { DrillContext } from '@/services/drill/drill-service'
 
 export default function Dashboard() {
   const { t } = useLanguage()
+  const { widgetHeight, setWidgetHeight } = useWidgetHeight()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,6 +46,7 @@ export default function Dashboard() {
   const [logoVariant, setLogoVariant] = useState<LogoVariant>('twocolor')
   const [chartLayout, setChartLayout] = useState<ChartLayout>('three')
   const [showLayoutMenu, setShowLayoutMenu] = useState(false)
+  const [showHeightMenu, setShowHeightMenu] = useState(false)
 
   const defaultChartOrder = [
     'sales-conversion-chart',
@@ -334,6 +337,102 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3 flex-shrink-0">
               <div className="relative">
                 <button
+                  onClick={() => setShowHeightMenu((prev) => !prev)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setShowHeightMenu((prev) => !prev)
+                    }
+                    if (e.key === 'Escape') {
+                      setShowHeightMenu(false)
+                    }
+                  }}
+                  className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs md:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  aria-label="Selecionar altura dos widgets"
+                  aria-expanded={showHeightMenu}
+                  aria-haspopup="true"
+                >
+                  <svg
+                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline text-white">
+                    {widgetHeight === 'normal' && 'Altura Normal'}
+                    {widgetHeight === 'large' && 'Altura Grande'}
+                    {widgetHeight === 'extraLarge' && 'Altura Extra Grande'}
+                  </span>
+                  <svg
+                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                {showHeightMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowHeightMenu(false)}
+                      aria-hidden="true"
+                    />
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                      <div className="py-1">
+                        {[
+                          { value: 'normal', label: 'Altura Normal' },
+                          { value: 'large', label: 'Altura Grande' },
+                          { value: 'extraLarge', label: 'Altura Extra Grande' },
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => {
+                              setWidgetHeight(option.value as 'normal' | 'large' | 'extraLarge')
+                              setShowHeightMenu(false)
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors flex items-center justify-between ${
+                              widgetHeight === option.value ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                            }`}
+                          >
+                            <span className="font-medium">{option.label}</span>
+                            {widgetHeight === option.value && (
+                              <svg
+                                className="w-4 h-4 text-blue-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="relative">
+                <button
                   onClick={() => setShowLayoutMenu((prev) => !prev)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -556,30 +655,30 @@ export default function Dashboard() {
                id="dashboard-export-container" 
                className="transition-all duration-300 space-y-3 sm:space-y-4 md:space-y-5"
              >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-5 items-stretch">
-              <div className="bg-white rounded-lg shadow-sm p-2 sm:p-2.5 md:p-3 lg:p-4 border border-gray-100 flex flex-col justify-between">
-                <h3 className="text-[10px] sm:text-xs md:text-sm font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1">Leads Criados</h3>
-                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 font-primary">{formatNumber(dashboardData.generationActivation.leadsCreated)}</p>
+            <div className="grid grid-cols-6 gap-1.5 sm:gap-2 md:gap-2.5 items-stretch">
+              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
+                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Leads Criados</h3>
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{formatNumber(dashboardData.generationActivation.leadsCreated)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-2 sm:p-2.5 md:p-3 lg:p-4 border border-gray-100 flex flex-col justify-between">
-                <h3 className="text-[10px] sm:text-xs md:text-sm font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1">Leads no Grupo</h3>
-                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 font-primary">{formatNumber(dashboardData.generationActivation.leadsInGroup)}</p>
+              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
+                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Leads no Grupo</h3>
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{formatNumber(dashboardData.generationActivation.leadsInGroup)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-2 sm:p-2.5 md:p-3 lg:p-4 border border-gray-100 flex flex-col justify-between">
-                <h3 className="text-[10px] sm:text-xs md:text-sm font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1">Participantes no Meet</h3>
-                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 font-primary">{formatNumber(dashboardData.generationActivation.meetParticipants)}</p>
+              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
+                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Participantes no Meet</h3>
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{formatNumber(dashboardData.generationActivation.meetParticipants)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-2 sm:p-2.5 md:p-3 lg:p-4 border border-gray-100 flex flex-col justify-between">
-                <h3 className="text-[10px] sm:text-xs md:text-sm font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1">Vendas Fechadas</h3>
-                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 font-primary">{formatNumber(dashboardData.salesConversion.closedSales)}</p>
+              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
+                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Vendas Fechadas</h3>
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{formatNumber(dashboardData.salesConversion.closedSales)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-2 sm:p-2.5 md:p-3 lg:p-4 border border-gray-100 flex flex-col justify-between">
-                <h3 className="text-[10px] sm:text-xs md:text-sm font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1">Taxa de Fechamento</h3>
-                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 font-primary">{dashboardData.salesConversion.closingRate.toFixed(0)}%</p>
+              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
+                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Taxa de Fechamento</h3>
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{dashboardData.salesConversion.closingRate.toFixed(0)}%</p>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-2 sm:p-2.5 md:p-3 lg:p-4 border border-gray-100 flex flex-col justify-between">
-                <h3 className="text-[10px] sm:text-xs md:text-sm font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1">Receita Gerada</h3>
-                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 font-primary">{formatCurrency(dashboardData.salesConversion.revenueGenerated)}</p>
+              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
+                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Receita Gerada</h3>
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{formatCurrency(dashboardData.salesConversion.revenueGenerated)}</p>
               </div>
             </div>
 

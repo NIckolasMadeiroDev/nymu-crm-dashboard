@@ -13,8 +13,8 @@ export default function BoxplotChart({ config, data, height = 300 }: Readonly<Bo
   
   return (
     <ChartContainer title={config.title} subtitle={config.subtitle}>
-      <div className="w-full overflow-hidden">
-        <ResponsiveContainer width="100%" height={responsiveHeight}>
+      <div className="w-full h-full overflow-hidden" style={{ minHeight: responsiveHeight }}>
+        <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 60 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.gridColor} />
             <XAxis 
