@@ -129,13 +129,17 @@ class SchedulingService {
       const data = generateMockDashboardData(report.filters as any)
 
       const { exportService } = await import('@/services/export/export-service')
-      const blob = await exportService.exportDashboard(data, {
+      const result = await exportService.exportDashboard(data, {
         format: report.format,
         includeCharts: true,
         includeTables: true,
         includeKPIs: true,
         title: report.name,
       })
+
+      const blob = typeof result === 'string' 
+        ? new Blob([result], { type: 'text/plain' })
+        : result
 
       this.sendReport(report, blob)
     } catch (error) {
