@@ -118,15 +118,31 @@ class ExportService {
     options: ExportOptions,
     data: Partial<DashboardData>
   ): void {
-    const { doc, pageWidth } = context
+    this.addPDFHeaderBackground(context)
+    this.addPDFHeaderTitle(context, options.title)
+    this.addPDFHeaderDate(context)
+    
+    if (data.filters) {
+      this.addFiltersToHeader(context, data.filters)
+    }
+  }
 
+  private addPDFHeaderBackground(context: PDFContext): void {
+    const { doc, pageWidth } = context
     doc.setFillColor(59, 130, 246)
     doc.rect(0, 0, pageWidth, 40, 'F')
+  }
+
+  private addPDFHeaderTitle(context: PDFContext, title?: string): void {
+    const { doc, pageWidth } = context
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(22)
     doc.setFont('helvetica', 'bold')
-    doc.text(options.title || 'Dashboard CRM NYMU', pageWidth / 2, 18, { align: 'center' })
-    
+    doc.text(title || 'Dashboard CRM NYMU', pageWidth / 2, 18, { align: 'center' })
+  }
+
+  private addPDFHeaderDate(context: PDFContext): void {
+    const { doc, pageWidth } = context
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
     const dateStr = new Date().toLocaleString('pt-BR', {
@@ -137,10 +153,6 @@ class ExportService {
       minute: '2-digit',
     })
     doc.text(`Gerado em: ${dateStr}`, pageWidth / 2, 25, { align: 'center' })
-
-    if (data.filters) {
-      this.addFiltersToHeader(context, data.filters)
-    }
   }
 
   private addFiltersToHeader(
@@ -490,11 +502,16 @@ class ExportService {
     doc.setFillColor(230, 230, 230)
     doc.rect(margin + 45, barY, barWidth, barHeight, 'F')
     
-    const barColor: [number, number, number] = 
-      progress >= 100 ? [16, 185, 129] : 
-      progress >= 80 ? [59, 130, 246] : 
-      progress >= 50 ? [245, 158, 11] : 
-      [239, 68, 68]
+    let barColor: [number, number, number]
+    if (progress >= 100) {
+      barColor = [16, 185, 129]
+    } else if (progress >= 80) {
+      barColor = [59, 130, 246]
+    } else if (progress >= 50) {
+      barColor = [245, 158, 11]
+    } else {
+      barColor = [239, 68, 68]
+    }
     
     doc.setFillColor(barColor[0], barColor[1], barColor[2])
     doc.rect(margin + 45, barY, barFillWidth, barHeight, 'F')
@@ -545,7 +562,7 @@ class ExportService {
 
   private addSectionHeader(context: PDFContext, title: string, fontSize: number = 16): void {
     this.checkPageBreak(context, 20)
-    const { doc, margin, pageWidth, yPosition } = context
+    const { doc, margin, yPosition } = context
     yPosition.value += 5
     doc.setFontSize(fontSize)
     doc.setTextColor(30, 30, 30)
@@ -591,14 +608,14 @@ class ExportService {
     this.checkPageBreak(context, 30)
     const { doc, margin, pageWidth, contentWidth, yPosition } = context
     
-    const totalSpecifiedWidth = columnWidths ? columnWidths.reduce((sum, w) => sum + w, 0) : 0
+    const totalSpecifiedWidth = columnWidths?.reduce((sum, w) => sum + w, 0) ?? 0
     const defaultColumnWidth = totalSpecifiedWidth > 0 
-      ? (contentWidth - totalSpecifiedWidth) / (headers.length - columnWidths!.length)
+      ? (contentWidth - totalSpecifiedWidth) / (headers.length - (columnWidths?.length ?? 0))
       : contentWidth / headers.length
     
     const widths: number[] = []
     headers.forEach((_, index) => {
-      if (columnWidths && columnWidths[index]) {
+      if (columnWidths?.[index]) {
         widths.push(columnWidths[index])
       } else {
         widths.push(defaultColumnWidth)
@@ -742,15 +759,15 @@ class ExportService {
     if (options.includeKPIs) {
       rows.push('Métrica,Valor')
       if (data.generationActivation) {
-        rows.push(`Leads Criados,${data.generationActivation.leadsCreated}`)
-        rows.push(`Leads no Grupo,${data.generationActivation.leadsInGroup}`)
         rows.push(
+          `Leads Criados,${data.generationActivation.leadsCreated}`,
+          `Leads no Grupo,${data.generationActivation.leadsInGroup}`,
           `Participantes no Meet,${data.generationActivation.meetParticipants}`
         )
       }
       if (data.salesConversion) {
-        rows.push(`Vendas Fechadas,${data.salesConversion.closedSales}`)
         rows.push(
+          `Vendas Fechadas,${data.salesConversion.closedSales}`,
           `Receita Gerada,${data.salesConversion.revenueGenerated}`
         )
       }
@@ -773,6 +790,21 @@ class ExportService {
     const XLSX = await import('xlsx')
     const workbook = XLSX.utils.book_new()
 
+    this.addExcelSummarySheet(workbook, data, options, XLSX)
+    this.addExcelGenerationActivationSheet(workbook, data, options, XLSX)
+    this.addExcelSalesConversionSheet(workbook, data, options, XLSX)
+    this.addExcelConversionRatesSheet(workbook, data, options, XLSX)
+    this.addExcelLeadStockSheet(workbook, data, options, XLSX)
+    this.addExcelSalesByConversionTimeSheet(workbook, data, options, XLSX)
+    this.addExcelLeadQualitySheet(workbook, data, options, XLSX)
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+    return new Blob([excelBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+  }
+
+  private addExcelSummarySheet(workbook: any, data: Partial<DashboardData>, options: ExportOptions, XLSX: any): void {
     const summaryData: any[][] = [
       ['DASHBOARD CRM NYMU - RESUMO EXECUTIVO'],
       [''],
@@ -781,183 +813,209 @@ class ExportService {
     ]
 
     if (data.filters) {
-      summaryData.push(['FILTROS APLICADOS'])
-      if (data.filters.date) summaryData.push(['Data:', data.filters.date])
-      if (data.filters.season) summaryData.push(['Temporada:', data.filters.season])
-      if (data.filters.sdr) summaryData.push(['SDR:', data.filters.sdr])
-      if (data.filters.college) summaryData.push(['Faculdade:', data.filters.college])
-      if (data.filters.origin) summaryData.push(['Origem:', data.filters.origin])
-      summaryData.push([''])
+      const filterRows = this.buildExcelFilterRows(data.filters)
+      summaryData.push(...filterRows)
     }
 
     if (options.includeKPIs) {
-      summaryData.push(['INDICADORES PRINCIPAIS'])
-      if (data.generationActivation) {
-        summaryData.push(['Leads Criados', data.generationActivation.leadsCreated])
-        summaryData.push(['Leads no Grupo', data.generationActivation.leadsInGroup])
-        summaryData.push(['Participantes no Meet', data.generationActivation.meetParticipants])
-      }
-      if (data.salesConversion) {
-        summaryData.push(['Vendas Fechadas', data.salesConversion.closedSales])
-        summaryData.push(['Taxa de Fechamento', `${data.salesConversion.closingRate.toFixed(1)}%`])
-        summaryData.push(['Receita Gerada', `R$ ${data.salesConversion.revenueGenerated.toLocaleString('pt-BR')}`])
-      }
+      const kpiRows = this.buildExcelKpiRows(data)
+      summaryData.push(...kpiRows)
     }
 
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumo')
+  }
 
-    if (options.sections?.generationActivation !== false && data.generationActivation) {
-      const genData: any[][] = [
-        ['GERAÇÃO E ATIVAÇÃO DE LEADS'],
-        [''],
-        ['Indicadores Principais'],
+  private buildExcelFilterRows(filters: NonNullable<Partial<DashboardData>['filters']>): any[][] {
+    const filterRows: any[][] = [['FILTROS APLICADOS']]
+    if (filters.date) filterRows.push(['Data:', filters.date])
+    if (filters.season) filterRows.push(['Temporada:', filters.season])
+    if (filters.sdr) filterRows.push(['SDR:', filters.sdr])
+    if (filters.college) filterRows.push(['Faculdade:', filters.college])
+    if (filters.origin) filterRows.push(['Origem:', filters.origin])
+    filterRows.push([''])
+    return filterRows
+  }
+
+  private buildExcelKpiRows(data: Partial<DashboardData>): any[][] {
+    const kpiRows: any[][] = [['INDICADORES PRINCIPAIS']]
+    if (data.generationActivation) {
+      kpiRows.push(
         ['Leads Criados', data.generationActivation.leadsCreated],
         ['Leads no Grupo', data.generationActivation.leadsInGroup],
-        ['Participantes no Meet', data.generationActivation.meetParticipants],
-        [''],
-      ]
-
-      if (data.generationActivation.leadsCreatedByWeek && data.generationActivation.leadsCreatedByWeek.length > 0) {
-        genData.push(['LEADS CRIADOS POR SEMANA'])
-        genData.push(['Semana', 'Valor', 'Label'])
-        data.generationActivation.leadsCreatedByWeek.forEach((week) => {
-          genData.push([week.week, week.value, week.label])
-        })
-      }
-
-      const genSheet = XLSX.utils.aoa_to_sheet(genData)
-      XLSX.utils.book_append_sheet(workbook, genSheet, 'Geração e Ativação')
+        ['Participantes no Meet', data.generationActivation.meetParticipants]
+      )
     }
-
-    if (options.sections?.salesConversion !== false && data.salesConversion) {
-      const salesData: any[][] = [
-        ['CONVERSÃO DE VENDAS'],
-        [''],
-        ['Métricas de Vendas'],
+    if (data.salesConversion) {
+      kpiRows.push(
         ['Vendas Fechadas', data.salesConversion.closedSales],
         ['Taxa de Fechamento', `${data.salesConversion.closingRate.toFixed(1)}%`],
-        ['Meta de Taxa', `${data.salesConversion.targetRate.toFixed(1)}%`],
-        ['Receita Gerada', `R$ ${data.salesConversion.revenueGenerated.toLocaleString('pt-BR')}`],
-        [''],
+        ['Receita Gerada', `R$ ${data.salesConversion.revenueGenerated.toLocaleString('pt-BR')}`]
+      )
+    }
+    return kpiRows
+  }
+
+  private addExcelGenerationActivationSheet(workbook: any, data: Partial<DashboardData>, options: ExportOptions, XLSX: any): void {
+    if (options.sections?.generationActivation === false || !data.generationActivation) return
+
+    const genData: any[][] = [
+      ['GERAÇÃO E ATIVAÇÃO DE LEADS'],
+      [''],
+      ['Indicadores Principais'],
+      ['Leads Criados', data.generationActivation.leadsCreated],
+      ['Leads no Grupo', data.generationActivation.leadsInGroup],
+      ['Participantes no Meet', data.generationActivation.meetParticipants],
+      [''],
+    ]
+
+    if (data.generationActivation.leadsCreatedByWeek?.length) {
+      const weekRows: any[][] = [
+        ['LEADS CRIADOS POR SEMANA'],
+        ['Semana', 'Valor', 'Label'],
+        ...data.generationActivation.leadsCreatedByWeek.map((week) => [week.week, week.value, week.label])
       ]
-
-      if (data.salesConversion.salesByWeek && data.salesConversion.salesByWeek.length > 0) {
-        salesData.push(['VENDAS POR SEMANA'])
-        salesData.push(['Semana', 'Vendas', 'Label'])
-        data.salesConversion.salesByWeek.forEach((week) => {
-          salesData.push([week.week, week.value, week.label])
-        })
-      }
-
-      const salesSheet = XLSX.utils.aoa_to_sheet(salesData)
-      XLSX.utils.book_append_sheet(workbook, salesSheet, 'Conversão de Vendas')
+      genData.push(...weekRows)
     }
 
-    if (options.sections?.conversionRates !== false && data.conversionRates) {
-      const ratesData: any[][] = [
-        ['TAXAS DE CONVERSÃO'],
-        [''],
-        ['Taxa', 'Atual (%)', 'Meta (%)', 'Status'],
+    const genSheet = XLSX.utils.aoa_to_sheet(genData)
+    XLSX.utils.book_append_sheet(workbook, genSheet, 'Geração e Ativação')
+  }
+
+  private addExcelSalesConversionSheet(workbook: any, data: Partial<DashboardData>, options: ExportOptions, XLSX: any): void {
+    if (options.sections?.salesConversion === false || !data.salesConversion) return
+
+    const salesData: any[][] = [
+      ['CONVERSÃO DE VENDAS'],
+      [''],
+      ['Métricas de Vendas'],
+      ['Vendas Fechadas', data.salesConversion.closedSales],
+      ['Taxa de Fechamento', `${data.salesConversion.closingRate.toFixed(1)}%`],
+      ['Meta de Taxa', `${data.salesConversion.targetRate.toFixed(1)}%`],
+      ['Receita Gerada', `R$ ${data.salesConversion.revenueGenerated.toLocaleString('pt-BR')}`],
+      [''],
+    ]
+
+    if (data.salesConversion.salesByWeek?.length) {
+      const weekRows: any[][] = [
+        ['VENDAS POR SEMANA'],
+        ['Semana', 'Vendas', 'Label'],
+        ...data.salesConversion.salesByWeek.map((week) => [week.week, week.value, week.label])
       ]
-
-      const rates = [
-        {
-          label: 'Criado → Grupo',
-          current: data.conversionRates.createdToGroup.current,
-          target: data.conversionRates.createdToGroup.target,
-        },
-        {
-          label: 'Grupo → Meet',
-          current: data.conversionRates.groupToMeet.current,
-          target: data.conversionRates.groupToMeet.target,
-        },
-        {
-          label: 'Meet → Venda',
-          current: data.conversionRates.meetToSale.current,
-          target: data.conversionRates.meetToSale.target,
-        },
-      ]
-
-      rates.forEach((rate) => {
-        const status = rate.current >= rate.target ? '✓ Meta Atingida' : '⚠ Abaixo da Meta'
-        ratesData.push([rate.label, `${rate.current.toFixed(1)}%`, `${rate.target.toFixed(1)}%`, status])
-      })
-
-      const ratesSheet = XLSX.utils.aoa_to_sheet(ratesData)
-      XLSX.utils.book_append_sheet(workbook, ratesSheet, 'Taxas de Conversão')
+      salesData.push(...weekRows)
     }
 
-    if (options.sections?.leadStock !== false && data.leadStock) {
-      const stockData: any[][] = [
-        ['ESTOQUE DE LEADS'],
-        [''],
-        ['Categoria', 'Quantidade'],
-        ['Lista de Contato', data.leadStock.contactList],
-        ['Primeiro Contato', data.leadStock.firstContact],
-        ['No Grupo', data.leadStock.inGroup],
-        ['Pós-Meet', data.leadStock.postMeet],
-        [''],
-        ['TOTAL', data.leadStock.contactList + data.leadStock.firstContact + data.leadStock.inGroup + data.leadStock.postMeet],
-      ]
+    const salesSheet = XLSX.utils.aoa_to_sheet(salesData)
+    XLSX.utils.book_append_sheet(workbook, salesSheet, 'Conversão de Vendas')
+  }
 
-      const stockSheet = XLSX.utils.aoa_to_sheet(stockData)
-      XLSX.utils.book_append_sheet(workbook, stockSheet, 'Estoque de Leads')
-    }
+  private addExcelConversionRatesSheet(workbook: any, data: Partial<DashboardData>, options: ExportOptions, XLSX: any): void {
+    if (options.sections?.conversionRates === false || !data.conversionRates) return
 
-    if (options.sections?.salesByConversionTime !== false && data.salesByConversionTime) {
-      const conversionData: any[][] = [
-        ['VENDAS POR TEMPO DE CONVERSÃO'],
-        [''],
-      ]
+    const ratesData: any[][] = [
+      ['TAXAS DE CONVERSÃO'],
+      [''],
+      ['Taxa', 'Atual (%)', 'Meta (%)', 'Status'],
+    ]
 
-      const periods = [
-        { label: '7 Dias', data: data.salesByConversionTime.sevenDays },
-        { label: '30 Dias', data: data.salesByConversionTime.thirtyDays },
-        { label: '90 Dias', data: data.salesByConversionTime.ninetyDays },
-        { label: '180 Dias', data: data.salesByConversionTime.oneEightyDays },
-      ]
+    const rates = [
+      {
+        label: 'Criado → Grupo',
+        current: data.conversionRates.createdToGroup.current,
+        target: data.conversionRates.createdToGroup.target,
+      },
+      {
+        label: 'Grupo → Meet',
+        current: data.conversionRates.groupToMeet.current,
+        target: data.conversionRates.groupToMeet.target,
+      },
+      {
+        label: 'Meet → Venda',
+        current: data.conversionRates.meetToSale.current,
+        target: data.conversionRates.meetToSale.target,
+      },
+    ]
 
-      periods.forEach((period) => {
-        if (period.data && period.data.length > 0) {
-          conversionData.push([`${period.label}`])
-          conversionData.push(['Dias', 'Vendas'])
-          period.data.forEach((point) => {
-            conversionData.push([`${point.days}d`, point.value])
-          })
-          conversionData.push([''])
-        }
-      })
-
-      const conversionSheet = XLSX.utils.aoa_to_sheet(conversionData)
-      XLSX.utils.book_append_sheet(workbook, conversionSheet, 'Tempo de Conversão')
-    }
-
-    if (options.sections?.leadQuality !== false && options.includeTables && data.leadQuality) {
-      const qualityData: any[][] = [
-        ['QUALIDADE DOS LEADS'],
-        [''],
-        ['Origem', '% Entraram no Meet', '% Compraram', 'Performance Média'],
-      ]
-
-      data.leadQuality.forEach((item) => {
-        const performance = ((item.meetParticipationRate + item.purchaseRate) / 2).toFixed(1)
-        qualityData.push([
-          item.origin,
-          `${item.meetParticipationRate.toFixed(1)}%`,
-          `${item.purchaseRate.toFixed(1)}%`,
-          `${performance}%`,
-        ])
-      })
-
-      const qualitySheet = XLSX.utils.aoa_to_sheet(qualityData)
-      XLSX.utils.book_append_sheet(workbook, qualitySheet, 'Qualidade dos Leads')
-    }
-
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
-    return new Blob([excelBuffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    rates.forEach((rate) => {
+      const status = rate.current >= rate.target ? '✓ Meta Atingida' : '⚠ Abaixo da Meta'
+      ratesData.push([rate.label, `${rate.current.toFixed(1)}%`, `${rate.target.toFixed(1)}%`, status])
     })
+
+    const ratesSheet = XLSX.utils.aoa_to_sheet(ratesData)
+    XLSX.utils.book_append_sheet(workbook, ratesSheet, 'Taxas de Conversão')
+  }
+
+  private addExcelLeadStockSheet(workbook: any, data: Partial<DashboardData>, options: ExportOptions, XLSX: any): void {
+    if (options.sections?.leadStock === false || !data.leadStock) return
+
+    const stockData: any[][] = [
+      ['ESTOQUE DE LEADS'],
+      [''],
+      ['Categoria', 'Quantidade'],
+      ['Lista de Contato', data.leadStock.contactList],
+      ['Primeiro Contato', data.leadStock.firstContact],
+      ['No Grupo', data.leadStock.inGroup],
+      ['Pós-Meet', data.leadStock.postMeet],
+      [''],
+      ['TOTAL', data.leadStock.contactList + data.leadStock.firstContact + data.leadStock.inGroup + data.leadStock.postMeet],
+    ]
+
+    const stockSheet = XLSX.utils.aoa_to_sheet(stockData)
+    XLSX.utils.book_append_sheet(workbook, stockSheet, 'Estoque de Leads')
+  }
+
+  private addExcelSalesByConversionTimeSheet(workbook: any, data: Partial<DashboardData>, options: ExportOptions, XLSX: any): void {
+    if (options.sections?.salesByConversionTime === false || !data.salesByConversionTime) return
+
+    const conversionData: any[][] = [
+      ['VENDAS POR TEMPO DE CONVERSÃO'],
+      [''],
+    ]
+
+    const periods = [
+      { label: '7 Dias', data: data.salesByConversionTime.sevenDays },
+      { label: '30 Dias', data: data.salesByConversionTime.thirtyDays },
+      { label: '90 Dias', data: data.salesByConversionTime.ninetyDays },
+      { label: '180 Dias', data: data.salesByConversionTime.oneEightyDays },
+    ]
+
+    periods.forEach((period) => {
+      if (period.data?.length) {
+        const periodRows: any[][] = [
+          [`${period.label}`],
+          ['Dias', 'Vendas'],
+          ...period.data.map((point) => [`${point.days}d`, point.value]),
+          ['']
+        ]
+        conversionData.push(...periodRows)
+      }
+    })
+
+    const conversionSheet = XLSX.utils.aoa_to_sheet(conversionData)
+    XLSX.utils.book_append_sheet(workbook, conversionSheet, 'Tempo de Conversão')
+  }
+
+  private addExcelLeadQualitySheet(workbook: any, data: Partial<DashboardData>, options: ExportOptions, XLSX: any): void {
+    if (options.sections?.leadQuality === false || !options.includeTables || !data.leadQuality) return
+
+    const qualityData: any[][] = [
+      ['QUALIDADE DOS LEADS'],
+      [''],
+      ['Origem', '% Entraram no Meet', '% Compraram', 'Performance Média'],
+    ]
+
+    data.leadQuality.forEach((item) => {
+      const performance = ((item.meetParticipationRate + item.purchaseRate) / 2).toFixed(1)
+      qualityData.push([
+        item.origin,
+        `${item.meetParticipationRate.toFixed(1)}%`,
+        `${item.purchaseRate.toFixed(1)}%`,
+        `${performance}%`,
+      ])
+    })
+
+    const qualitySheet = XLSX.utils.aoa_to_sheet(qualityData)
+    XLSX.utils.book_append_sheet(workbook, qualitySheet, 'Qualidade dos Leads')
   }
 
   private exportToJSON(data: Partial<DashboardData>, options: ExportOptions): string {
@@ -972,7 +1030,7 @@ class ExportService {
       link.download = filename
       document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
+      link.remove()
     } else {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -980,7 +1038,7 @@ class ExportService {
       link.download = filename
       document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
+      link.remove()
       URL.revokeObjectURL(url)
     }
   }
