@@ -1,5 +1,4 @@
-import type { DashboardData } from '@/types/dashboard'
-import type { ChartConfig, TableConfig } from '@/types/charts'
+import type { DashboardData, TimeSeriesData } from '@/types/dashboard'
 
 export type ExportFormat = 'pdf' | 'png' | 'csv' | 'excel' | 'json'
 
@@ -29,6 +28,15 @@ export interface ScheduledReport {
   format: ExportFormat
   filters?: Record<string, any>
   enabled: boolean
+}
+
+interface PDFContext {
+  doc: any
+  pageWidth: number
+  pageHeight: number
+  margin: number
+  contentWidth: number
+  yPosition: { value: number }
 }
 
 class ExportService {
@@ -62,177 +70,56 @@ class ExportService {
     const pageHeight = doc.internal.pageSize.getHeight()
     const margin = 15
     const contentWidth = pageWidth - margin * 2
-    let yPosition = margin
-    const lineHeight = 6
-    const sectionSpacing = 8
 
-    // Função auxiliar para formatar valores
-    const formatCurrency = (value: number): string => {
-      return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    const context = {
+      doc,
+      pageWidth,
+      pageHeight,
+      margin,
+      contentWidth,
+      yPosition: { value: margin },
     }
 
-    const formatNumber = (value: number): string => {
-      return value.toLocaleString('pt-BR')
+    this.addPDFHeader(context, options, data)
+    context.yPosition.value = 45
+    doc.setTextColor(0, 0, 0)
+
+    if ((options.sections?.generationActivation !== false) && data.generationActivation) {
+      this.addGenerationActivationSection(context, data, options)
     }
 
-    const formatPercentage = (value: number, decimals: number = 1): string => {
-      return `${value.toFixed(decimals)}%`
+    if ((options.sections?.salesConversion !== false) && data.salesConversion) {
+      this.addSalesConversionSection(context, data, options)
     }
 
-    // Função auxiliar para adicionar nova página se necessário
-    const checkPageBreak = (requiredSpace: number = 15) => {
-      if (yPosition + requiredSpace > pageHeight - margin - 15) {
-        doc.addPage()
-        yPosition = margin
-        return true
-      }
-      return false
+    if ((options.sections?.conversionRates !== false) && data.conversionRates) {
+      this.addConversionRatesSection(context, data)
     }
 
-    // Função para desenhar linha horizontal
-    const drawLine = (color: [number, number, number] = [220, 220, 220], thickness: number = 0.5) => {
-      doc.setDrawColor(color[0], color[1], color[2])
-      doc.setLineWidth(thickness)
-      doc.line(margin, yPosition, pageWidth - margin, yPosition)
-      yPosition += 4
+    if ((options.sections?.leadStock !== false) && data.leadStock) {
+      this.addLeadStockSection(context, data)
     }
 
-    // Função para adicionar cabeçalho de seção
-    const addSectionHeader = (title: string, fontSize: number = 16) => {
-      checkPageBreak(20)
-      yPosition += 5
-      doc.setFontSize(fontSize)
-      doc.setTextColor(30, 30, 30)
-      doc.setFont('helvetica', 'bold')
-      doc.text(title, margin, yPosition)
-      yPosition += 8
-      drawLine([59, 130, 246], 1)
-      yPosition += 3
+    if ((options.sections?.salesByConversionTime !== false) && data.salesByConversionTime) {
+      this.addSalesByConversionTimeSection(context, data)
     }
 
-    // Função para adicionar KPI card
-    const addKPICard = (label: string, value: string | number, color: [number, number, number] = [59, 130, 246]) => {
-      checkPageBreak(15)
-      const cardHeight = 12
-      doc.setFillColor(color[0], color[1], color[2])
-      doc.roundedRect(margin, yPosition - 8, contentWidth, cardHeight, 3, 3, 'F')
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      doc.text(label, margin + 4, yPosition)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(12)
-      const valueStr = String(value)
-      const textWidth = doc.getTextWidth(valueStr)
-      doc.text(valueStr, pageWidth - margin - 4, yPosition, { align: 'right' })
-      yPosition += cardHeight + 3
-      doc.setTextColor(0, 0, 0)
+    if ((options.sections?.leadQuality !== false) && (options.includeTables !== false) && data.leadQuality && data.leadQuality.length > 0) {
+      this.addLeadQualitySection(context, data)
     }
 
-    // Função para adicionar tabela
-    const addTable = (
-      headers: string[],
-      rows: string[][],
-      columnWidths?: number[],
-      headerColor: [number, number, number] = [59, 130, 246]
-    ) => {
-      if (!rows || rows.length === 0) return
+    this.addPDFFooter(context)
 
-      checkPageBreak(30)
-      
-      // Calcular larguras das colunas
-      const totalSpecifiedWidth = columnWidths ? columnWidths.reduce((sum, w) => sum + w, 0) : 0
-      const defaultColumnWidth = totalSpecifiedWidth > 0 
-        ? (contentWidth - totalSpecifiedWidth) / (headers.length - columnWidths!.length)
-        : contentWidth / headers.length
-      
-      const widths: number[] = []
-      let usedWidth = 0
-      headers.forEach((_, index) => {
-        if (columnWidths && columnWidths[index]) {
-          widths.push(columnWidths[index])
-          usedWidth += columnWidths[index]
-        } else {
-          widths.push(defaultColumnWidth)
-        }
-      })
-      
-      // Ajustar se necessário
-      const totalWidth = widths.reduce((sum, w) => sum + w, 0)
-      if (totalWidth > contentWidth) {
-        const ratio = contentWidth / totalWidth
-        widths.forEach((w, i) => { widths[i] = w * ratio })
-      }
+    return doc.output('blob')
+  }
 
-      const rowHeight = 7
-      const headerHeight = 9
+  private addPDFHeader(
+    context: PDFContext,
+    options: ExportOptions,
+    data: Partial<DashboardData>
+  ): void {
+    const { doc, pageWidth } = context
 
-      // Cabeçalho
-      doc.setFillColor(headerColor[0], headerColor[1], headerColor[2])
-      doc.rect(margin, yPosition - headerHeight + 2, contentWidth, headerHeight, 'F')
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(9)
-      doc.setFont('helvetica', 'bold')
-      
-      let xPos = margin + 3
-      headers.forEach((header, index) => {
-        const maxHeaderWidth = widths[index] - 6
-        let headerText = header
-        if (doc.getTextWidth(headerText) > maxHeaderWidth) {
-          let truncated = headerText
-          while (doc.getTextWidth(truncated + '...') > maxHeaderWidth && truncated.length > 0) {
-            truncated = truncated.slice(0, -1)
-          }
-          headerText = truncated + '...'
-        }
-        doc.text(headerText, xPos, yPosition)
-        xPos += widths[index]
-      })
-      
-      yPosition += headerHeight + 2
-      doc.setTextColor(0, 0, 0)
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8)
-
-      // Linhas da tabela
-      rows.forEach((row, rowIndex) => {
-        checkPageBreak(rowHeight + 3)
-        
-        // Alternar cor de fundo
-        if (rowIndex % 2 === 0) {
-          doc.setFillColor(250, 250, 250)
-          doc.rect(margin, yPosition - rowHeight + 2, contentWidth, rowHeight, 'F')
-        }
-
-        xPos = margin + 3
-        row.forEach((cell, cellIndex) => {
-          const cellText = String(cell || '-')
-          const maxWidth = widths[cellIndex] - 6
-          let displayText = cellText
-          
-          // Truncar texto se muito longo
-          if (doc.getTextWidth(cellText) > maxWidth) {
-            let truncated = cellText
-            while (doc.getTextWidth(truncated + '...') > maxWidth && truncated.length > 0) {
-              truncated = truncated.slice(0, -1)
-            }
-            displayText = truncated + '...'
-          }
-          
-          doc.text(displayText, xPos, yPosition)
-          xPos += widths[cellIndex]
-        })
-        yPosition += rowHeight
-      })
-      
-      // Linha final da tabela
-      doc.setDrawColor(220, 220, 220)
-      doc.setLineWidth(0.5)
-      doc.line(margin, yPosition, pageWidth - margin, yPosition)
-      yPosition += 6
-    }
-
-    // Cabeçalho principal
     doc.setFillColor(59, 130, 246)
     doc.rect(0, 0, pageWidth, 40, 'F')
     doc.setTextColor(255, 255, 255)
@@ -251,327 +138,41 @@ class ExportService {
     })
     doc.text(`Gerado em: ${dateStr}`, pageWidth / 2, 25, { align: 'center' })
 
-    // Informações de filtros - mais detalhadas
     if (data.filters) {
-      doc.setFontSize(9)
-      doc.setFont('helvetica', 'normal')
-      const filters: string[] = []
-      if (data.filters.date) filters.push(`Data: ${data.filters.date}`)
-      if (data.filters.season) filters.push(`Temporada: ${data.filters.season}`)
-      if (data.filters.sdr && data.filters.sdr !== 'Todos') filters.push(`SDR: ${data.filters.sdr}`)
-      if (data.filters.college && data.filters.college !== 'Todas') filters.push(`Faculdade: ${data.filters.college}`)
-      if (data.filters.origin && data.filters.origin !== '') filters.push(`Origem: ${data.filters.origin}`)
-      
-      const filterText = filters.length > 0 ? filters.join(' | ') : 'Todos os filtros'
-      doc.text(filterText, pageWidth / 2, 32, { align: 'center' })
-      
-      // Linha separadora
-      doc.setDrawColor(255, 255, 255)
-      doc.setLineWidth(0.5)
-      doc.line(margin, 35, pageWidth - margin, 35)
+      this.addFiltersToHeader(context, data.filters)
     }
+  }
 
-    yPosition = 45
-    doc.setTextColor(0, 0, 0)
+  private addFiltersToHeader(
+    context: PDFContext,
+    filters: NonNullable<Partial<DashboardData>['filters']>
+  ): void {
+    const { doc, pageWidth, margin } = context
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    const filterTexts: string[] = []
+    
+    if (filters.date) filterTexts.push(`Data: ${filters.date}`)
+    if (filters.season) filterTexts.push(`Temporada: ${filters.season}`)
+    if (filters.sdr && filters.sdr !== 'Todos') filterTexts.push(`SDR: ${filters.sdr}`)
+    if (filters.college && filters.college !== 'Todas') filterTexts.push(`Faculdade: ${filters.college}`)
+    if (filters.origin && filters.origin !== '') filterTexts.push(`Origem: ${filters.origin}`)
+    
+    const filterText = filterTexts.length > 0 ? filterTexts.join(' | ') : 'Todos os filtros'
+    doc.text(filterText, pageWidth / 2, 32, { align: 'center' })
+    
+    doc.setDrawColor(255, 255, 255)
+    doc.setLineWidth(0.5)
+    doc.line(margin, 35, pageWidth - margin, 35)
+  }
 
-    // 1. GERAÇÃO E ATIVAÇÃO
-    if ((options.sections?.generationActivation !== false) && data.generationActivation) {
-      addSectionHeader('1. GERAÇÃO E ATIVAÇÃO DE LEADS')
-
-      if (options.includeKPIs !== false) {
-        checkPageBreak(20)
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(50, 50, 50)
-        doc.text('Indicadores Principais', margin, yPosition)
-        yPosition += 10
-
-        addKPICard('Leads Criados', formatNumber(data.generationActivation.leadsCreated), [59, 130, 246])
-        addKPICard('Leads no Grupo', formatNumber(data.generationActivation.leadsInGroup), [16, 185, 129])
-        addKPICard('Participantes no Meet', formatNumber(data.generationActivation.meetParticipants), [139, 92, 246])
-        yPosition += 5
-      }
-
-      // Tabela de Leads por Semana
-      if (options.includeTables !== false && data.generationActivation.leadsCreatedByWeek && data.generationActivation.leadsCreatedByWeek.length > 0) {
-        checkPageBreak(25)
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(50, 50, 50)
-        doc.text('Leads Criados por Semana', margin, yPosition)
-        yPosition += 8
-
-        const tableHeaders = ['Semana', 'Quantidade', 'Período']
-        const tableRows = data.generationActivation.leadsCreatedByWeek.map((week) => [
-          `Semana ${week.week}`,
-          formatNumber(week.value),
-          week.label || '-',
-        ])
-        addTable(tableHeaders, tableRows, [50, 60, 80])
-      }
-    }
-
-    // 2. CONVERSÃO DE VENDAS
-    if ((options.sections?.salesConversion !== false) && data.salesConversion) {
-      addSectionHeader('2. CONVERSÃO DE VENDAS')
-
-      if (options.includeKPIs !== false) {
-        checkPageBreak(25)
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(50, 50, 50)
-        doc.text('Métricas de Vendas', margin, yPosition)
-        yPosition += 10
-
-        addKPICard('Vendas Fechadas', formatNumber(data.salesConversion.closedSales), [239, 68, 68])
-        addKPICard('Taxa de Fechamento', formatPercentage(data.salesConversion.closingRate), [16, 185, 129])
-        addKPICard('Meta de Taxa', formatPercentage(data.salesConversion.targetRate), [139, 92, 246])
-        addKPICard('Receita Gerada', formatCurrency(data.salesConversion.revenueGenerated), [245, 158, 11])
-        yPosition += 5
-      }
-
-      // Tabela de Vendas por Semana
-      if (options.includeTables !== false && data.salesConversion.salesByWeek && data.salesConversion.salesByWeek.length > 0) {
-        checkPageBreak(25)
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(50, 50, 50)
-        doc.text('Vendas por Semana', margin, yPosition)
-        yPosition += 8
-
-        const tableHeaders = ['Semana', 'Vendas', 'Período']
-        const tableRows = data.salesConversion.salesByWeek.map((week) => [
-          `Semana ${week.week}`,
-          formatNumber(week.value),
-          week.label || '-',
-        ])
-        addTable(tableHeaders, tableRows, [50, 60, 80])
-      }
-    }
-
-    // 3. TAXAS DE CONVERSÃO
-    if ((options.sections?.conversionRates !== false) && data.conversionRates) {
-      addSectionHeader('3. TAXAS DE CONVERSÃO')
-
-      checkPageBreak(30)
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(50, 50, 50)
-      doc.text('Taxas de Conversão por Etapa', margin, yPosition)
-      yPosition += 10
-
-      const rates = [
-        {
-          label: 'Criado → Grupo',
-          current: data.conversionRates.createdToGroup.current,
-          target: data.conversionRates.createdToGroup.target,
-        },
-        {
-          label: 'Grupo → Meet',
-          current: data.conversionRates.groupToMeet.current,
-          target: data.conversionRates.groupToMeet.target,
-        },
-        {
-          label: 'Meet → Venda',
-          current: data.conversionRates.meetToSale.current,
-          target: data.conversionRates.meetToSale.target,
-        },
-      ]
-
-      // Criar tabela de taxas
-      const ratesHeaders = ['Etapa', 'Taxa Atual', 'Meta', 'Status', 'Progresso']
-      const ratesRows = rates.map((rate) => {
-        const progress = Math.min(100, (rate.current / rate.target) * 100)
-        const status = rate.current >= rate.target ? '✓ Meta Atingida' : '⚠ Abaixo da Meta'
-        return [
-          rate.label,
-          formatPercentage(rate.current),
-          formatPercentage(rate.target),
-          status,
-          formatPercentage(progress),
-        ]
-      })
-      addTable(ratesHeaders, ratesRows, [60, 35, 35, 50, 40])
-
-      // Adicionar barras de progresso visuais
-      yPosition += 3
-      rates.forEach((rate) => {
-        checkPageBreak(15)
-        doc.setFontSize(8)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(80, 80, 80)
-        doc.text(rate.label, margin, yPosition)
-        
-        // Barra de progresso
-        const barWidth = contentWidth - 50
-        const barHeight = 6
-        const progress = Math.min(100, (rate.current / rate.target) * 100)
-        const barFillWidth = (barWidth * progress) / 100
-        
-        const barY = yPosition - 3
-        doc.setFillColor(230, 230, 230)
-        doc.rect(margin + 45, barY, barWidth, barHeight, 'F')
-        
-        // Cor baseada no progresso
-        const barColor: [number, number, number] = 
-          progress >= 100 ? [16, 185, 129] : 
-          progress >= 80 ? [59, 130, 246] : 
-          progress >= 50 ? [245, 158, 11] : 
-          [239, 68, 68]
-        
-        doc.setFillColor(barColor[0], barColor[1], barColor[2])
-        doc.rect(margin + 45, barY, barFillWidth, barHeight, 'F')
-        
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(9)
-        doc.setTextColor(0, 0, 0)
-        doc.text(`${formatPercentage(rate.current)} / ${formatPercentage(rate.target)}`, margin + 45 + barWidth + 5, yPosition)
-        yPosition += 12
-      })
-      yPosition += 5
-    }
-
-    // 4. ESTOQUE DE LEADS
-    if ((options.sections?.leadStock !== false) && data.leadStock) {
-      addSectionHeader('4. ESTOQUE DE LEADS')
-
-      checkPageBreak(30)
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(50, 50, 50)
-      doc.text('Distribuição do Estoque', margin, yPosition)
-      yPosition += 10
-
-      const stockItems = [
-        { label: 'Lista de Contato', value: data.leadStock.contactList, color: [16, 185, 129] },
-        { label: 'Primeiro Contato', value: data.leadStock.firstContact, color: [245, 158, 11] },
-        { label: 'No Grupo', value: data.leadStock.inGroup, color: [239, 68, 68] },
-        { label: 'Pós-Meet', value: data.leadStock.postMeet, color: [34, 197, 94] },
-      ]
-
-      const totalStock = stockItems.reduce((sum, item) => sum + item.value, 0)
-
-      // Tabela de estoque
-      const stockHeaders = ['Categoria', 'Quantidade', 'Percentual']
-      const stockRows = stockItems.map((item) => {
-        const percentage = totalStock > 0 ? ((item.value / totalStock) * 100).toFixed(1) : '0.0'
-        return [
-          item.label,
-          formatNumber(item.value),
-          `${percentage}%`,
-        ]
-      })
-      
-      // Adicionar total
-      stockRows.push([
-        'TOTAL',
-        formatNumber(totalStock),
-        '100.0%',
-      ])
-
-      addTable(stockHeaders, stockRows, [80, 60, 50])
-    }
-
-    // 5. VENDAS POR TEMPO DE CONVERSÃO
-    if ((options.sections?.salesByConversionTime !== false) && data.salesByConversionTime) {
-      addSectionHeader('5. VENDAS POR TEMPO DE CONVERSÃO')
-
-      checkPageBreak(30)
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(50, 50, 50)
-      doc.text('Distribuição por Período de Conversão', margin, yPosition)
-      yPosition += 10
-
-      const conversionPeriods = [
-        { label: '7 Dias', data: data.salesByConversionTime.sevenDays, color: [59, 130, 246] },
-        { label: '30 Dias', data: data.salesByConversionTime.thirtyDays, color: [16, 185, 129] },
-        { label: '90 Dias', data: data.salesByConversionTime.ninetyDays, color: [239, 68, 68] },
-        { label: '180 Dias', data: data.salesByConversionTime.oneEightyDays, color: [245, 158, 11] },
-      ]
-
-      conversionPeriods.forEach((period) => {
-        if (period.data && period.data.length > 0) {
-          checkPageBreak(30)
-          
-          // Subtítulo do período
-          doc.setFontSize(11)
-          doc.setFont('helvetica', 'bold')
-          doc.setFillColor(period.color[0], period.color[1], period.color[2])
-          doc.rect(margin, yPosition - 6, 4, 6, 'F')
-          doc.setTextColor(0, 0, 0)
-          doc.text(period.label, margin + 8, yPosition)
-          yPosition += 10
-
-          // Tabela do período
-          const periodHeaders = ['Dias', 'Vendas']
-          const periodRows = period.data.map((point) => [
-            `${point.days} dias`,
-            formatNumber(point.value),
-          ])
-          
-          // Calcular total
-          const periodTotal = period.data.reduce((sum, point) => sum + point.value, 0)
-          periodRows.push([
-            'TOTAL',
-            formatNumber(periodTotal),
-          ])
-
-          addTable(periodHeaders, periodRows, [60, 80], period.color)
-          yPosition += 3
-        }
-      })
-    }
-
-    // 6. QUALIDADE DOS LEADS
-    if ((options.sections?.leadQuality !== false) && (options.includeTables !== false) && data.leadQuality && data.leadQuality.length > 0) {
-      addSectionHeader('6. QUALIDADE DOS LEADS')
-
-      checkPageBreak(30)
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(50, 50, 50)
-      doc.text('Análise por Origem', margin, yPosition)
-      yPosition += 10
-
-      // Tabela de qualidade
-      const qualityHeaders = ['Origem', '% Participação Meet', '% Taxa de Compra', 'Performance Média']
-      const qualityRows = data.leadQuality.map((item) => {
-        const performance = (item.meetParticipationRate + item.purchaseRate) / 2
-        return [
-          item.origin,
-          formatPercentage(item.meetParticipationRate),
-          formatPercentage(item.purchaseRate),
-          formatPercentage(performance),
-        ]
-      })
-
-      addTable(qualityHeaders, qualityRows, [60, 50, 50, 50])
-
-      // Adicionar indicadores visuais de performance
-      yPosition += 3
-      doc.setFontSize(8)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(100, 100, 100)
-      doc.text('Legenda: ', margin, yPosition)
-      doc.setFillColor(16, 185, 129)
-      doc.circle(margin + 20, yPosition - 1, 2, 'F')
-      doc.text('Alta (≥50%)', margin + 25, yPosition)
-      doc.setFillColor(245, 158, 11)
-      doc.circle(margin + 60, yPosition - 1, 2, 'F')
-      doc.text('Média (30-49%)', margin + 65, yPosition)
-      doc.setFillColor(239, 68, 68)
-      doc.circle(margin + 110, yPosition - 1, 2, 'F')
-      doc.text('Baixa (<30%)', margin + 115, yPosition)
-      yPosition += 8
-    }
-
-    // Rodapé em todas as páginas
+  private addPDFFooter(context: PDFContext): void {
+    const { doc, pageWidth, pageHeight, margin } = context
     const totalPages = doc.getNumberOfPages()
+    
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i)
       
-      // Linha do rodapé
       doc.setDrawColor(200, 200, 200)
       doc.setLineWidth(0.5)
       doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12)
@@ -591,8 +192,520 @@ class ExportService {
         { align: 'right' }
       )
     }
+  }
 
-    return doc.output('blob')
+  private addGenerationActivationSection(
+    context: PDFContext,
+    data: Partial<DashboardData>,
+    options: ExportOptions
+  ): void {
+    if (!data.generationActivation) return
+
+    this.addSectionHeader(context, '1. GERAÇÃO E ATIVAÇÃO DE LEADS')
+
+    if (options.includeKPIs !== false) {
+      this.addKPISubsection(context, 'Indicadores Principais', [
+        { label: 'Leads Criados', value: this.formatNumber(data.generationActivation.leadsCreated), color: [59, 130, 246] },
+        { label: 'Leads no Grupo', value: this.formatNumber(data.generationActivation.leadsInGroup), color: [16, 185, 129] },
+        { label: 'Participantes no Meet', value: this.formatNumber(data.generationActivation.meetParticipants), color: [139, 92, 246] },
+      ])
+    }
+
+    if (options.includeTables !== false && data.generationActivation.leadsCreatedByWeek && data.generationActivation.leadsCreatedByWeek.length > 0) {
+      this.addTableSubsection(context, 'Leads Criados por Semana', ['Semana', 'Quantidade', 'Período'], 
+        data.generationActivation.leadsCreatedByWeek.map((week) => [
+          `Semana ${week.week}`,
+          this.formatNumber(week.value),
+          week.label || '-',
+        ]),
+        [50, 60, 80]
+      )
+    }
+  }
+
+  private addSalesConversionSection(
+    context: PDFContext,
+    data: Partial<DashboardData>,
+    options: ExportOptions
+  ): void {
+    if (!data.salesConversion) return
+
+    this.addSectionHeader(context, '2. CONVERSÃO DE VENDAS')
+
+    if (options.includeKPIs !== false) {
+      this.addKPISubsection(context, 'Métricas de Vendas', [
+        { label: 'Vendas Fechadas', value: this.formatNumber(data.salesConversion.closedSales), color: [239, 68, 68] },
+        { label: 'Taxa de Fechamento', value: this.formatPercentage(data.salesConversion.closingRate), color: [16, 185, 129] },
+        { label: 'Meta de Taxa', value: this.formatPercentage(data.salesConversion.targetRate), color: [139, 92, 246] },
+        { label: 'Receita Gerada', value: this.formatCurrency(data.salesConversion.revenueGenerated), color: [245, 158, 11] },
+      ])
+    }
+
+    if (options.includeTables !== false && data.salesConversion.salesByWeek && data.salesConversion.salesByWeek.length > 0) {
+      this.addTableSubsection(context, 'Vendas por Semana', ['Semana', 'Vendas', 'Período'],
+        data.salesConversion.salesByWeek.map((week) => [
+          `Semana ${week.week}`,
+          this.formatNumber(week.value),
+          week.label || '-',
+        ]),
+        [50, 60, 80]
+      )
+    }
+  }
+
+  private addConversionRatesSection(
+    context: PDFContext,
+    data: Partial<DashboardData>
+  ): void {
+    if (!data.conversionRates) return
+
+    this.addSectionHeader(context, '3. TAXAS DE CONVERSÃO')
+
+    this.checkPageBreak(context, 30)
+    const { doc, margin, yPosition } = context
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(50, 50, 50)
+    doc.text('Taxas de Conversão por Etapa', margin, yPosition.value)
+    yPosition.value += 10
+
+    const rates = [
+      {
+        label: 'Criado → Grupo',
+        current: data.conversionRates.createdToGroup.current,
+        target: data.conversionRates.createdToGroup.target,
+      },
+      {
+        label: 'Grupo → Meet',
+        current: data.conversionRates.groupToMeet.current,
+        target: data.conversionRates.groupToMeet.target,
+      },
+      {
+        label: 'Meet → Venda',
+        current: data.conversionRates.meetToSale.current,
+        target: data.conversionRates.meetToSale.target,
+      },
+    ]
+
+    const ratesHeaders = ['Etapa', 'Taxa Atual', 'Meta', 'Status', 'Progresso']
+    const ratesRows = rates.map((rate) => {
+      const progress = Math.min(100, (rate.current / rate.target) * 100)
+      const status = rate.current >= rate.target ? '✓ Meta Atingida' : '⚠ Abaixo da Meta'
+      return [
+        rate.label,
+        this.formatPercentage(rate.current),
+        this.formatPercentage(rate.target),
+        status,
+        this.formatPercentage(progress),
+      ]
+    })
+    this.addTable(context, ratesHeaders, ratesRows, [60, 35, 35, 50, 40])
+
+    yPosition.value += 3
+    rates.forEach((rate) => {
+      this.addProgressBar(context, rate.label, rate.current, rate.target)
+    })
+    yPosition.value += 5
+  }
+
+  private addLeadStockSection(
+    context: PDFContext,
+    data: Partial<DashboardData>
+  ): void {
+    if (!data.leadStock) return
+
+    this.addSectionHeader(context, '4. ESTOQUE DE LEADS')
+
+    this.checkPageBreak(context, 30)
+    const { doc, margin, yPosition } = context
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(50, 50, 50)
+    doc.text('Distribuição do Estoque', margin, yPosition.value)
+    yPosition.value += 10
+
+    const stockItems = [
+      { label: 'Lista de Contato', value: data.leadStock.contactList, color: [16, 185, 129] },
+      { label: 'Primeiro Contato', value: data.leadStock.firstContact, color: [245, 158, 11] },
+      { label: 'No Grupo', value: data.leadStock.inGroup, color: [239, 68, 68] },
+      { label: 'Pós-Meet', value: data.leadStock.postMeet, color: [34, 197, 94] },
+    ]
+
+    const totalStock = stockItems.reduce((sum, item) => sum + item.value, 0)
+
+    const stockHeaders = ['Categoria', 'Quantidade', 'Percentual']
+    const stockRows = stockItems.map((item) => {
+      const percentage = totalStock > 0 ? ((item.value / totalStock) * 100).toFixed(1) : '0.0'
+      return [
+        item.label,
+        this.formatNumber(item.value),
+        `${percentage}%`,
+      ]
+    })
+    
+    stockRows.push([
+      'TOTAL',
+      this.formatNumber(totalStock),
+      '100.0%',
+    ])
+
+    this.addTable(context, stockHeaders, stockRows, [80, 60, 50])
+  }
+
+  private addSalesByConversionTimeSection(
+    context: PDFContext,
+    data: Partial<DashboardData>
+  ): void {
+    if (!data.salesByConversionTime) return
+
+    this.addSectionHeader(context, '5. VENDAS POR TEMPO DE CONVERSÃO')
+
+    this.checkPageBreak(context, 30)
+    const { doc, margin, yPosition } = context
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(50, 50, 50)
+    doc.text('Distribuição por Período de Conversão', margin, yPosition.value)
+    yPosition.value += 10
+
+    const conversionPeriods: Array<{
+      label: string
+      data: TimeSeriesData[]
+      color: [number, number, number]
+    }> = [
+      { label: '7 Dias', data: data.salesByConversionTime.sevenDays, color: [59, 130, 246] as [number, number, number] },
+      { label: '30 Dias', data: data.salesByConversionTime.thirtyDays, color: [16, 185, 129] as [number, number, number] },
+      { label: '90 Dias', data: data.salesByConversionTime.ninetyDays, color: [239, 68, 68] as [number, number, number] },
+      { label: '180 Dias', data: data.salesByConversionTime.oneEightyDays, color: [245, 158, 11] as [number, number, number] },
+    ]
+
+    conversionPeriods.forEach((period) => {
+      if (period.data && period.data.length > 0) {
+        this.addConversionPeriodTable(context, period)
+      }
+    })
+  }
+
+  private addLeadQualitySection(
+    context: PDFContext,
+    data: Partial<DashboardData>
+  ): void {
+    if (!data.leadQuality || data.leadQuality.length === 0) return
+
+    this.addSectionHeader(context, '6. QUALIDADE DOS LEADS')
+
+    this.checkPageBreak(context, 30)
+    const { doc, margin, yPosition } = context
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(50, 50, 50)
+    doc.text('Análise por Origem', margin, yPosition.value)
+    yPosition.value += 10
+
+    const qualityHeaders = ['Origem', '% Participação Meet', '% Taxa de Compra', 'Performance Média']
+    const qualityRows = data.leadQuality.map((item) => {
+      const performance = (item.meetParticipationRate + item.purchaseRate) / 2
+      return [
+        item.origin,
+        this.formatPercentage(item.meetParticipationRate),
+        this.formatPercentage(item.purchaseRate),
+        this.formatPercentage(performance),
+      ]
+    })
+
+    this.addTable(context, qualityHeaders, qualityRows, [60, 50, 50, 50])
+    this.addQualityLegend(context)
+  }
+
+  private addConversionPeriodTable(
+    context: PDFContext,
+    period: { label: string; data: TimeSeriesData[]; color: [number, number, number] }
+  ): void {
+    const { doc, margin, yPosition } = context
+    this.checkPageBreak(context, 30)
+    
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setFillColor(period.color[0], period.color[1], period.color[2])
+    doc.rect(margin, yPosition.value - 6, 4, 6, 'F')
+    doc.setTextColor(0, 0, 0)
+    doc.text(period.label, margin + 8, yPosition.value)
+    yPosition.value += 10
+
+    const periodHeaders = ['Dias', 'Vendas']
+    const periodRows = period.data.map((point: TimeSeriesData) => [
+      `${point.days} dias`,
+      this.formatNumber(point.value),
+    ])
+    
+    const periodTotal = period.data.reduce((sum: number, point: TimeSeriesData) => sum + point.value, 0)
+    periodRows.push([
+      'TOTAL',
+      this.formatNumber(periodTotal),
+    ])
+
+    this.addTable(context, periodHeaders, periodRows, [60, 80], period.color)
+    yPosition.value += 3
+  }
+
+  private addQualityLegend(context: PDFContext): void {
+    const { doc, margin, yPosition } = context
+    yPosition.value += 3
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 100, 100)
+    doc.text('Legenda: ', margin, yPosition.value)
+    doc.setFillColor(16, 185, 129)
+    doc.circle(margin + 20, yPosition.value - 1, 2, 'F')
+    doc.text('Alta (≥50%)', margin + 25, yPosition.value)
+    doc.setFillColor(245, 158, 11)
+    doc.circle(margin + 60, yPosition.value - 1, 2, 'F')
+    doc.text('Média (30-49%)', margin + 65, yPosition.value)
+    doc.setFillColor(239, 68, 68)
+    doc.circle(margin + 110, yPosition.value - 1, 2, 'F')
+    doc.text('Baixa (<30%)', margin + 115, yPosition.value)
+    yPosition.value += 8
+  }
+
+  private addProgressBar(
+    context: PDFContext,
+    label: string,
+    current: number,
+    target: number
+  ): void {
+    const { doc, margin, contentWidth, yPosition } = context
+    this.checkPageBreak(context, 15)
+    
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(80, 80, 80)
+    doc.text(label, margin, yPosition.value)
+    
+    const barWidth = contentWidth - 50
+    const barHeight = 6
+    const progress = Math.min(100, (current / target) * 100)
+    const barFillWidth = (barWidth * progress) / 100
+    
+    const barY = yPosition.value - 3
+    doc.setFillColor(230, 230, 230)
+    doc.rect(margin + 45, barY, barWidth, barHeight, 'F')
+    
+    const barColor: [number, number, number] = 
+      progress >= 100 ? [16, 185, 129] : 
+      progress >= 80 ? [59, 130, 246] : 
+      progress >= 50 ? [245, 158, 11] : 
+      [239, 68, 68]
+    
+    doc.setFillColor(barColor[0], barColor[1], barColor[2])
+    doc.rect(margin + 45, barY, barFillWidth, barHeight, 'F')
+    
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(0, 0, 0)
+    doc.text(`${this.formatPercentage(current)} / ${this.formatPercentage(target)}`, margin + 45 + barWidth + 5, yPosition.value)
+    yPosition.value += 12
+  }
+
+  private addKPISubsection(
+    context: PDFContext,
+    title: string,
+    kpis: Array<{ label: string; value: string; color: [number, number, number] }>
+  ): void {
+    this.checkPageBreak(context, 20)
+    const { doc, margin, yPosition } = context
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(50, 50, 50)
+    doc.text(title, margin, yPosition.value)
+    yPosition.value += 10
+
+    kpis.forEach((kpi) => {
+      this.addKPICard(context, kpi.label, kpi.value, kpi.color)
+    })
+    yPosition.value += 5
+  }
+
+  private addTableSubsection(
+    context: PDFContext,
+    title: string,
+    headers: string[],
+    rows: string[][],
+    columnWidths?: number[]
+  ): void {
+    this.checkPageBreak(context, 25)
+    const { doc, margin, yPosition } = context
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(50, 50, 50)
+    doc.text(title, margin, yPosition.value)
+    yPosition.value += 8
+
+    this.addTable(context, headers, rows, columnWidths)
+  }
+
+  private addSectionHeader(context: PDFContext, title: string, fontSize: number = 16): void {
+    this.checkPageBreak(context, 20)
+    const { doc, margin, pageWidth, yPosition } = context
+    yPosition.value += 5
+    doc.setFontSize(fontSize)
+    doc.setTextColor(30, 30, 30)
+    doc.setFont('helvetica', 'bold')
+    doc.text(title, margin, yPosition.value)
+    yPosition.value += 8
+    this.drawLine(context, [59, 130, 246], 1)
+    yPosition.value += 3
+  }
+
+  private addKPICard(
+    context: PDFContext,
+    label: string,
+    value: string | number,
+    color: [number, number, number] = [59, 130, 246]
+  ): void {
+    this.checkPageBreak(context, 15)
+    const { doc, margin, pageWidth, contentWidth, yPosition } = context
+    const cardHeight = 12
+    doc.setFillColor(color[0], color[1], color[2])
+    doc.roundedRect(margin, yPosition.value - 8, contentWidth, cardHeight, 3, 3, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(label, margin + 4, yPosition.value)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(12)
+    const valueStr = String(value)
+    doc.text(valueStr, pageWidth - margin - 4, yPosition.value, { align: 'right' })
+    yPosition.value += cardHeight + 3
+    doc.setTextColor(0, 0, 0)
+  }
+
+  private addTable(
+    context: PDFContext,
+    headers: string[],
+    rows: string[][],
+    columnWidths?: number[],
+    headerColor: [number, number, number] = [59, 130, 246]
+  ): void {
+    if (!rows || rows.length === 0) return
+
+    this.checkPageBreak(context, 30)
+    const { doc, margin, pageWidth, contentWidth, yPosition } = context
+    
+    const totalSpecifiedWidth = columnWidths ? columnWidths.reduce((sum, w) => sum + w, 0) : 0
+    const defaultColumnWidth = totalSpecifiedWidth > 0 
+      ? (contentWidth - totalSpecifiedWidth) / (headers.length - columnWidths!.length)
+      : contentWidth / headers.length
+    
+    const widths: number[] = []
+    headers.forEach((_, index) => {
+      if (columnWidths && columnWidths[index]) {
+        widths.push(columnWidths[index])
+      } else {
+        widths.push(defaultColumnWidth)
+      }
+    })
+    
+    const totalWidth = widths.reduce((sum, w) => sum + w, 0)
+    if (totalWidth > contentWidth) {
+      const ratio = contentWidth / totalWidth
+      widths.forEach((w, i) => { widths[i] = w * ratio })
+    }
+
+    const rowHeight = 7
+    const headerHeight = 9
+
+    doc.setFillColor(headerColor[0], headerColor[1], headerColor[2])
+    doc.rect(margin, yPosition.value - headerHeight + 2, contentWidth, headerHeight, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    
+    let xPos = margin + 3
+    headers.forEach((header, index) => {
+      const maxHeaderWidth = widths[index] - 6
+      let headerText = header
+      if (doc.getTextWidth(headerText) > maxHeaderWidth) {
+        let truncated = headerText
+        while (doc.getTextWidth(truncated + '...') > maxHeaderWidth && truncated.length > 0) {
+          truncated = truncated.slice(0, -1)
+        }
+        headerText = truncated + '...'
+      }
+      doc.text(headerText, xPos, yPosition.value)
+      xPos += widths[index]
+    })
+    
+    yPosition.value += headerHeight + 2
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+
+    rows.forEach((row, rowIndex) => {
+      this.checkPageBreak(context, rowHeight + 3)
+      
+      if (rowIndex % 2 === 0) {
+        doc.setFillColor(250, 250, 250)
+        doc.rect(margin, yPosition.value - rowHeight + 2, contentWidth, rowHeight, 'F')
+      }
+
+      xPos = margin + 3
+      row.forEach((cell, cellIndex) => {
+        const cellText = String(cell || '-')
+        const maxWidth = widths[cellIndex] - 6
+        let displayText = cellText
+        
+        if (doc.getTextWidth(cellText) > maxWidth) {
+          let truncated = cellText
+          while (doc.getTextWidth(truncated + '...') > maxWidth && truncated.length > 0) {
+            truncated = truncated.slice(0, -1)
+          }
+          displayText = truncated + '...'
+        }
+        
+        doc.text(displayText, xPos, yPosition.value)
+        xPos += widths[cellIndex]
+      })
+      yPosition.value += rowHeight
+    })
+    
+    doc.setDrawColor(220, 220, 220)
+    doc.setLineWidth(0.5)
+    doc.line(margin, yPosition.value, pageWidth - margin, yPosition.value)
+    yPosition.value += 6
+  }
+
+  private checkPageBreak(context: PDFContext, requiredSpace: number = 15): boolean {
+    const { doc, pageHeight, margin, yPosition } = context
+    if (yPosition.value + requiredSpace > pageHeight - margin - 15) {
+      doc.addPage()
+      yPosition.value = margin
+      return true
+    }
+    return false
+  }
+
+  private drawLine(
+    context: PDFContext,
+    color: [number, number, number] = [220, 220, 220],
+    thickness: number = 0.5
+  ): void {
+    const { doc, margin, pageWidth, yPosition } = context
+    doc.setDrawColor(color[0], color[1], color[2])
+    doc.setLineWidth(thickness)
+    doc.line(margin, yPosition.value, pageWidth - margin, yPosition.value)
+    yPosition.value += 4
+  }
+
+  private formatCurrency(value: number): string {
+    return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+
+  private formatNumber(value: number): string {
+    return value.toLocaleString('pt-BR')
+  }
+
+  private formatPercentage(value: number, decimals: number = 1): string {
+    return `${value.toFixed(decimals)}%`
   }
 
   private async exportToPNG(
@@ -660,7 +773,6 @@ class ExportService {
     const XLSX = await import('xlsx')
     const workbook = XLSX.utils.book_new()
 
-    // 1. RESUMO EXECUTIVO
     const summaryData: any[][] = [
       ['DASHBOARD CRM NYMU - RESUMO EXECUTIVO'],
       [''],
@@ -695,7 +807,6 @@ class ExportService {
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumo')
 
-    // 2. GERAÇÃO E ATIVAÇÃO
     if (options.sections?.generationActivation !== false && data.generationActivation) {
       const genData: any[][] = [
         ['GERAÇÃO E ATIVAÇÃO DE LEADS'],
@@ -719,7 +830,6 @@ class ExportService {
       XLSX.utils.book_append_sheet(workbook, genSheet, 'Geração e Ativação')
     }
 
-    // 3. CONVERSÃO DE VENDAS
     if (options.sections?.salesConversion !== false && data.salesConversion) {
       const salesData: any[][] = [
         ['CONVERSÃO DE VENDAS'],
@@ -744,7 +854,6 @@ class ExportService {
       XLSX.utils.book_append_sheet(workbook, salesSheet, 'Conversão de Vendas')
     }
 
-    // 4. TAXAS DE CONVERSÃO
     if (options.sections?.conversionRates !== false && data.conversionRates) {
       const ratesData: any[][] = [
         ['TAXAS DE CONVERSÃO'],
@@ -779,7 +888,6 @@ class ExportService {
       XLSX.utils.book_append_sheet(workbook, ratesSheet, 'Taxas de Conversão')
     }
 
-    // 5. ESTOQUE DE LEADS
     if (options.sections?.leadStock !== false && data.leadStock) {
       const stockData: any[][] = [
         ['ESTOQUE DE LEADS'],
@@ -797,7 +905,6 @@ class ExportService {
       XLSX.utils.book_append_sheet(workbook, stockSheet, 'Estoque de Leads')
     }
 
-    // 6. VENDAS POR TEMPO DE CONVERSÃO
     if (options.sections?.salesByConversionTime !== false && data.salesByConversionTime) {
       const conversionData: any[][] = [
         ['VENDAS POR TEMPO DE CONVERSÃO'],
@@ -826,7 +933,6 @@ class ExportService {
       XLSX.utils.book_append_sheet(workbook, conversionSheet, 'Tempo de Conversão')
     }
 
-    // 7. QUALIDADE DOS LEADS
     if (options.sections?.leadQuality !== false && options.includeTables && data.leadQuality) {
       const qualityData: any[][] = [
         ['QUALIDADE DOS LEADS'],
@@ -848,7 +954,6 @@ class ExportService {
       XLSX.utils.book_append_sheet(workbook, qualitySheet, 'Qualidade dos Leads')
     }
 
-    // Gerar arquivo Excel
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
     return new Blob([excelBuffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
