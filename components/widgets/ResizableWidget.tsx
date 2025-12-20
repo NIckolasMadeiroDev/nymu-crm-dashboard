@@ -8,6 +8,7 @@ interface ResizableWidgetProps {
   readonly onResize?: (width: number, height: number) => void
   readonly className?: string
   readonly autoAdjustHeight?: boolean
+  readonly fixedHeight?: number
 }
 
 export default function ResizableWidget({
@@ -16,6 +17,7 @@ export default function ResizableWidget({
   onResize,
   className = '',
   autoAdjustHeight = false,
+  fixedHeight,
 }: Readonly<ResizableWidgetProps>) {
   const [size, setSize] = useState({ width: 0, height: 0 })
   const [isAdjustingHeight, setIsAdjustingHeight] = useState(false)
@@ -25,15 +27,27 @@ export default function ResizableWidget({
   const isUpdatingRef = useRef<boolean>(false)
 
   useEffect(() => {
+    if (fixedHeight) {
+      setSize({ width: 0, height: fixedHeight })
+      return
+    }
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
       setSize({ width: rect.width, height: rect.height })
     }
-  }, [])
+  }, [fixedHeight])
 
   const prevAutoAdjustHeightRef = useRef(autoAdjustHeight)
 
   useEffect(() => {
+    if (fixedHeight) {
+      setSize(prev => {
+        const width = prev.width || (containerRef.current?.getBoundingClientRect().width || 0)
+        onResize?.(width, fixedHeight)
+        return { ...prev, height: fixedHeight }
+      })
+      return
+    }
     if (!contentRef.current) return
 
     const updateHeight = () => {
@@ -166,8 +180,10 @@ export default function ResizableWidget({
       clearTimeout(immediateUpdate)
       isUpdatingRef.current = false
     }
-  }, [autoAdjustHeight, minHeight, onResize, children])
+  }, [autoAdjustHeight, minHeight, onResize, children, fixedHeight])
 
+
+  const height = fixedHeight || (size.height > 0 ? size.height : undefined)
 
   return (
     <div
@@ -175,8 +191,9 @@ export default function ResizableWidget({
       className={`relative no-height-transition ${className}`}
       style={{ 
         width: '100%', 
-        height: size.height > 0 ? `${size.height}px` : '100%',
-        minHeight: size.height > 0 ? `${size.height}px` : '100%',
+        height: height ? `${height}px` : '100%',
+        minHeight: height ? `${height}px` : '100%',
+        maxHeight: height ? `${height}px` : undefined,
         transition: 'none !important',
         WebkitTransition: 'none !important',
         MozTransition: 'none !important',

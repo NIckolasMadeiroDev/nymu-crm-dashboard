@@ -147,9 +147,10 @@ export default function WidgetContainer({
   return (
     <div ref={containerRef} className="h-full flex flex-col" data-widget-id={id}>
       <ResizableWidget
-        className={`bg-white rounded-lg shadow-sm border-2 border-gray-200 hover:border-[#FF9D02] p-1 sm:p-1.5 md:p-2 h-full flex flex-col ${className}`}
-        minHeight={80}
-        autoAdjustHeight={analysisEnabled}
+        className={`bg-white rounded-lg shadow-sm border-2 border-gray-200 hover:border-[#FF9D02] p-1 sm:p-1.5 md:p-2 flex flex-col ${className}`}
+        minHeight={247}
+        fixedHeight={247}
+        autoAdjustHeight={false}
       >
         <div className="mb-0.5 sm:mb-1 md:mb-1.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-0.5 sm:gap-1 border-b border-gray-200 pb-0.5 sm:pb-1 md:pb-1.5">
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -267,7 +268,7 @@ export default function WidgetContainer({
             )}
           </div>
         </div>
-        <div className="widget-content flex-1 flex flex-col min-h-0 overflow-hidden">{children}</div>
+        <div className="widget-content flex-1 flex flex-col min-h-0 overflow-y-auto">{children}</div>
       </ResizableWidget>
 
       {analysis && (
