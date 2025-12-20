@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 export type ChartType =
@@ -71,7 +71,7 @@ export default function ChartTypeSelector({
   const buttonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const getChartTypeInfo = (type: ChartType) => {
+  const getChartTypeInfo = useCallback((type: ChartType) => {
     const typeKey = type as keyof typeof t.charts.types
     
     let categoryKey: 'quantitative' | 'proportion' | 'relation' | 'status' | 'geographic'
@@ -91,7 +91,7 @@ export default function ChartTypeSelector({
       label: t.charts.types[typeKey] || type,
       category: t.charts.categories[categoryKey] || categoryKey,
     }
-  }
+  }, [t])
 
   const getSupportedTypes = (types: ChartType[]): ChartType[] => {
     return types.filter((type) => SUPPORTED_CHART_TYPES.includes(type))
@@ -115,7 +115,7 @@ export default function ChartTypeSelector({
         type.toLowerCase().includes(query)
       )
     })
-  }, [types, searchQuery])
+  }, [types, searchQuery, getChartTypeInfo])
 
   const groupedTypes = useMemo(() => {
     return filteredTypes.reduce((acc, type) => {
@@ -125,9 +125,9 @@ export default function ChartTypeSelector({
       acc[category].push(type)
       return acc
     }, {} as Record<string, ChartType[]>)
-  }, [filteredTypes])
+  }, [filteredTypes, getChartTypeInfo])
 
-  const calculatePosition = () => {
+  const calculatePosition = useCallback(() => {
     if (!buttonRef.current) return
 
     const buttonRect = buttonRef.current.getBoundingClientRect()
@@ -172,7 +172,7 @@ export default function ChartTypeSelector({
     }
 
     setDropdownPosition({ top, left, position })
-  }
+  }, [groupedTypes, filteredTypes.length])
 
   useEffect(() => {
     if (isOpen) {
@@ -188,7 +188,7 @@ export default function ChartTypeSelector({
         window.removeEventListener('scroll', handleScroll, true)
       }
     }
-  }, [isOpen, groupedTypes, filteredTypes.length])
+  }, [isOpen, calculatePosition])
 
   useEffect(() => {
     if (isOpen && dropdownRef.current) {

@@ -479,7 +479,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                     <li><strong>Clique em Elementos:</strong> Clique em barras, linhas ou pontos dos gráficos</li>
                     <li><strong>Navegação Automática:</strong> O dashboard filtra automaticamente para mostrar detalhes</li>
                     <li><strong>Breadcrumb:</strong> Veja o caminho de navegação no topo</li>
-                    <li><strong>Voltar:</strong> Use o botão "Voltar" para retornar ao nível anterior</li>
+                    <li><strong>Voltar:</strong> Use o botão &quot;Voltar&quot; para retornar ao nível anterior</li>
                     <li><strong>Reset:</strong> Limpe toda a navegação e volte à visão inicial</li>
                   </ul>
                 </div>
