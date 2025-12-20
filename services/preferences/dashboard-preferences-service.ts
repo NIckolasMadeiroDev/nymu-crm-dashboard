@@ -91,13 +91,13 @@ class DashboardPreferencesService {
     const height = this.getWidgetHeight()
     switch (height) {
       case 'normal':
-        return 320
+        return 360
       case 'large':
-        return 350
+        return 390
       case 'extraLarge':
         return 500
       default:
-        return 300
+        return 360
     }
   }
 
