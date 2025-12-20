@@ -124,12 +124,12 @@ export default function ThemeSelector() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="relative flex-1">
+    <div className="w-full flex items-center gap-1 sm:gap-2">
+      <div className="relative flex-1 min-w-0">
       <select
           value={getSelectValue()}
           onChange={(e) => handleThemeChange(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+          className="w-full px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-[10px] sm:text-xs md:text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
         aria-label="Selecionar tema"
       >
           <option value="nymu-light">🌞 Nymu Claro</option>

@@ -1207,10 +1207,6 @@ html.dark .rdp-day_selected {
   [class*="ResizableWidget"] *,
   [class*="resizable-widget"] * {
     transition-property: color, background-color, border-color, opacity, transform !important;
-  }
-  
-  [class*="ResizableWidget"] *,
-  [class*="resizable-widget"] * {
     transition-duration: 0s !important;
   }
 }

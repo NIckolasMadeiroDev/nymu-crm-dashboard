@@ -13,11 +13,11 @@ export default function LanguageSelector() {
   ]
 
   return (
-    <div className="relative inline-block">
+    <div className="relative w-full">
       <select
         value={locale}
         onChange={(e) => setLocale(e.target.value as Locale)}
-        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer appearance-none pr-8"
+        className="w-full px-1.5 sm:px-2 py-1 sm:py-1.5 bg-white border border-gray-300 rounded-lg text-[9px] sm:text-[10px] md:text-xs font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer appearance-none pr-5 sm:pr-6"
         aria-label={t.language.title}
         title={t.language.title}
       >

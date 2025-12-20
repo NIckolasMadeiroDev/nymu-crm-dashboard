@@ -25,10 +25,10 @@ export default function ExportButton({ data, className = '' }: Readonly<ExportBu
           }}
           aria-label="Abrir configurações de exportação"
           aria-expanded={showConfigPanel}
-          className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="w-full px-1.5 sm:px-2 py-1 sm:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
         >
           <svg
-            className="w-4 h-4"
+            className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -41,7 +41,7 @@ export default function ExportButton({ data, className = '' }: Readonly<ExportBu
               d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          Exportar
+          <span className="hidden md:inline truncate">Exportar</span>
         </button>
       </div>
 

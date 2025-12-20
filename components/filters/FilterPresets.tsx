@@ -162,12 +162,12 @@ export default function FilterPresets({
     selectedPreset && !selectedPreset.isProtected
 
   return (
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-1.5">
-      <div className="relative w-auto">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full">
+      <div className="relative w-auto min-w-0 flex-shrink-0">
       <select
           value={selectedPresetId || ''}
           onChange={(e) => handleSelectPreset(e.target.value)}
-          className="w-auto min-w-[160px] px-2 py-2 border border-gray-300 rounded-lg text-xs font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+          className="w-auto min-w-[140px] max-w-[180px] px-1.5 sm:px-2 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-[9px] sm:text-[10px] md:text-xs font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
         aria-label="Selecionar preset de filtros"
       >
           <option value="">Selecione um preset...</option>
@@ -197,30 +197,30 @@ export default function FilterPresets({
           <>
             <button
               onClick={() => handleEditPreset(selectedPreset)}
-              className="p-1 sm:p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20"
+              className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20"
               aria-label="Editar preset atual"
               title="Editar preset atual"
             >
-              <Edit2 size={14} className="sm:w-4 sm:h-4" />
+              <Edit2 size={12} className="sm:w-3 sm:h-3" />
             </button>
             <button
               onClick={() => handleDeletePreset(selectedPreset.id)}
-              className="p-1 sm:p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20"
+              className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20"
               aria-label="Excluir preset atual"
               title="Excluir preset atual"
             >
-              <Trash2 size={14} className="sm:w-4 sm:h-4" />
+              <Trash2 size={12} className="sm:w-3 sm:h-3" />
             </button>
           </>
         )}
         <button
           onClick={handleCreatePreset}
-          className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center gap-1 whitespace-nowrap"
+          className="px-1.5 sm:px-2 py-1 sm:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 whitespace-nowrap"
           aria-label="Criar novo preset"
         >
-          <Plus size={16} className="text-white" />
-          <span className="hidden sm:inline text-white">Novo Preset</span>
-          <span className="sm:hidden text-white">Novo</span>
+          <Plus size={12} className="sm:w-3 sm:h-3 flex-shrink-0" />
+          <span className="hidden md:inline text-white">Novo Preset</span>
+          <span className="md:hidden text-white">Novo</span>
         </button>
       </div>
 

@@ -40,9 +40,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
@@ -54,7 +54,7 @@ export default function RootLayout({
             <WidgetHeightProvider>
               {children}
             <AccessibilityPanel />
-          <div id="aria-live-region" role="status" aria-live="polite" aria-atomic="true" className="sr-only" />
+          <output id="aria-live-region" aria-live="polite" aria-atomic="true" className="sr-only" />
           <Toaster
             position="top-right"
             toastOptions={{

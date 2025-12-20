@@ -14,7 +14,7 @@ export interface DashboardPreferences {
 const STORAGE_KEY = 'crm-dashboard-preferences'
 
 class DashboardPreferencesService {
-  private defaultPreferences: DashboardPreferences = {
+  private readonly defaultPreferences: DashboardPreferences = {
     chartLayout: 'three',
     selectedPresetId: null,
     filters: null,
@@ -22,12 +22,12 @@ class DashboardPreferencesService {
   }
 
   getPreferences(): DashboardPreferences {
-    if (typeof window === 'undefined') {
+    if (globalThis.window === undefined) {
       return { ...this.defaultPreferences }
     }
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
+      const stored = globalThis.window.localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const parsed = JSON.parse(stored)
         return {
@@ -45,7 +45,7 @@ class DashboardPreferencesService {
   }
 
   savePreferences(preferences: Partial<DashboardPreferences>): void {
-    if (typeof window === 'undefined') return
+    if (globalThis.window === undefined) return
 
     try {
       const current = this.getPreferences()
@@ -53,7 +53,7 @@ class DashboardPreferencesService {
         ...current,
         ...preferences,
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      globalThis.window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
     } catch (error) {
       console.error('Failed to save dashboard preferences:', error)
     }
@@ -102,10 +102,10 @@ class DashboardPreferencesService {
   }
 
   clearPreferences(): void {
-    if (typeof window === 'undefined') return
+    if (globalThis.window === undefined) return
 
     try {
-      localStorage.removeItem(STORAGE_KEY)
+      globalThis.window.localStorage.removeItem(STORAGE_KEY)
     } catch (error) {
       console.error('Failed to clear dashboard preferences:', error)
     }

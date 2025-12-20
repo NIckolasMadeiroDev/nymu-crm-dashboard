@@ -5,7 +5,6 @@ import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage from '@/components/ui/ErrorMessage'
-import DashboardFiltersComponent from './DashboardFilters'
 import GenerationActivationWithControls from './GenerationActivationWithControls'
 import SalesConversionWithControls from './SalesConversionWithControls'
 import ConversionRatesWithControls from './ConversionRatesWithControls'
@@ -18,14 +17,14 @@ import ShareButton from '@/components/sharing/ShareButton'
 import SchedulingPanel from '@/components/scheduling/SchedulingPanel'
 import FilterPresets from '@/components/filters/FilterPresets'
 import DrillNavigation from '@/components/drill/DrillNavigation'
-import ThemeSelector from '@/components/theme/ThemeSelector'
+import SettingsModal from '@/components/settings/SettingsModal'
+import FiltersModal, { countActiveFilters } from '@/components/filters/FiltersModal'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useWidgetHeight } from '@/contexts/WidgetHeightContext'
 import type { DashboardData } from '@/types/dashboard'
 import { dataSourceAdapter } from '@/services/data/data-source-adapter'
 import { formatCurrency, formatNumber } from '@/utils/format-currency'
 import NymuLogo from '@/components/common/NymuLogo'
-import LanguageSelector from '@/components/language/LanguageSelector'
 import { themeService } from '@/services/theme/theme-service'
 import { dashboardPreferencesService } from '@/services/preferences/dashboard-preferences-service'
 import { filterPresetsService } from '@/services/filters/filter-presets-service'
@@ -33,11 +32,12 @@ import type { DrillContext } from '@/services/drill/drill-service'
 
 export default function Dashboard() {
   const { t } = useLanguage()
-  const { widgetHeight, setWidgetHeight } = useWidgetHeight()
+  useWidgetHeight() // Usado no SettingsModal através do contexto
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showScheduling, setShowScheduling] = useState(false)
+  const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [drillContext, setDrillContext] = useState<DrillContext | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   type LogoVariant = 'twocolor' | 'white'
@@ -45,8 +45,7 @@ export default function Dashboard() {
   
   const [logoVariant, setLogoVariant] = useState<LogoVariant>('twocolor')
   const [chartLayout, setChartLayout] = useState<ChartLayout>('three')
-  const [showLayoutMenu, setShowLayoutMenu] = useState(false)
-  const [showHeightMenu, setShowHeightMenu] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
 
   const defaultChartOrder = [
     'sales-conversion-chart',
@@ -84,6 +83,7 @@ export default function Dashboard() {
     if (preferences.filters) {
       loadDashboardData(preferences.filters)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handlePresetSelected = (presetId: string | null) => {
@@ -154,18 +154,6 @@ export default function Dashboard() {
     }
   }, [])
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showLayoutMenu) {
-        setShowLayoutMenu(false)
-      }
-    }
-
-    if (showLayoutMenu) {
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
-    }
-  }, [showLayoutMenu])
 
   const handleRetry = () => {
     setError(null)
@@ -310,277 +298,83 @@ export default function Dashboard() {
         <main id="main-content" role="main" aria-label="Dashboard principal do CRM">
 
         <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6 space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-6">
-            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 flex-wrap flex-1 min-w-0">
-              <div className="h-5 sm:h-6 md:h-8 flex items-center flex-shrink-0">
+          <section
+            className="bg-white rounded-lg shadow-sm p-2 sm:p-2.5 border border-gray-100 mb-2 sm:mb-2.5 dark:bg-gray-800 dark:border-gray-700"
+            aria-label="Controles do dashboard"
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-0.5 sm:gap-1 items-center">
+              <div className="col-span-1 w-auto flex items-center justify-start ml-3">
                 <NymuLogo
                   variant={logoVariant}
                   type="logotype"
                   width={144}
                   height={36}
                   priority
-                  className="focus:outline-none w-auto max-w-full h-auto"
-                  style={{ maxWidth: 'min(100px, 100%)' }}
+                  className="focus:outline-none w-auto h-auto"
+                  style={{ maxWidth: 'min(90px, 100%)' }}
                 />
               </div>
-              <div className="flex-shrink-0">
-                <LanguageSelector />
-              </div>
-              <div className="flex-1 min-w-0">
+              <div className="col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1 xl:col-span-1 w-full -mx-0.5 sm:-mx-0.5 flex items-center justify-start">
                 <FilterPresets
                   onSelectPreset={handleFilterChange}
                   currentFilters={dashboardData.filters}
                   onPresetSelected={handlePresetSelected}
                 />
               </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3 flex-shrink-0">
-              <div className="relative">
-                <button
-                  onClick={() => setShowHeightMenu((prev) => !prev)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      setShowHeightMenu((prev) => !prev)
-                    }
-                    if (e.key === 'Escape') {
-                      setShowHeightMenu(false)
-                    }
-                  }}
-                  className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs md:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                  aria-label="Selecionar altura dos widgets"
-                  aria-expanded={showHeightMenu}
-                  aria-haspopup="true"
-                >
-                  <svg
-                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-                    />
-                  </svg>
-                  <span className="hidden sm:inline text-white">
-                    {widgetHeight === 'normal' && 'Altura Normal'}
-                    {widgetHeight === 'large' && 'Altura Grande'}
-                    {widgetHeight === 'extraLarge' && 'Altura Extra Grande'}
+              <div className="hidden lg:block xl:col-span-1"></div>
+              <button
+                onClick={() => setShowFiltersModal(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setShowFiltersModal(true)
+                  }
+                }}
+                aria-label="Abrir filtros"
+                className="relative w-full px-1.5 sm:px-2 py-1 sm:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              >
+                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                  />
+                </svg>
+                <span className="hidden md:inline truncate">Filtros</span>
+                {dashboardData && countActiveFilters(dashboardData.filters) > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {countActiveFilters(dashboardData.filters)}
                   </span>
-                  <svg
-                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-                {showHeightMenu && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowHeightMenu(false)}
-                      aria-hidden="true"
-                    />
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-                      <div className="py-1">
-                        {[
-                          { value: 'normal', label: 'Altura Normal' },
-                          { value: 'large', label: 'Altura Grande' },
-                          { value: 'extraLarge', label: 'Altura Extra Grande' },
-                        ].map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => {
-                              setWidgetHeight(option.value as 'normal' | 'large' | 'extraLarge')
-                              setShowHeightMenu(false)
-                            }}
-                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors flex items-center justify-between ${
-                              widgetHeight === option.value ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                            }`}
-                          >
-                            <span className="font-medium">{option.label}</span>
-                            {widgetHeight === option.value && (
-                              <svg
-                                className="w-4 h-4 text-blue-600"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
                 )}
-              </div>
-              <div className="relative">
-                <button
-                  onClick={() => setShowLayoutMenu((prev) => !prev)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      setShowLayoutMenu((prev) => !prev)
-                    }
-                    if (e.key === 'Escape') {
-                      setShowLayoutMenu(false)
-                    }
-                  }}
-                  className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs md:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                  aria-label="Selecionar layout dos gráficos"
-                  aria-expanded={showLayoutMenu}
-                  aria-haspopup="true"
-                >
-                  <svg
-                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    {(() => {
-                      if (chartLayout === 'one') {
-                        return (
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2zM4 21a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z"
-                          />
-                        )
-                      }
-                      if (chartLayout === 'two') {
-                        return (
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                          />
-                        )
-                      }
-                      return (
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM10 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM16 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM10 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM16 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                        />
-                      )
-                    })()}
-                  </svg>
-                  <span className="hidden sm:inline text-white">
-                    {(() => {
-                      if (chartLayout === 'one') return '1 por linha'
-                      if (chartLayout === 'two') return '2 por linha'
-                      return '3 por linha'
-                    })()}
-                  </span>
-                  <svg
-                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-                {showLayoutMenu && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowLayoutMenu(false)}
-                      aria-hidden="true"
-                    />
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-                      <div className="py-1">
-                        {[
-                          { value: 'one', label: '1 por linha', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2zM4 21a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z' },
-                          { value: 'two', label: '2 por linha', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
-                          { value: 'three', label: '3 por linha', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM10 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM16 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM10 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM16 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
-                        ].map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => {
-                              const newLayout = option.value as ChartLayout
-                              setChartLayout(newLayout)
-                              dashboardPreferencesService.saveChartLayout(newLayout)
-                              setShowLayoutMenu(false)
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault()
-                                const newLayout = option.value as ChartLayout
-                                setChartLayout(newLayout)
-                                dashboardPreferencesService.saveChartLayout(newLayout)
-                                setShowLayoutMenu(false)
-                              }
-                            }}
-                            className={`w-full flex items-center gap-2 px-4 py-2 text-sm font-secondary transition-colors ${
-                              chartLayout === option.value
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                            aria-label={`Layout ${option.label}`}
-                            aria-pressed={chartLayout === option.value}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d={option.icon}
-                              />
-                            </svg>
-                            <span>{option.label}</span>
-                            {chartLayout === option.value && (
-                              <svg
-                                className="w-4 h-4 ml-auto"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+              </button>
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setShowSettingsModal(true)
+                  }
+                }}
+                aria-label="Abrir configurações"
+                className="w-full px-1.5 sm:px-2 py-1 sm:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
+              >
+                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                <span className="hidden md:inline truncate">Configurações</span>
+              </button>
               <button
                 onClick={() => setShowScheduling(true)}
                 onKeyDown={(e) => {
@@ -590,9 +384,9 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label={t.scheduling.title}
-                className="px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs md:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                className="w-full px-1.5 sm:px-2 py-1 sm:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
               >
-                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -600,25 +394,39 @@ export default function Dashboard() {
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                {t.scheduling.title}
+                <span className="hidden md:inline truncate">{t.scheduling.title}</span>
               </button>
-              <ShareButton filters={dashboardData.filters} />
-              <ExportButton data={dashboardData} />
-              <div className="flex-shrink-0">
-                <ThemeSelector />
+              <div className="w-full">
+                <ShareButton filters={dashboardData.filters} className="w-full" />
               </div>
-            </div>
-          </div>
-          <DashboardFiltersComponent
-            filters={dashboardData.filters}
-            onFilterChange={handleFilterChange}
-            selectedPresetId={selectedPresetId}
-            onPresetUpdated={() => {
-              if (dashboardData) {
-                loadDashboardData(dashboardData.filters)
-              }
+              <div className="w-full">
+                <ExportButton data={dashboardData} className="w-full" />
+              </div>
+              </div>
+            </section>
+            <SettingsModal
+              isOpen={showSettingsModal}
+            onClose={() => setShowSettingsModal(false)}
+            chartLayout={chartLayout}
+            onChartLayoutChange={(layout) => {
+              setChartLayout(layout)
+              dashboardPreferencesService.saveChartLayout(layout)
             }}
           />
+          {dashboardData && (
+            <FiltersModal
+              isOpen={showFiltersModal}
+              onClose={() => setShowFiltersModal(false)}
+              filters={dashboardData.filters}
+              onFilterChange={handleFilterChange}
+              selectedPresetId={selectedPresetId}
+              onPresetUpdated={() => {
+                if (dashboardData) {
+                  loadDashboardData(dashboardData.filters)
+                }
+              }}
+            />
+          )}
           {drillContext && (
             <DrillNavigation
               onContextChange={(context) => {

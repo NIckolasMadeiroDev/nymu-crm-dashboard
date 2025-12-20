@@ -1,5 +1,4 @@
-import type { ScheduledReport, ExportFormat } from '@/services/export/export-service'
-import type { DashboardData } from '@/types/dashboard'
+import type { ScheduledReport } from '@/services/export/export-service'
 
 const STORAGE_KEY = 'crm-dashboard-scheduled-reports'
 
@@ -11,10 +10,10 @@ class SchedulingService {
   }
 
   private loadReports() {
-    if (typeof window === 'undefined') return
+    if (globalThis.window === undefined) return
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
+      const stored = globalThis.window.localStorage.getItem(STORAGE_KEY)
       if (stored) {
         this.reports = JSON.parse(stored)
       }
@@ -25,10 +24,10 @@ class SchedulingService {
   }
 
   private saveReports() {
-    if (typeof window === 'undefined') return
+    if (globalThis.window === undefined) return
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.reports))
+      globalThis.window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.reports))
     } catch (error) {
       console.error('Failed to save scheduled reports:', error)
     }
@@ -37,7 +36,7 @@ class SchedulingService {
   createReport(report: Omit<ScheduledReport, 'id'>): ScheduledReport {
     const newReport: ScheduledReport = {
       ...report,
-      id: `report-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `report-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
     }
 
     this.reports.push(newReport)
