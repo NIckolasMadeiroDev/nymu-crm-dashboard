@@ -1,11 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Save } from 'lucide-react'
+import { X, Save, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { DashboardFilters } from '@/types/dashboard'
 import { SDRS, COLLEGES, ORIGINS } from '@/services/dashboard-mock-service'
-import { filterPresetsService } from '@/services/filters/filter-presets-service'
+import {
+  filterPresetsService,
+  type FilterPreset,
+} from '@/services/filters/filter-presets-service'
+import { PresetDialog } from '@/components/filters/FilterPresets'
 
 interface FiltersModalProps {
   readonly isOpen: boolean
@@ -26,6 +30,7 @@ export default function FiltersModal({
 }: Readonly<FiltersModalProps>) {
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showPresetDialog, setShowPresetDialog] = useState(false)
 
   useEffect(() => {
     if (selectedPresetId) {
@@ -96,6 +101,26 @@ export default function FiltersModal({
         icon: '💾',
       }
     )
+  }
+
+  const handleCreatePreset = () => {
+    setShowPresetDialog(true)
+  }
+
+  const handleSavePreset = (name: string, presetFilters: DashboardFilters) => {
+    if (!name.trim()) {
+      toast.error('Por favor, informe um nome para o preset.')
+      return
+    }
+
+    try {
+      filterPresetsService.createPreset(name.trim(), presetFilters)
+      onPresetUpdated?.()
+      toast.success('Preset criado com sucesso!')
+      setShowPresetDialog(false)
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao criar preset.')
+    }
   }
 
   if (!isOpen) return null
@@ -242,6 +267,14 @@ export default function FiltersModal({
 
           <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700 gap-2">
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleCreatePreset}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-secondary text-sm"
+                aria-label="Criar novo preset"
+              >
+                <Plus size={16} />
+                Novo Preset
+              </button>
               {hasChanges && selectedPresetId && (
                 <button
                   onClick={handleSaveToPreset}
@@ -289,6 +322,15 @@ export default function FiltersModal({
           </div>
         </div>
       </dialog>
+
+      {showPresetDialog && (
+        <PresetDialog
+          preset={null}
+          initialFilters={filters}
+          onClose={() => setShowPresetDialog(false)}
+          onSave={handleSavePreset}
+        />
+      )}
     </>
   )
 }

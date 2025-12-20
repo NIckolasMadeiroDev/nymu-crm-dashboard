@@ -19,6 +19,7 @@ import SchedulingPanel from '@/components/scheduling/SchedulingPanel'
 import FilterPresets from '@/components/filters/FilterPresets'
 import DrillNavigation from '@/components/drill/DrillNavigation'
 import SettingsModal from '@/components/settings/SettingsModal'
+import HelpModal from '@/components/help/HelpModal'
 import FiltersModal, { countActiveFilters } from '@/components/filters/FiltersModal'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useWidgetHeight } from '@/contexts/WidgetHeightContext'
@@ -39,6 +40,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [showScheduling, setShowScheduling] = useState(false)
   const [showFiltersModal, setShowFiltersModal] = useState(false)
+  const [showHelpModal, setShowHelpModal] = useState(false)
   const [drillContext, setDrillContext] = useState<DrillContext | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
@@ -333,14 +335,34 @@ export default function Dashboard() {
                   style={{ maxWidth: 'min(90px, 100%)' }}
                 />
               </div>
-              <div className="col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1 xl:col-span-1 w-full -mx-0.5 sm:-mx-0.5 flex items-center justify-start">
+              <div className="col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1 xl:col-span-1 w-full flex items-center">
                 <FilterPresets
                   onSelectPreset={handleFilterChange}
                   currentFilters={dashboardData.filters}
                   onPresetSelected={handlePresetSelected}
                 />
               </div>
-              <div className="hidden lg:block xl:col-span-1"></div>
+              <button
+                onClick={() => setShowHelpModal(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setShowHelpModal(true)
+                  }
+                }}
+                aria-label="Abrir ajuda"
+                className="w-full px-1.5 sm:px-2 py-1 sm:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 whitespace-nowrap"
+              >
+                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span className="hidden md:inline truncate">Ajuda</span>
+              </button>
               <button
                 onClick={() => setShowFiltersModal(true)}
                 onKeyDown={(e) => {
@@ -367,6 +389,9 @@ export default function Dashboard() {
                   </span>
                 )}
               </button>
+              <div className="w-full">
+                <ExportButton data={dashboardData} className="w-full" />
+              </div>
               <button
                 onClick={() => setShowSettingsModal(true)}
                 onKeyDown={(e) => {
@@ -418,19 +443,20 @@ export default function Dashboard() {
               <div className="w-full">
                 <ShareButton filters={dashboardData.filters} className="w-full" />
               </div>
-              <div className="w-full">
-                <ExportButton data={dashboardData} className="w-full" />
-              </div>
-              </div>
-            </section>
-            <SettingsModal
-              isOpen={showSettingsModal}
+            </div>
+          </section>
+          <SettingsModal
+            isOpen={showSettingsModal}
             onClose={() => setShowSettingsModal(false)}
             chartLayout={chartLayout}
             onChartLayoutChange={(layout) => {
               setChartLayout(layout)
               dashboardPreferencesService.saveChartLayout(layout)
             }}
+          />
+          <HelpModal
+            isOpen={showHelpModal}
+            onClose={() => setShowHelpModal(false)}
           />
           {dashboardData && (
             <FiltersModal

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Trash2, Edit2, Plus, X, Lock } from 'lucide-react'
+import { X, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { DashboardFilters } from '@/types/dashboard'
 import {
@@ -23,8 +23,6 @@ export default function FilterPresets({
 }: Readonly<FilterPresetsProps>) {
   const [presets, setPresets] = useState<FilterPreset[]>([])
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
-  const [showDialog, setShowDialog] = useState(false)
-  const [editingPreset, setEditingPreset] = useState<FilterPreset | null>(null)
 
   useEffect(() => {
     setPresets(filterPresetsService.getPresets())
@@ -44,209 +42,49 @@ export default function FilterPresets({
     }
   }
 
-  const handleCreatePreset = () => {
-    setEditingPreset(null)
-    setShowDialog(true)
-  }
-
-  const handleEditPreset = (preset: FilterPreset) => {
-    if (preset.isProtected) {
-      toast.error('Este preset padrão não pode ser editado.')
-      return
-    }
-    setEditingPreset(preset)
-    setShowDialog(true)
-  }
-
-  const handleDeletePreset = (presetId: string) => {
-    if (filterPresetsService.isPresetProtected(presetId)) {
-      toast.error('Este preset padrão não pode ser excluído.')
-      return
-    }
-
-    const preset = filterPresetsService.getPreset(presetId)
-    const presetName = preset?.name || 'este preset'
-
-    toast(
-      (t) => (
-        <div className="flex flex-col gap-2">
-          <p className="font-medium">Confirmar exclusão</p>
-          <p className="text-sm">
-            Tem certeza que deseja excluir o preset &quot;{presetName}&quot;? Esta ação não pode ser desfeita.
-          </p>
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => {
-                toast.dismiss(t.id)
-                try {
-                  filterPresetsService.deletePreset(presetId)
-      setPresets(filterPresetsService.getPresets())
-                  
-                  // Retornar ao preset "Hoje" automaticamente
-                  const todayPreset = filterPresetsService.getPreset('preset-default-today')
-                  if (todayPreset) {
-                    setSelectedPresetId('preset-default-today')
-                    onPresetSelected?.('preset-default-today')
-                    onSelectPreset(todayPreset.filters)
-                    toast.success('Preset excluído. Retornando ao preset "Hoje".')
-                  } else {
-                    setSelectedPresetId(null)
-                    onPresetSelected?.(null)
-                    toast.success('Preset excluído com sucesso.')
-    }
-                } catch (error: any) {
-                  toast.error(error.message || 'Erro ao excluir preset.')
-                }
-              }}
-              className="px-3 py-1.5 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors"
-            >
-              Excluir
-            </button>
-            <button
-              onClick={() => toast.dismiss(t.id)}
-              className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      ),
-      {
-        duration: 10000,
-        icon: '🗑️',
-      }
-    )
-  }
-
-  const handleSavePreset = (name: string, filters: DashboardFilters) => {
-    if (!name.trim()) {
-      toast.error('Por favor, informe um nome para o preset.')
-      return
-    }
-
-    try {
-      if (editingPreset) {
-        filterPresetsService.updatePreset(editingPreset.id, {
-          name: name.trim(),
-          filters,
-        })
-        setPresets(filterPresetsService.getPresets())
-        setSelectedPresetId(editingPreset.id)
-        onPresetSelected?.(editingPreset.id)
-        // Aplicar filtros automaticamente
-        onSelectPreset(filters)
-        toast.success('Preset atualizado e filtros aplicados com sucesso!')
-      } else {
-        const newPreset = filterPresetsService.createPreset(name.trim(), filters)
-      setPresets(filterPresetsService.getPresets())
-        setSelectedPresetId(newPreset.id)
-        onPresetSelected?.(newPreset.id)
-        // Aplicar filtros automaticamente
-        onSelectPreset(filters)
-        toast.success('Preset criado e filtros aplicados com sucesso!')
-      }
-      setShowDialog(false)
-      setEditingPreset(null)
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao salvar preset.')
-    }
-  }
-
   const defaultPresets = presets.filter((p) => p.isProtected)
   const customPresets = presets.filter((p) => !p.isProtected)
 
-  const selectedPreset = selectedPresetId
-    ? presets.find((p) => p.id === selectedPresetId)
-    : null
-  const isCustomPresetSelected =
-    selectedPreset && !selectedPreset.isProtected
-
   return (
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full">
-      <div className="relative w-auto min-w-0 flex-shrink-0">
+    <div className="w-full">
       <select
-          value={selectedPresetId || ''}
-          onChange={(e) => handleSelectPreset(e.target.value)}
-          className="w-auto min-w-[140px] max-w-[180px] px-1.5 sm:px-2 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-[9px] sm:text-[10px] md:text-xs font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+        value={selectedPresetId || ''}
+        onChange={(e) => handleSelectPreset(e.target.value)}
+        className="w-full px-1.5 sm:px-2 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-[9px] sm:text-[10px] md:text-xs font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white"
         aria-label="Selecionar preset de filtros"
       >
-          <option value="">Selecione um preset...</option>
-          {defaultPresets.length > 0 && (
-            <optgroup label="Presets Padrão">
-              {defaultPresets.map((preset) => (
-                <option key={preset.id} value={preset.id}>
-                  🔒 {preset.name}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {customPresets.length > 0 && (
-            <optgroup label="Meus Presets">
-              {customPresets.map((preset) => (
-          <option key={preset.id} value={preset.id}>
-            {preset.name}
-          </option>
-        ))}
-            </optgroup>
-          )}
-      </select>
-      </div>
-
-      <div className="flex items-center gap-0.5 flex-shrink-0">
-        {isCustomPresetSelected && selectedPreset && (
-          <>
-            <button
-              onClick={() => handleEditPreset(selectedPreset)}
-              className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20"
-              aria-label="Editar preset atual"
-              title="Editar preset atual"
-            >
-              <Edit2 size={12} className="sm:w-3 sm:h-3" />
-            </button>
-            <button
-              onClick={() => handleDeletePreset(selectedPreset.id)}
-              className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20"
-              aria-label="Excluir preset atual"
-              title="Excluir preset atual"
-            >
-              <Trash2 size={12} className="sm:w-3 sm:h-3" />
-            </button>
-          </>
+        <option value="">Selecione um preset...</option>
+        {defaultPresets.length > 0 && (
+          <optgroup label="Presets Padrão">
+            {defaultPresets.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                🔒 {preset.name}
+              </option>
+            ))}
+          </optgroup>
         )}
-        <button
-          onClick={handleCreatePreset}
-          className="px-1.5 sm:px-2 py-1 sm:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 whitespace-nowrap"
-          aria-label="Criar novo preset"
-        >
-          <Plus size={12} className="sm:w-3 sm:h-3 flex-shrink-0" />
-          <span className="hidden md:inline text-white">Novo Preset</span>
-          <span className="md:hidden text-white">Novo</span>
-        </button>
-      </div>
-
-      {showDialog && (
-        <PresetDialog
-          preset={editingPreset}
-          initialFilters={editingPreset?.filters || currentFilters}
-          onClose={() => {
-            setShowDialog(false)
-            setEditingPreset(null)
-          }}
-          onSave={handleSavePreset}
-        />
-      )}
+        {customPresets.length > 0 && (
+          <optgroup label="Meus Presets">
+            {customPresets.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
     </div>
   )
 }
 
-interface PresetDialogProps {
+export interface PresetDialogProps {
   readonly preset: FilterPreset | null
   readonly initialFilters: DashboardFilters
   readonly onClose: () => void
   readonly onSave: (name: string, filters: DashboardFilters) => void
 }
 
-function PresetDialog({
+export function PresetDialog({
   preset,
   initialFilters,
   onClose,
