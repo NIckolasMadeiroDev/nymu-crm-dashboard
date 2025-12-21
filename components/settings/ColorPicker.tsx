@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useRef } from 'react'
 
 interface ColorPickerProps {
   readonly label: string
@@ -15,34 +15,18 @@ export default function ColorPicker({
   onChange,
   description,
 }: Readonly<ColorPickerProps>) {
-  const [isOpen, setIsOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isOpen])
+  const colorInputRef = useRef<HTMLInputElement>(null)
 
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value)
   }
 
+  const handleColorButtonClick = () => {
+    colorInputRef.current?.click()
+  }
+
   return (
-    <div ref={containerRef} className="relative">
+    <div className="relative">
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
         {label}
       </label>
@@ -52,13 +36,20 @@ export default function ColorPicker({
         </p>
       )}
       <div className="flex items-center gap-2">
+        <input
+          ref={colorInputRef}
+          type="color"
+          value={value}
+          onChange={handleColorChange}
+          className="sr-only"
+          aria-label={`Color picker nativo para ${label}`}
+        />
         <button
           type="button"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={handleColorButtonClick}
           className="w-12 h-10 rounded border-2 border-gray-300 dark:border-gray-600 shadow-sm hover:border-gray-400 dark:hover:border-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
           style={{ backgroundColor: value }}
           aria-label={`Selecionar cor para ${label}`}
-          aria-expanded={isOpen}
         />
         <input
           type="text"
@@ -90,17 +81,6 @@ export default function ColorPicker({
           maxLength={7}
         />
       </div>
-      {isOpen && (
-        <div className="absolute z-10 mt-2 p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
-          <input
-            type="color"
-            value={value}
-            onChange={handleColorChange}
-            className="w-full h-32 cursor-pointer"
-            aria-label={`Color picker para ${label}`}
-          />
-        </div>
-      )}
     </div>
   )
 }
