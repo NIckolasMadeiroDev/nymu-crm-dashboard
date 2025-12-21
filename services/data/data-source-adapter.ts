@@ -1,4 +1,7 @@
 import type { DashboardData, DashboardFilters } from '@/types/dashboard'
+import { isHelenaApiEnabled } from '@/services/helena/helena-config'
+import { DashboardAdapter } from '@/services/helena/adapters/dashboard-adapter'
+import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 
 export interface DataSource {
   getDashboardData(filters: DashboardFilters): Promise<DashboardData>
@@ -31,37 +34,68 @@ class MockDataSource implements DataSource {
   }
 }
 
-class ApiDataSource implements DataSource {
-  private baseUrl: string
+class HelenaDataSource implements DataSource {
+  private dashboardAdapter: DashboardAdapter
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl
+  constructor() {
+    this.dashboardAdapter = new DashboardAdapter()
   }
 
   async getDashboardData(filters: DashboardFilters): Promise<DashboardData> {
-    const response = await fetch(`${this.baseUrl}/api/dashboard`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ filters }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`)
-    }
-
-    return response.json()
+    return this.dashboardAdapter.getDashboardData(filters)
   }
 
   async getAvailableFilters() {
-    const response = await fetch(`${this.baseUrl}/api/dashboard/filters`)
+    try {
+      const cardsService = helenaServiceFactory.getCardsService()
+      const contactsService = helenaServiceFactory.getContactsService()
 
-    if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`)
+      const [cards, contacts] = await Promise.all([
+        cardsService.getAllCards(),
+        contactsService.getAllContacts(),
+      ])
+
+      const deals = cards
+
+      const origins = Array.from(
+        new Set(
+          contacts
+            .map((contact) => contact.customFields?.source as string)
+            .filter((source): source is string => Boolean(source))
+        )
+      )
+
+      const sdrs = Array.from(
+        new Set(
+          deals
+            .map((deal) => deal.owner)
+            .filter((owner): owner is string => Boolean(owner))
+        )
+      )
+
+      const colleges = Array.from(
+        new Set(
+          contacts
+            .map((contact) => contact.customFields?.college as string)
+            .filter(Boolean)
+        )
+      )
+
+      return {
+        sdrs: sdrs.length > 0 ? sdrs : ['Todos'],
+        colleges: colleges.length > 0 ? colleges : ['Todas'],
+        origins: origins.length > 0 ? origins : [],
+        seasons: ['2025.1', '2024.2', '2024.1', '2023.2'],
+      }
+    } catch (error) {
+      console.error('Error fetching available filters from Helena:', error)
+      return {
+        sdrs: ['Todos'],
+        colleges: ['Todas'],
+        origins: [],
+        seasons: ['2025.1', '2024.2', '2024.1', '2023.2'],
+      }
     }
-
-    return response.json()
   }
 }
 
@@ -69,11 +103,8 @@ class DataSourceAdapter {
   private source: DataSource
 
   constructor() {
-    const useApi = process.env.NEXT_PUBLIC_USE_API === 'true'
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL
-
-    if (useApi && apiUrl) {
-      this.source = new ApiDataSource(apiUrl)
+    if (isHelenaApiEnabled()) {
+      this.source = new HelenaDataSource()
     } else {
       this.source = new MockDataSource()
     }
@@ -87,8 +118,8 @@ class DataSourceAdapter {
     return this.source.getAvailableFilters()
   }
 
-  switchToApi(baseUrl: string) {
-    this.source = new ApiDataSource(baseUrl)
+  switchToHelena() {
+    this.source = new HelenaDataSource()
   }
 
   switchToMock() {

@@ -5,9 +5,6 @@ import {
   generateMockMetrics,
 } from './mock-data-service'
 
-// Temporarily force mock data usage - no API calls
-const USE_MOCK_DATA = true
-
 class CrmApiService {
   private async fetchFromApi<T>(endpoint: string): Promise<T> {
     const response = await fetch(endpoint, {
@@ -23,44 +20,55 @@ class CrmApiService {
   }
 
   async getPipelines(): Promise<CrmPipeline[]> {
-    if (USE_MOCK_DATA) {
-      return new Promise((resolve) => {
-        setTimeout(() => resolve(generateMockPipelines()), 300)
-      })
-    }
     return this.fetchFromApi<CrmPipeline[]>('/api/crm/pipelines')
   }
 
   async getPipelineById(id: string): Promise<CrmPipeline> {
-    if (USE_MOCK_DATA) {
-      const pipelines = generateMockPipelines()
-      const pipeline = pipelines.find((p) => p.id === id)
-      if (!pipeline) {
-        throw new Error(`Pipeline ${id} not found`)
-      }
-      return new Promise((resolve) => {
-        setTimeout(() => resolve(pipeline), 300)
-      })
-    }
     return this.fetchFromApi<CrmPipeline>(`/api/crm/pipelines/${id}`)
   }
 
-  async getDeals(): Promise<CrmDeal[]> {
-    if (USE_MOCK_DATA) {
-      return new Promise((resolve) => {
-        setTimeout(() => resolve(generateMockDeals()), 300)
-      })
+  async getDeals(params?: {
+    pipelineId?: string
+    stageId?: string
+    status?: string
+  }): Promise<CrmDeal[]> {
+    const queryParams = new URLSearchParams()
+    if (params?.pipelineId) {
+      queryParams.append('pipelineId', params.pipelineId)
     }
-    return this.fetchFromApi<CrmDeal[]>('/api/crm/deals')
+    if (params?.stageId) {
+      queryParams.append('stageId', params.stageId)
+    }
+    if (params?.status) {
+      queryParams.append('status', params.status)
+    }
+
+    const queryString = queryParams.toString()
+    const endpoint = `/api/crm/deals${queryString ? `?${queryString}` : ''}`
+
+    return this.fetchFromApi<CrmDeal[]>(endpoint)
   }
 
-  async getMetrics(): Promise<CrmMetrics> {
-    if (USE_MOCK_DATA) {
-      return new Promise((resolve) => {
-        setTimeout(() => resolve(generateMockMetrics()), 300)
-      })
+  async getMetrics(params?: {
+    pipelineId?: string
+    dateFrom?: string
+    dateTo?: string
+  }): Promise<CrmMetrics> {
+    const queryParams = new URLSearchParams()
+    if (params?.pipelineId) {
+      queryParams.append('pipelineId', params.pipelineId)
     }
-    return this.fetchFromApi<CrmMetrics>('/api/crm/metrics')
+    if (params?.dateFrom) {
+      queryParams.append('dateFrom', params.dateFrom)
+    }
+    if (params?.dateTo) {
+      queryParams.append('dateTo', params.dateTo)
+    }
+
+    const queryString = queryParams.toString()
+    const endpoint = `/api/crm/metrics${queryString ? `?${queryString}` : ''}`
+
+    return this.fetchFromApi<CrmMetrics>(endpoint)
   }
 }
 
