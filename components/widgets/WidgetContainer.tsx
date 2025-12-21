@@ -203,7 +203,7 @@ export default function WidgetContainer({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 flex-shrink-0 flex-nowrap">
             {analysis && (
               <button
                 onClick={() => setIsAnalysisModalOpen(true)}
@@ -213,7 +213,7 @@ export default function WidgetContainer({
                     setIsAnalysisModalOpen(true)
                   }
                 }}
-                className="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 md:py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs md:text-sm font-semibold font-secondary focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-1"
+                className="px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded-lg transition-all duration-200 flex items-center gap-0.5 sm:gap-1 md:gap-1.5 text-[9px] sm:text-[10px] md:text-xs font-semibold font-secondary focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-1 whitespace-nowrap flex-shrink-0"
                 style={{
                   backgroundColor: '#FF9D02',
                   color: '#ffffff',
@@ -230,7 +230,7 @@ export default function WidgetContainer({
                 title="Ver análises"
               >
                 <svg
-                  className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
+                  className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -242,20 +242,22 @@ export default function WidgetContainer({
                     d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                   />
                 </svg>
-                <span className="hidden sm:inline">Ver Análises</span>
+                <span className="hidden sm:inline truncate">Ver Análises</span>
               </button>
             )}
             {chartType && onChartTypeChange && (
-              <ChartTypeSelector
-                currentType={chartType}
-                onTypeChange={onChartTypeChange}
-                availableTypes={availableChartTypes}
-              />
+              <div className="flex-shrink-0">
+                <ChartTypeSelector
+                  currentType={chartType}
+                  onTypeChange={onChartTypeChange}
+                  availableTypes={availableChartTypes}
+                />
+              </div>
             )}
             {onMinimize && (
               <button
                 onClick={onMinimize}
-                className="p-0.5 sm:p-0.5 md:p-1 hover:bg-gray-100 rounded transition-colors"
+                className="p-0.5 sm:p-0.5 md:p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
                 aria-label="Minimizar widget"
                 title="Minimizar"
               >
@@ -272,7 +274,7 @@ export default function WidgetContainer({
             {onClose && (
               <button
                 onClick={onClose}
-                className="p-0.5 sm:p-0.5 md:p-1 hover:bg-red-100 rounded text-red-600 transition-colors"
+                className="p-0.5 sm:p-0.5 md:p-1 hover:bg-red-100 rounded text-red-600 transition-colors flex-shrink-0"
                 aria-label="Fechar widget"
                 title="Fechar"
               >

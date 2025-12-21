@@ -26,8 +26,8 @@ export default function GaugeChart({
 
   return (
     <ChartContainer title={config.title} subtitle={config.subtitle}>
-      <div className="relative" style={{ height: `${height}px` }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="relative" style={{ height: `${height}px`, minWidth: 0 }}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={height}>
           <PieChart>
             <Pie
               data={gaugeData}

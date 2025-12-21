@@ -50,15 +50,17 @@ export default function NymuLogo({
   }
 
   return (
-    <div className={`inline-block ${className}`} style={{ height: `${height}px`, ...style }}>
-      <Image
-        src={getLogoPath()}
-        alt="NYMU Logo"
-        width={width}
-        height={height}
-        priority={priority}
-        className="object-contain h-full w-auto"
-      />
+    <div className={`inline-block ${className}`} style={{ height: `${height}px`, width: `${width}px`, ...style }}>
+      <div className="relative w-full h-full" style={{ aspectRatio: `${width}/${height}` }}>
+        <Image
+          src={getLogoPath()}
+          alt="NYMU Logo"
+          fill
+          priority={priority}
+          className="object-contain"
+          sizes={`${width}px`}
+        />
+      </div>
     </div>
   )
 }

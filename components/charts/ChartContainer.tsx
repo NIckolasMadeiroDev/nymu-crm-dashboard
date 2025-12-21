@@ -100,7 +100,7 @@ export default function ChartContainer({
           )}
         </div>
       )}
-      <div className="relative flex-1 min-h-0 w-full" style={{ marginBottom: '4px' }}>{children}</div>
+      <div className="relative flex-1 min-h-0 w-full" style={{ marginBottom: '4px', minWidth: 0 }}>{children}</div>
     </div>
   )
 }

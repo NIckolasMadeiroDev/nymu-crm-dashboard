@@ -20,8 +20,8 @@ export default function HistogramChart({
 
   return (
     <ChartContainer title={config.title} subtitle={config.subtitle}>
-      <div className="w-full h-full overflow-hidden" style={{ minHeight: responsiveHeight }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="w-full h-full overflow-hidden" style={{ minHeight: responsiveHeight, minWidth: 0 }}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={responsiveHeight}>
           <BarChart data={histogramData} margin={{ top: 5, right: 10, left: -10, bottom: 60 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.gridColor} />
             <XAxis 
