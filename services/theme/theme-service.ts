@@ -24,6 +24,8 @@ export interface DefaultThemeColors {
 
 const STORAGE_KEY = 'crm-dashboard-theme'
 const CUSTOM_THEMES_KEY = 'crm-dashboard-custom-themes'
+const CUSTOM_ALTERNATIVE_LIGHT_KEY = 'crm-dashboard-custom-alternative-light'
+const CUSTOM_ALTERNATIVE_DARK_KEY = 'crm-dashboard-custom-alternative-dark'
 
 // Temas Nymu (cores da marca - paleta oficial)
 // Cor Primária: #FF9D02 (RGB: 251, 180, 28 | CMYK: C:0 M:45 Y:100 K:0)
@@ -67,10 +69,13 @@ class ThemeService {
   private currentTheme: Theme = 'nymu-light'
   private currentCustomThemeId: string | null = null
   private customThemes: CustomTheme[] = []
+  private customAlternativeLight: DefaultThemeColors | null = null
+  private customAlternativeDark: DefaultThemeColors | null = null
 
   constructor() {
     this.loadTheme()
     this.loadCustomThemes()
+    this.loadCustomAlternativeThemes()
     this.applyTheme(this.currentTheme)
   }
 
@@ -83,11 +88,57 @@ class ThemeService {
   }
 
   getAlternativeLightTheme(): DefaultThemeColors {
+    if (this.customAlternativeLight) {
+      return { ...this.customAlternativeLight }
+    }
     return { ...ALTERNATIVE_LIGHT_THEME }
   }
 
   getAlternativeDarkTheme(): DefaultThemeColors {
+    if (this.customAlternativeDark) {
+      return { ...this.customAlternativeDark }
+    }
     return { ...ALTERNATIVE_DARK_THEME }
+  }
+
+  setCustomAlternativeLightTheme(colors: DefaultThemeColors): void {
+    this.customAlternativeLight = { ...colors }
+    this.saveCustomAlternativeThemes()
+    if (this.currentTheme === 'light') {
+      this.applyTheme('light')
+    }
+  }
+
+  setCustomAlternativeDarkTheme(colors: DefaultThemeColors): void {
+    this.customAlternativeDark = { ...colors }
+    this.saveCustomAlternativeThemes()
+    if (this.currentTheme === 'dark') {
+      this.applyTheme('dark')
+    }
+  }
+
+  resetAlternativeLightTheme(): void {
+    this.customAlternativeLight = null
+    this.saveCustomAlternativeThemes()
+    if (this.currentTheme === 'light') {
+      this.applyTheme('light')
+    }
+  }
+
+  resetAlternativeDarkTheme(): void {
+    this.customAlternativeDark = null
+    this.saveCustomAlternativeThemes()
+    if (this.currentTheme === 'dark') {
+      this.applyTheme('dark')
+    }
+  }
+
+  hasCustomAlternativeLight(): boolean {
+    return this.customAlternativeLight !== null
+  }
+
+  hasCustomAlternativeDark(): boolean {
+    return this.customAlternativeDark !== null
   }
 
   private loadTheme() {
@@ -136,6 +187,26 @@ class ThemeService {
     }
   }
 
+  private loadCustomAlternativeThemes() {
+    if (typeof window === 'undefined') return
+
+    try {
+      const storedLight = localStorage.getItem(CUSTOM_ALTERNATIVE_LIGHT_KEY)
+      if (storedLight) {
+        this.customAlternativeLight = JSON.parse(storedLight)
+      }
+
+      const storedDark = localStorage.getItem(CUSTOM_ALTERNATIVE_DARK_KEY)
+      if (storedDark) {
+        this.customAlternativeDark = JSON.parse(storedDark)
+      }
+    } catch (error) {
+      console.error('Failed to load custom alternative themes:', error)
+      this.customAlternativeLight = null
+      this.customAlternativeDark = null
+    }
+  }
+
   private saveTheme() {
     if (typeof window === 'undefined') return
 
@@ -158,6 +229,32 @@ class ThemeService {
       localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(this.customThemes))
     } catch (error) {
       console.error('Failed to save custom themes:', error)
+    }
+  }
+
+  private saveCustomAlternativeThemes() {
+    if (typeof window === 'undefined') return
+
+    try {
+      if (this.customAlternativeLight) {
+        localStorage.setItem(
+          CUSTOM_ALTERNATIVE_LIGHT_KEY,
+          JSON.stringify(this.customAlternativeLight)
+        )
+      } else {
+        localStorage.removeItem(CUSTOM_ALTERNATIVE_LIGHT_KEY)
+      }
+
+      if (this.customAlternativeDark) {
+        localStorage.setItem(
+          CUSTOM_ALTERNATIVE_DARK_KEY,
+          JSON.stringify(this.customAlternativeDark)
+        )
+      } else {
+        localStorage.removeItem(CUSTOM_ALTERNATIVE_DARK_KEY)
+      }
+    } catch (error) {
+      console.error('Failed to save custom alternative themes:', error)
     }
   }
 
@@ -256,10 +353,12 @@ class ThemeService {
       this.applyDefaultThemeStyles(NYMU_DARK_THEME)
       root.classList.add('nymu-dark')
     } else if (theme === 'light') {
-      this.applyDefaultThemeStyles(ALTERNATIVE_LIGHT_THEME)
+      const lightColors = this.customAlternativeLight || ALTERNATIVE_LIGHT_THEME
+      this.applyDefaultThemeStyles(lightColors)
       root.classList.add('light')
     } else if (theme === 'dark') {
-      this.applyDefaultThemeStyles(ALTERNATIVE_DARK_THEME)
+      const darkColors = this.customAlternativeDark || ALTERNATIVE_DARK_THEME
+      this.applyDefaultThemeStyles(darkColors)
       root.classList.add('dark')
     } else if (theme === 'custom') {
       const customTheme = this.customThemes.find(

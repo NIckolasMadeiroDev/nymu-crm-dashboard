@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { Locale } from '@/i18n'
 import { useWidgetHeight } from '@/contexts/WidgetHeightContext'
@@ -11,8 +11,10 @@ import {
   themeService,
   type Theme,
   type CustomTheme,
+  type DefaultThemeColors,
 } from '@/services/theme/theme-service'
 import LanguageSelector from '@/components/language/LanguageSelector'
+import ColorPicker from './ColorPicker'
 
 interface SettingsModalProps {
   readonly isOpen: boolean
@@ -32,12 +34,18 @@ export default function SettingsModal({
   const [currentTheme, setCurrentTheme] = useState<Theme>('light')
   const [currentCustomThemeId, setCurrentCustomThemeId] = useState<string | null>(null)
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([])
+  const [showLightColors, setShowLightColors] = useState(false)
+  const [showDarkColors, setShowDarkColors] = useState(false)
+  const [lightColors, setLightColors] = useState<DefaultThemeColors>(themeService.getAlternativeLightTheme())
+  const [darkColors, setDarkColors] = useState<DefaultThemeColors>(themeService.getAlternativeDarkTheme())
 
   useEffect(() => {
     if (isOpen) {
       const theme = themeService.getTheme()
       setCurrentTheme(theme)
       setCustomThemes(themeService.getCustomThemes())
+      setLightColors(themeService.getAlternativeLightTheme())
+      setDarkColors(themeService.getAlternativeDarkTheme())
 
       if (theme === 'custom') {
         const customId = themeService.getCurrentCustomThemeId()
@@ -66,6 +74,28 @@ export default function SettingsModal({
     return currentTheme
   }
 
+  const handleLightColorChange = (key: keyof DefaultThemeColors, value: string) => {
+    const newColors = { ...lightColors, [key]: value }
+    setLightColors(newColors)
+    themeService.setCustomAlternativeLightTheme(newColors)
+  }
+
+  const handleDarkColorChange = (key: keyof DefaultThemeColors, value: string) => {
+    const newColors = { ...darkColors, [key]: value }
+    setDarkColors(newColors)
+    themeService.setCustomAlternativeDarkTheme(newColors)
+  }
+
+  const handleResetLightColors = () => {
+    themeService.resetAlternativeLightTheme()
+    setLightColors(themeService.getAlternativeLightTheme())
+  }
+
+  const handleResetDarkColors = () => {
+    themeService.resetAlternativeDarkTheme()
+    setDarkColors(themeService.getAlternativeDarkTheme())
+  }
+
   if (!isOpen) return null
 
   return (
@@ -82,7 +112,7 @@ export default function SettingsModal({
         aria-labelledby="settings-modal-title"
         onCancel={onClose}
       >
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 max-w-md w-full mx-2 sm:mx-4 shadow-xl">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 max-w-2xl w-full mx-2 sm:mx-4 shadow-xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h2
               id="settings-modal-title"
@@ -159,6 +189,146 @@ export default function SettingsModal({
                 <option value="large">Altura Grande</option>
                 <option value="extraLarge">Altura Extra Grande</option>
               </select>
+            </div>
+
+            {/* Personalização de Cores - Tema Claro Alternativo */}
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+              <button
+                type="button"
+                onClick={() => setShowLightColors(!showLightColors)}
+                className="w-full flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                aria-expanded={showLightColors}
+              >
+                <span>Personalizar Cores - Claro Alternativo</span>
+                {showLightColors ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+              {showLightColors && (
+                <div className="space-y-3 mt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Personalize as cores do tema Claro Alternativo
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleResetLightColors}
+                      disabled={!themeService.hasCustomAlternativeLight()}
+                      className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                        themeService.hasCustomAlternativeLight()
+                          ? 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          : 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                      }`}
+                      aria-label="Redefinir cores para padrão do tema claro"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Redefinir
+                    </button>
+                  </div>
+                  <ColorPicker
+                    label="Cor Primária"
+                    value={lightColors.primary}
+                    onChange={(color) => handleLightColorChange('primary', color)}
+                    description="Cor principal usada em botões e elementos destacados"
+                  />
+                  <ColorPicker
+                    label="Cor Secundária"
+                    value={lightColors.secondary}
+                    onChange={(color) => handleLightColorChange('secondary', color)}
+                    description="Cor secundária usada em gradientes e elementos complementares"
+                  />
+                  <ColorPicker
+                    label="Cor de Fundo"
+                    value={lightColors.background}
+                    onChange={(color) => handleLightColorChange('background', color)}
+                    description="Cor de fundo principal da aplicação"
+                  />
+                  <ColorPicker
+                    label="Cor de Texto"
+                    value={lightColors.foreground}
+                    onChange={(color) => handleLightColorChange('foreground', color)}
+                    description="Cor do texto principal"
+                  />
+                  <ColorPicker
+                    label="Cor de Destaque"
+                    value={lightColors.accent}
+                    onChange={(color) => handleLightColorChange('accent', color)}
+                    description="Cor usada em elementos de destaque e acentos"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Personalização de Cores - Tema Escuro Alternativo */}
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+              <button
+                type="button"
+                onClick={() => setShowDarkColors(!showDarkColors)}
+                className="w-full flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                aria-expanded={showDarkColors}
+              >
+                <span>Personalizar Cores - Escuro Alternativo</span>
+                {showDarkColors ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+              {showDarkColors && (
+                <div className="space-y-3 mt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Personalize as cores do tema Escuro Alternativo
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleResetDarkColors}
+                      disabled={!themeService.hasCustomAlternativeDark()}
+                      className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                        themeService.hasCustomAlternativeDark()
+                          ? 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          : 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                      }`}
+                      aria-label="Redefinir cores para padrão do tema escuro"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Redefinir
+                    </button>
+                  </div>
+                  <ColorPicker
+                    label="Cor Primária"
+                    value={darkColors.primary}
+                    onChange={(color) => handleDarkColorChange('primary', color)}
+                    description="Cor principal usada em botões e elementos destacados"
+                  />
+                  <ColorPicker
+                    label="Cor Secundária"
+                    value={darkColors.secondary}
+                    onChange={(color) => handleDarkColorChange('secondary', color)}
+                    description="Cor secundária usada em gradientes e elementos complementares"
+                  />
+                  <ColorPicker
+                    label="Cor de Fundo"
+                    value={darkColors.background}
+                    onChange={(color) => handleDarkColorChange('background', color)}
+                    description="Cor de fundo principal da aplicação"
+                  />
+                  <ColorPicker
+                    label="Cor de Texto"
+                    value={darkColors.foreground}
+                    onChange={(color) => handleDarkColorChange('foreground', color)}
+                    description="Cor do texto principal"
+                  />
+                  <ColorPicker
+                    label="Cor de Destaque"
+                    value={darkColors.accent}
+                    onChange={(color) => handleDarkColorChange('accent', color)}
+                    description="Cor usada em elementos de destaque e acentos"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Seletor de Layout */}
