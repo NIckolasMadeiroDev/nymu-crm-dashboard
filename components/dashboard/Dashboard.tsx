@@ -23,6 +23,7 @@ import HelpModal from '@/components/help/HelpModal'
 import FiltersModal, { countActiveFilters } from '@/components/filters/FiltersModal'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useWidgetHeight } from '@/contexts/WidgetHeightContext'
+import { useChartMinimization } from '@/contexts/ChartMinimizationContext'
 import type { DashboardData } from '@/types/dashboard'
 import { formatCurrency, formatNumber } from '@/utils/format-currency'
 import NymuLogo from '@/components/common/NymuLogo'
@@ -34,6 +35,7 @@ import type { DrillContext } from '@/services/drill/drill-service'
 export default function Dashboard() {
   const { t } = useLanguage()
   useWidgetHeight() // Usado no SettingsModal através do contexto
+  const { getDynamicSpan, minimizedCharts } = useChartMinimization()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -329,10 +331,12 @@ export default function Dashboard() {
   const renderChart = useCallback((chartId: string) => {
     if (!dashboardData) return null
 
+    const dynamicSpan = getDynamicSpan(chartId, chartOrder, chartLayout)
+
     switch (chartId) {
       case 'sales-conversion-chart':
         return (
-          <DraggableChart key={chartId} id={chartId}>
+          <DraggableChart key={chartId} id={chartId} span={dynamicSpan}>
             {(dragHandleProps) => (
               <SalesConversionWithControls
                 data={dashboardData.salesConversion}
@@ -343,7 +347,7 @@ export default function Dashboard() {
         )
       case 'sales-conversion-time-chart':
         return (
-          <DraggableChart key={chartId} id={chartId}>
+          <DraggableChart key={chartId} id={chartId} span={dynamicSpan}>
             {(dragHandleProps) => (
               <SalesByConversionTimeWithControls
                 data={dashboardData.salesByConversionTime}
@@ -354,7 +358,7 @@ export default function Dashboard() {
         )
       case 'conversion-rates-widget':
         return (
-          <DraggableChart key={chartId} id={chartId}>
+          <DraggableChart key={chartId} id={chartId} span={dynamicSpan}>
             {(dragHandleProps) => (
               <ConversionRatesWithControls
                 data={dashboardData.conversionRates}
@@ -365,7 +369,7 @@ export default function Dashboard() {
         )
       case 'lead-stock-chart':
         return (
-          <DraggableChart key={chartId} id={chartId}>
+          <DraggableChart key={chartId} id={chartId} span={dynamicSpan}>
             {(dragHandleProps) => (
               <LeadStockWithControls
                 data={dashboardData.leadStock}
@@ -376,7 +380,7 @@ export default function Dashboard() {
         )
       case 'generation-activation-chart':
         return (
-          <DraggableChart key={chartId} id={chartId}>
+          <DraggableChart key={chartId} id={chartId} span={dynamicSpan}>
             {(dragHandleProps) => (
               <GenerationActivationWithControls
                 data={dashboardData.generationActivation}
@@ -387,7 +391,7 @@ export default function Dashboard() {
         )
       case 'lead-quality-widget':
         return (
-          <DraggableChart key={chartId} id={chartId}>
+          <DraggableChart key={chartId} id={chartId} span={dynamicSpan}>
             {(dragHandleProps) => (
               <LeadQualityWithControls
                 data={dashboardData.leadQuality}
@@ -399,7 +403,7 @@ export default function Dashboard() {
       default:
         return null
     }
-  }, [dashboardData])
+  }, [dashboardData, chartOrder, chartLayout, getDynamicSpan, minimizedCharts])
 
   if (loading && !dashboardData) {
     return (

@@ -137,7 +137,7 @@ export default function WidgetContainer({
 
   if (isMinimized) {
     return (
-      <div className="col-span-1 flex items-start justify-start">
+      <div className="flex items-start justify-start">
         <button
           onClick={onRestore}
           onKeyDown={(e) => {
