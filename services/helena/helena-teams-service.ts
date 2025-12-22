@@ -1,12 +1,12 @@
 import { HelenaApiClient } from './helena-api-client'
-import type { HelenaTeam, HelenaUser, HelenaChannel, HelenaApiListResponse } from '@/types/helena'
+import type { HelenaTeam, HelenaChannel, HelenaApiListResponse } from '@/types/helena'
 
 export class HelenaTeamsService {
-  constructor(private apiClient: HelenaApiClient) {}
+  constructor(private readonly apiClient: HelenaApiClient) {}
 
   async getAllTeams(): Promise<HelenaTeam[]> {
     try {
-      const response = await this.apiClient.get<HelenaApiListResponse<HelenaTeam>>('/teams')
+      const response = await this.apiClient.get<HelenaApiListResponse<HelenaTeam>>('team')
       return response.data || []
     } catch (error) {
       console.error('Error fetching teams from Helena API:', error)
@@ -16,7 +16,7 @@ export class HelenaTeamsService {
 
   async getTeamById(id: string): Promise<HelenaTeam> {
     try {
-      return await this.apiClient.get<HelenaTeam>(`/teams/${id}`)
+      return await this.apiClient.get<HelenaTeam>(`team/${id}`)
     } catch (error) {
       console.error(`Error fetching team ${id} from Helena API:`, error)
       throw error
@@ -25,7 +25,7 @@ export class HelenaTeamsService {
 
   async createTeam(team: Partial<HelenaTeam>): Promise<HelenaTeam> {
     try {
-      return await this.apiClient.post<HelenaTeam>('/teams', team)
+      return await this.apiClient.post<HelenaTeam>('team', team)
     } catch (error) {
       console.error('Error creating team in Helena API:', error)
       throw error
@@ -34,7 +34,7 @@ export class HelenaTeamsService {
 
   async updateTeam(id: string, team: Partial<HelenaTeam>): Promise<HelenaTeam> {
     try {
-      return await this.apiClient.put<HelenaTeam>(`/teams/${id}`, team)
+      return await this.apiClient.put<HelenaTeam>(`team/${id}`, team)
     } catch (error) {
       console.error(`Error updating team ${id} in Helena API:`, error)
       throw error
@@ -43,7 +43,7 @@ export class HelenaTeamsService {
 
   async deleteTeam(id: string): Promise<void> {
     try {
-      await this.apiClient.delete(`/teams/${id}`)
+      await this.apiClient.delete(`team/${id}`)
     } catch (error) {
       console.error(`Error deleting team ${id} from Helena API:`, error)
       throw error
@@ -52,7 +52,7 @@ export class HelenaTeamsService {
 
   async updateTeamUsers(id: string, userIds: string[]): Promise<HelenaTeam> {
     try {
-      return await this.apiClient.put<HelenaTeam>(`/teams/${id}/users`, { userIds })
+      return await this.apiClient.put<HelenaTeam>(`team/${id}/user`, { userIds })
     } catch (error) {
       console.error(`Error updating users for team ${id}:`, error)
       throw error
@@ -62,7 +62,7 @@ export class HelenaTeamsService {
   async getTeamChannels(id: string): Promise<HelenaChannel[]> {
     try {
       const response = await this.apiClient.get<HelenaApiListResponse<HelenaChannel>>(
-        `/teams/${id}/channels`
+        `team/${id}/channel`
       )
       return response.data || []
     } catch (error) {

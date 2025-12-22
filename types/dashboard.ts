@@ -75,5 +75,11 @@ export interface DashboardData {
   leadStock: LeadStock
   salesByConversionTime: SalesByConversionTime
   leadQuality: LeadQuality[]
+  errors?: {
+    cards?: string
+    contacts?: string
+    panels?: string
+    wallets?: string
+  }
 }
 

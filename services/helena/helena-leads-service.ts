@@ -2,7 +2,7 @@ import { HelenaApiClient } from './helena-api-client'
 import type { HelenaLead, HelenaApiListResponse } from '@/types/helena'
 
 export class HelenaLeadsService {
-  constructor(private apiClient: HelenaApiClient) {}
+  constructor(private readonly apiClient: HelenaApiClient) {}
 
   async getAllLeads(params?: {
     page?: number

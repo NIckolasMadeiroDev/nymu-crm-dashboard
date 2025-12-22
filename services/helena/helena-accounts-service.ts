@@ -2,12 +2,12 @@ import { HelenaApiClient } from './helena-api-client'
 import type { HelenaAccount, HelenaApiListResponse } from '@/types/helena'
 
 export class HelenaAccountsService {
-  constructor(private apiClient: HelenaApiClient) {}
+  constructor(private readonly apiClient: HelenaApiClient) {}
 
   async getAllAccounts(): Promise<HelenaAccount[]> {
     try {
       const response = await this.apiClient.get<HelenaApiListResponse<HelenaAccount>>(
-        '/accounts'
+        'account'
       )
       return response.data || []
     } catch (error) {
@@ -18,7 +18,7 @@ export class HelenaAccountsService {
 
   async getAccountById(id: string): Promise<HelenaAccount> {
     try {
-      return await this.apiClient.get<HelenaAccount>(`/accounts/${id}`)
+      return await this.apiClient.get<HelenaAccount>(`account/${id}`)
     } catch (error) {
       console.error(`Error fetching account ${id} from Helena API:`, error)
       throw error
@@ -27,7 +27,7 @@ export class HelenaAccountsService {
 
   async createAccount(account: Partial<HelenaAccount>): Promise<HelenaAccount> {
     try {
-      return await this.apiClient.post<HelenaAccount>('/accounts', account)
+      return await this.apiClient.post<HelenaAccount>('account', account)
     } catch (error) {
       console.error('Error creating account in Helena API:', error)
       throw error
@@ -36,7 +36,7 @@ export class HelenaAccountsService {
 
   async updateAccount(id: string, account: Partial<HelenaAccount>): Promise<HelenaAccount> {
     try {
-      return await this.apiClient.put<HelenaAccount>(`/accounts/${id}`, account)
+      return await this.apiClient.put<HelenaAccount>(`account/${id}`, account)
     } catch (error) {
       console.error(`Error updating account ${id} in Helena API:`, error)
       throw error
@@ -45,7 +45,7 @@ export class HelenaAccountsService {
 
   async deleteAccount(id: string): Promise<void> {
     try {
-      await this.apiClient.delete(`/accounts/${id}`)
+      await this.apiClient.delete(`account/${id}`)
     } catch (error) {
       console.error(`Error deleting account ${id} from Helena API:`, error)
       throw error
@@ -54,7 +54,7 @@ export class HelenaAccountsService {
 
   async activateAccount(id: string): Promise<HelenaAccount> {
     try {
-      return await this.apiClient.post<HelenaAccount>(`/accounts/${id}/activate`)
+      return await this.apiClient.post<HelenaAccount>(`account/${id}/activate`)
     } catch (error) {
       console.error(`Error activating account ${id} in Helena API:`, error)
       throw error
@@ -64,7 +64,7 @@ export class HelenaAccountsService {
   async getAccountTokens(accountId: string): Promise<Array<{ id: string; token: string }>> {
     try {
       return await this.apiClient.get<Array<{ id: string; token: string }>>(
-        `/accounts/${accountId}/tokens`
+        `account/${accountId}/token`
       )
     } catch (error) {
       console.error(`Error fetching tokens for account ${accountId}:`, error)
@@ -75,7 +75,7 @@ export class HelenaAccountsService {
   async createAccountToken(accountId: string): Promise<{ id: string; token: string }> {
     try {
       return await this.apiClient.post<{ id: string; token: string }>(
-        `/accounts/${accountId}/tokens`
+        `account/${accountId}/token`
       )
     } catch (error) {
       console.error(`Error creating token for account ${accountId}:`, error)
@@ -85,7 +85,7 @@ export class HelenaAccountsService {
 
   async deleteAccountToken(accountId: string, tokenId: string): Promise<void> {
     try {
-      await this.apiClient.delete(`/accounts/${accountId}/tokens/${tokenId}`)
+      await this.apiClient.delete(`account/${accountId}/token/${tokenId}`)
     } catch (error) {
       console.error(`Error deleting token ${tokenId} for account ${accountId}:`, error)
       throw error

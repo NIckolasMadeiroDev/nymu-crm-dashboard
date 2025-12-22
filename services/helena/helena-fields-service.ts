@@ -2,11 +2,11 @@ import { HelenaApiClient } from './helena-api-client'
 import type { HelenaField, HelenaApiListResponse } from '@/types/helena'
 
 export class HelenaFieldsService {
-  constructor(private apiClient: HelenaApiClient) {}
+  constructor(private readonly apiClient: HelenaApiClient) {}
 
   async getAllFields(): Promise<HelenaField[]> {
     try {
-      const response = await this.apiClient.get<HelenaApiListResponse<HelenaField>>('/fields')
+      const response = await this.apiClient.get<HelenaApiListResponse<HelenaField>>('custom-field')
       return response.data || []
     } catch (error) {
       console.error('Error fetching fields from Helena API:', error)
@@ -17,7 +17,7 @@ export class HelenaFieldsService {
   async getContactCustomFields(): Promise<HelenaField[]> {
     try {
       const response = await this.apiClient.get<HelenaApiListResponse<HelenaField>>(
-        '/contacts/custom-fields'
+        'contact/custom-field'
       )
       return response.data || []
     } catch (error) {
@@ -29,7 +29,7 @@ export class HelenaFieldsService {
   async getPanelCustomFields(panelId: string): Promise<HelenaField[]> {
     try {
       const response = await this.apiClient.get<HelenaApiListResponse<HelenaField>>(
-        `/crm/panels/${panelId}/custom-fields`
+        `crm/panel/${panelId}/custom-field`
       )
       return response.data || []
     } catch (error) {

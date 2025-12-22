@@ -4,6 +4,16 @@ export interface HelenaApiConfig {
   timeout?: number
 }
 
+export class HelenaApiError extends Error {
+  constructor(
+    message: string,
+    public status?: number,
+    public code?: string
+  ) {
+    super(message)
+    this.name = 'HelenaApiError'
+  }
+}
 
 export interface HelenaApiResponse<T> {
   data?: T
@@ -24,16 +34,30 @@ export interface HelenaContact {
 export interface HelenaCard {
   id: string
   title: string
+  description?: string
   value?: number
+  monetaryAmount?: number
   stepId?: string
-  panelId: string
+  panelId?: string
+  panelTitle?: string
+  stepTitle?: string
+  stepPhase?: string
+  position?: number
   contactId?: string
+  contactIds?: string[]
+  contacts?: Array<{ id: string; name: string }>
   ownerId?: string
+  responsibleUserId?: string
+  responsibleUser?: { id: string; name: string }
   createdAt: string
   updatedAt: string
   closedAt?: string
+  dueDate?: string
+  isOverdue?: boolean
   status?: string
+  archived?: boolean
   customFields?: Record<string, unknown>
+  metadata?: Record<string, unknown>
 }
 
 export interface HelenaPanel {
@@ -58,6 +82,16 @@ export interface HelenaWallet {
   description?: string
   createdAt?: string
   updatedAt?: string
+  active?: boolean
+  companyId?: string
+  automaticAttribution?: boolean
+  expirationDurationInMonths?: number
+  contactsCount?: number
+  type?: 'MULTIPLE' | 'SINGLE'
+  departments?: Array<{
+    departmentId: string
+    userIds: string[]
+  }>
 }
 
 export interface HelenaAccount {
@@ -165,5 +199,16 @@ export interface HelenaApiPagination {
 export interface HelenaApiListResponse<T> {
   data: T[]
   pagination?: HelenaApiPagination
+}
+
+export interface HelenaPaginatedResponse<T> {
+  pageNumber: number
+  pageSize: number
+  orderBy?: string
+  orderDirection?: 'ASCENDING' | 'DESCENDING'
+  items: T[]
+  totalItems: number
+  totalPages: number
+  hasMorePages: boolean
 }
 

@@ -1,15 +1,38 @@
 import { HelenaApiClient } from './helena-api-client'
-import type { HelenaWallet, HelenaContact, HelenaApiListResponse } from '@/types/helena'
+import type { HelenaWallet, HelenaContact, HelenaPaginatedResponse } from '@/types/helena'
 
 export class HelenaWalletsService {
-  constructor(private apiClient: HelenaApiClient) {}
+  constructor(private readonly apiClient: HelenaApiClient) {}
 
   async getAllWallets(): Promise<HelenaWallet[]> {
     try {
-      const response = await this.apiClient.get<HelenaApiListResponse<HelenaWallet>>(
-        '/wallets'
-      )
-      return response.data || []
+      const allWallets: HelenaWallet[] = []
+      let pageNumber = 1
+      const pageSize = 100
+      let hasMorePages = true
+
+      while (hasMorePages) {
+        const response = await this.apiClient.get<HelenaPaginatedResponse<HelenaWallet>>(
+          'portfolio',
+          {
+            pageNumber: pageNumber.toString(),
+            pageSize: pageSize.toString(),
+          }
+        )
+
+        if (response.items && response.items.length > 0) {
+          allWallets.push(...response.items)
+        }
+
+        hasMorePages = response.hasMorePages || false
+        pageNumber++
+
+        if (pageNumber > response.totalPages) {
+          break
+        }
+      }
+
+      return allWallets
     } catch (error) {
       console.error('Error fetching wallets from Helena API:', error)
       throw error
@@ -18,7 +41,7 @@ export class HelenaWalletsService {
 
   async getWalletById(id: string): Promise<HelenaWallet> {
     try {
-      return await this.apiClient.get<HelenaWallet>(`/wallets/${id}`)
+      return await this.apiClient.get<HelenaWallet>(`portfolio/${id}`)
     } catch (error) {
       console.error(`Error fetching wallet ${id} from Helena API:`, error)
       throw error
@@ -27,10 +50,33 @@ export class HelenaWalletsService {
 
   async getWalletContacts(walletId: string): Promise<HelenaContact[]> {
     try {
-      const response = await this.apiClient.get<HelenaApiListResponse<HelenaContact>>(
-        `/wallets/${walletId}/contacts`
-      )
-      return response.data || []
+      const allContacts: HelenaContact[] = []
+      let pageNumber = 1
+      const pageSize = 100
+      let hasMorePages = true
+
+      while (hasMorePages) {
+        const response = await this.apiClient.get<HelenaPaginatedResponse<HelenaContact>>(
+          `portfolio/${walletId}/contact`,
+          {
+            pageNumber: pageNumber.toString(),
+            pageSize: pageSize.toString(),
+          }
+        )
+
+        if (response.items && response.items.length > 0) {
+          allContacts.push(...response.items)
+        }
+
+        hasMorePages = response.hasMorePages || false
+        pageNumber++
+
+        if (pageNumber > response.totalPages) {
+          break
+        }
+      }
+
+      return allContacts
     } catch (error) {
       console.error(`Error fetching contacts for wallet ${walletId}:`, error)
       throw error
@@ -39,7 +85,7 @@ export class HelenaWalletsService {
 
   async addContactToWallet(walletId: string, contactId: string): Promise<void> {
     try {
-      await this.apiClient.post(`/wallets/${walletId}/contacts`, { contactId })
+      await this.apiClient.post(`portfolio/${walletId}/contact`, { contactId })
     } catch (error) {
       console.error(`Error adding contact to wallet ${walletId}:`, error)
       throw error
@@ -48,7 +94,7 @@ export class HelenaWalletsService {
 
   async removeContactFromWallet(walletId: string, contactId: string): Promise<void> {
     try {
-      await this.apiClient.delete(`/wallets/${walletId}/contacts/${contactId}`)
+      await this.apiClient.delete(`portfolio/${walletId}/contact`, { contactId })
     } catch (error) {
       console.error(`Error removing contact from wallet ${walletId}:`, error)
       throw error
@@ -57,7 +103,7 @@ export class HelenaWalletsService {
 
   async addContactsToWallet(walletId: string, contactIds: string[]): Promise<void> {
     try {
-      await this.apiClient.post(`/wallets/${walletId}/contacts/bulk`, { contactIds })
+      await this.apiClient.post(`portfolio/${walletId}/contact/batch`, { contactIds })
     } catch (error) {
       console.error(`Error adding contacts to wallet ${walletId}:`, error)
       throw error
@@ -66,9 +112,7 @@ export class HelenaWalletsService {
 
   async removeContactsFromWallet(walletId: string, contactIds: string[]): Promise<void> {
     try {
-      await this.apiClient.delete(`/wallets/${walletId}/contacts/bulk`, {
-        body: JSON.stringify({ contactIds }),
-      } as RequestInit)
+      await this.apiClient.delete(`portfolio/${walletId}/contact/batch`, { contactIds })
     } catch (error) {
       console.error(`Error removing contacts from wallet ${walletId}:`, error)
       throw error

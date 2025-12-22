@@ -23,19 +23,99 @@ interface LeadLike {
 }
 
 import { helenaServiceFactory } from '../helena-service-factory'
+import { HelenaApiError } from '@/types/helena'
 
 export class DashboardAdapter {
   async getDashboardData(filters: DashboardFilters): Promise<DashboardData> {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] Fetching data from Helena API...')
+    }
+
     const cardsService = helenaServiceFactory.getCardsService()
     const contactsService = helenaServiceFactory.getContactsService()
+    const panelsService = helenaServiceFactory.getPanelsService()
+    const walletsService = helenaServiceFactory.getWalletsService()
 
-    const dateFrom = this.getDateFromFilter(filters.date)
-    const dateTo = filters.date
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] Fetching cards, contacts, panels, and wallets...')
+    }
 
-    const [cards, contacts] = await Promise.all([
-      cardsService.getAllCards(),
-      contactsService.getAllContacts(),
+    const errors: {
+      cards?: string
+      contacts?: string
+      panels?: string
+      wallets?: string
+    } = {}
+
+    const getErrorMessage = (error: unknown): string => {
+      if (error instanceof HelenaApiError) {
+        const status = error.status
+        if (status === 404) {
+          return 'Not Found (404) - Endpoint não existe'
+        }
+        if (status === 403) {
+          return 'Forbidden (403) - Sem permissão'
+        }
+        if (status === 401) {
+          return 'Unauthorized (401) - Token inválido'
+        }
+        if (status === 429) {
+          return 'Rate Limit (429) - Muitas requisições, aguarde'
+        }
+        return `HTTP ${status || 'Unknown'}: ${error.message}`
+      }
+      return error instanceof Error ? error.message : 'Erro desconhecido'
+    }
+
+    const results = await Promise.allSettled([
+      cardsService.getAllCards().catch((error) => {
+        const errorMessage = getErrorMessage(error)
+        errors.cards = errorMessage
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[DashboardAdapter] Error fetching cards:', errorMessage)
+        }
+        return []
+      }),
+      contactsService.getAllContacts().catch((error) => {
+        const errorMessage = getErrorMessage(error)
+        errors.contacts = errorMessage
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[DashboardAdapter] Error fetching contacts:', errorMessage)
+        }
+        return []
+      }),
+      panelsService.getAllPanels().catch((error) => {
+        const errorMessage = getErrorMessage(error)
+        errors.panels = errorMessage
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[DashboardAdapter] Error fetching panels:', errorMessage)
+        }
+        return []
+      }),
+      walletsService.getAllWallets().catch((error) => {
+        const errorMessage = getErrorMessage(error)
+        errors.wallets = errorMessage
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[DashboardAdapter] Error fetching wallets:', errorMessage)
+        }
+        return []
+      }),
     ])
+
+    const cards = results[0].status === 'fulfilled' ? results[0].value : []
+    const contacts = results[1].status === 'fulfilled' ? results[1].value : []
+    const panels = results[2].status === 'fulfilled' ? results[2].value : []
+    const wallets = results[3].status === 'fulfilled' ? results[3].value : []
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] Fetched:', {
+        cards: cards.length,
+        contacts: contacts.length,
+        panels: panels.length,
+        wallets: wallets.length,
+        errors: Object.keys(errors).length > 0 ? errors : undefined,
+      })
+    }
 
     const leads: LeadLike[] = contacts.map((contact) => ({
       id: contact.id,
@@ -48,11 +128,29 @@ export class DashboardAdapter {
 
     const deals = cards
 
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] Processing data:', {
+        totalLeads: leads.length,
+        totalDeals: deals.length,
+        totalContacts: contacts.length,
+        totalPanels: panels.length,
+        totalWallets: wallets.length,
+      })
+    }
+
     const filteredLeads = this.filterLeads(leads, filters)
     const filteredDeals = this.filterDeals(deals, filters)
     const filteredContacts = this.filterContacts(contacts, filters)
 
-    return {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] Filtered data:', {
+        filteredLeads: filteredLeads.length,
+        filteredDeals: filteredDeals.length,
+        filteredContacts: filteredContacts.length,
+      })
+    }
+
+    const dashboardData: DashboardData = {
       filters,
       generationActivation: this.buildGenerationActivation(filteredLeads, filteredContacts),
       salesConversion: this.buildSalesConversion(filteredDeals),
@@ -61,6 +159,12 @@ export class DashboardAdapter {
       salesByConversionTime: this.buildSalesByConversionTime(filteredDeals),
       leadQuality: this.buildLeadQuality(filteredLeads, filteredDeals),
     }
+
+    if (Object.keys(errors).length > 0) {
+      dashboardData.errors = errors
+    }
+
+    return dashboardData
   }
 
   private getDateFromFilter(date: string): string {

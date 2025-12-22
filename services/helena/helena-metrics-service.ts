@@ -1,13 +1,13 @@
 import { HelenaApiClient } from './helena-api-client'
-import type { CrmMetrics } from '@/types/crm'
+import type { CrmMetrics, CrmDeal } from '@/types/crm'
 import { HelenaCardsService } from './helena-cards-service'
 import { HelenaPanelsService } from './helena-panels-service'
 
 export class HelenaMetricsService {
   constructor(
-    private apiClient: HelenaApiClient,
-    private cardsService: HelenaCardsService,
-    private panelsService: HelenaPanelsService
+    private readonly apiClient: HelenaApiClient,
+    private readonly cardsService: HelenaCardsService,
+    private readonly panelsService: HelenaPanelsService
   ) {}
 
   async getMetrics(params?: {
@@ -61,10 +61,10 @@ export class HelenaMetricsService {
   }
 
   private filterCardsByDateRange(
-    cards: Array<{ createdAt: string; updatedAt: string }>,
+    cards: CrmDeal[],
     dateFrom?: string,
     dateTo?: string
-  ) {
+  ): CrmDeal[] {
     if (!dateFrom && !dateTo) {
       return cards
     }

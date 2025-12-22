@@ -1,20 +1,40 @@
 import { HelenaApiClient } from './helena-api-client'
-import type { HelenaPanel, HelenaApiListResponse } from '@/types/helena'
+import type { HelenaPanel, HelenaPaginatedResponse, HelenaCard } from '@/types/helena'
 import type { CrmPipeline, CrmStage } from '@/types/crm'
 
 export class HelenaPanelsService {
-  constructor(private apiClient: HelenaApiClient) {}
+  constructor(private readonly apiClient: HelenaApiClient) {}
 
   async getAllPanels(): Promise<CrmPipeline[]> {
     try {
-      const response = await this.apiClient.get<HelenaApiListResponse<HelenaPanel>>(
-        '/crm/panels'
-      )
+      const allPanels: HelenaPanel[] = []
+      let pageNumber = 1
+      const pageSize = 100
+      let hasMorePages = true
 
-      const panels = response.data || []
+      while (hasMorePages) {
+        const response = await this.apiClient.get<HelenaPaginatedResponse<HelenaPanel>>(
+          'crm/panel',
+          {
+            pageNumber: pageNumber.toString(),
+            pageSize: pageSize.toString(),
+          }
+        )
+
+        if (response.items && response.items.length > 0) {
+          allPanels.push(...response.items)
+        }
+
+        hasMorePages = response.hasMorePages || false
+        pageNumber++
+
+        if (pageNumber > response.totalPages) {
+          break
+        }
+      }
 
       const panelsWithSteps = await Promise.all(
-        panels.map(async (panel) => {
+        allPanels.map(async (panel) => {
           const steps = await this.getStepsForPanel(panel.id)
           return this.transformPanel(panel, steps)
         })
@@ -29,7 +49,7 @@ export class HelenaPanelsService {
 
   async getPanelById(id: string): Promise<CrmPipeline> {
     try {
-      const panel = await this.apiClient.get<HelenaPanel>(`/crm/panels/${id}`)
+      const panel = await this.apiClient.get<HelenaPanel>(`crm/panel/${id}`)
       const steps = await this.getStepsForPanel(id)
       return this.transformPanel(panel, steps)
     } catch (error) {
@@ -40,33 +60,66 @@ export class HelenaPanelsService {
 
   private async getStepsForPanel(panelId: string): Promise<CrmStage[]> {
     try {
-      const panel = await this.apiClient.get<HelenaPanel>(`/crm/panels/${panelId}`)
-      const steps = panel.steps || []
+      const allCards: HelenaCard[] = []
+      let pageNumber = 1
+      const pageSize = 100
+      let hasMorePages = true
 
-      return steps.map((step) => {
-        const cards = step.cards || []
-        const totalValue = cards.reduce((sum, card) => {
-          const value = typeof card.value === 'number' ? card.value : 0
-          return sum + value
-        }, 0)
+      while (hasMorePages) {
+        const response = await this.apiClient.get<HelenaPaginatedResponse<HelenaCard>>(
+          'crm/panel/card',
+          {
+            PanelId: panelId,
+            pageNumber: pageNumber.toString(),
+            pageSize: pageSize.toString(),
+          }
+        )
 
-        return {
-          id: step.id,
-          name: step.name,
-          deals: cards.map((card) => ({
-            id: card.id,
-            title: card.title,
-            value: typeof card.value === 'number' ? card.value : 0,
-            stageId: step.id,
-            pipelineId: panelId,
-            createdAt: card.createdAt,
-            updatedAt: card.updatedAt,
-            owner: card.ownerId,
-          })),
-          totalValue,
-          dealCount: cards.length,
+        if (response.items && response.items.length > 0) {
+          allCards.push(...response.items)
         }
+
+        hasMorePages = response.hasMorePages || false
+        pageNumber++
+
+        if (pageNumber > response.totalPages) {
+          break
+        }
+      }
+
+      const stepsMap = new Map<string, CrmStage>()
+
+      allCards.forEach((card) => {
+        const stepId = card.stepId || 'unknown'
+        const stepName = card.stepTitle || card.stepId || 'Sem etapa'
+
+        if (!stepsMap.has(stepId)) {
+          stepsMap.set(stepId, {
+            id: stepId,
+            name: stepName,
+            deals: [],
+            totalValue: 0,
+            dealCount: 0,
+          })
+        }
+
+        const step = stepsMap.get(stepId)!
+        const cardValue = card.monetaryAmount || card.value || 0
+        step.deals.push({
+          id: card.id,
+          title: card.title || '',
+          value: cardValue,
+          stageId: stepId,
+          pipelineId: panelId,
+          createdAt: card.createdAt,
+          updatedAt: card.updatedAt,
+          owner: card.responsibleUserId || card.ownerId,
+        })
+        step.totalValue += cardValue
+        step.dealCount++
       })
+
+      return Array.from(stepsMap.values())
     } catch (error) {
       console.error(`Error fetching steps for panel ${panelId}:`, error)
       return []

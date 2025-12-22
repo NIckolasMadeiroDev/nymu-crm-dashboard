@@ -1,12 +1,12 @@
 import { HelenaApiClient } from './helena-api-client'
-import type { HelenaUser, HelenaTeam, HelenaApiListResponse } from '@/types/helena'
+import type { HelenaUser, HelenaApiListResponse } from '@/types/helena'
 
 export class HelenaUsersService {
-  constructor(private apiClient: HelenaApiClient) {}
+  constructor(private readonly apiClient: HelenaApiClient) {}
 
   async getAllUsers(): Promise<HelenaUser[]> {
     try {
-      const response = await this.apiClient.get<HelenaApiListResponse<HelenaUser>>('/users')
+      const response = await this.apiClient.get<HelenaApiListResponse<HelenaUser>>('user')
       return response.data || []
     } catch (error) {
       console.error('Error fetching users from Helena API:', error)
@@ -16,7 +16,7 @@ export class HelenaUsersService {
 
   async getUserById(id: string): Promise<HelenaUser> {
     try {
-      return await this.apiClient.get<HelenaUser>(`/users/${id}`)
+      return await this.apiClient.get<HelenaUser>(`user/${id}`)
     } catch (error) {
       console.error(`Error fetching user ${id} from Helena API:`, error)
       throw error
@@ -25,7 +25,7 @@ export class HelenaUsersService {
 
   async createUser(user: Partial<HelenaUser>): Promise<HelenaUser> {
     try {
-      return await this.apiClient.post<HelenaUser>('/users', user)
+      return await this.apiClient.post<HelenaUser>('user', user)
     } catch (error) {
       console.error('Error creating user in Helena API:', error)
       throw error
@@ -34,7 +34,7 @@ export class HelenaUsersService {
 
   async updateUser(id: string, user: Partial<HelenaUser>): Promise<HelenaUser> {
     try {
-      return await this.apiClient.put<HelenaUser>(`/users/${id}`, user)
+      return await this.apiClient.put<HelenaUser>(`user/${id}`, user)
     } catch (error) {
       console.error(`Error updating user ${id} in Helena API:`, error)
       throw error
@@ -43,7 +43,7 @@ export class HelenaUsersService {
 
   async deleteUser(id: string): Promise<void> {
     try {
-      await this.apiClient.delete(`/users/${id}`)
+      await this.apiClient.delete(`user/${id}`)
     } catch (error) {
       console.error(`Error deleting user ${id} from Helena API:`, error)
       throw error
@@ -52,7 +52,7 @@ export class HelenaUsersService {
 
   async updateUserTeams(id: string, teamIds: string[]): Promise<HelenaUser> {
     try {
-      return await this.apiClient.post<HelenaUser>(`/users/${id}/teams`, { teamIds })
+      return await this.apiClient.post<HelenaUser>(`user/${id}/team`, { teamIds })
     } catch (error) {
       console.error(`Error updating teams for user ${id}:`, error)
       throw error
@@ -61,7 +61,7 @@ export class HelenaUsersService {
 
   async changeUserStatus(id: string, status: string): Promise<HelenaUser> {
     try {
-      return await this.apiClient.post<HelenaUser>(`/users/${id}/status`, { status })
+      return await this.apiClient.post<HelenaUser>(`user/${id}/status`, { status })
     } catch (error) {
       console.error(`Error changing status for user ${id}:`, error)
       throw error
@@ -70,7 +70,7 @@ export class HelenaUsersService {
 
   async logoutUserFromAllDevices(id: string): Promise<void> {
     try {
-      await this.apiClient.post(`/users/${id}/logout-all`)
+      await this.apiClient.post(`user/${id}/logout-all`)
     } catch (error) {
       console.error(`Error logging out user ${id} from all devices:`, error)
       throw error

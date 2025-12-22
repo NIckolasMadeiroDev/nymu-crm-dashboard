@@ -3,6 +3,10 @@ import { isHelenaApiEnabled } from '@/services/helena/helena-config'
 import { DashboardAdapter } from '@/services/helena/adapters/dashboard-adapter'
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 
+export interface DataSourceAdapterOptions {
+  cookieHeader?: string | null
+}
+
 export interface DataSource {
   getDashboardData(filters: DashboardFilters): Promise<DashboardData>
   getAvailableFilters(): Promise<{
@@ -100,30 +104,28 @@ class HelenaDataSource implements DataSource {
 }
 
 class DataSourceAdapter {
-  private source: DataSource
-
-  constructor() {
-    if (isHelenaApiEnabled()) {
-      this.source = new HelenaDataSource()
+  private getSource(options?: DataSourceAdapterOptions): DataSource {
+    if (isHelenaApiEnabled(options?.cookieHeader)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[DataSourceAdapter] Using Helena API (real data)')
+      }
+      return new HelenaDataSource()
     } else {
-      this.source = new MockDataSource()
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[DataSourceAdapter] Using Mock Data')
+      }
+      return new MockDataSource()
     }
   }
 
-  async getDashboardData(filters: DashboardFilters): Promise<DashboardData> {
-    return this.source.getDashboardData(filters)
+  async getDashboardData(filters: DashboardFilters, options?: DataSourceAdapterOptions): Promise<DashboardData> {
+    const source = this.getSource(options)
+    return source.getDashboardData(filters)
   }
 
-  async getAvailableFilters() {
-    return this.source.getAvailableFilters()
-  }
-
-  switchToHelena() {
-    this.source = new HelenaDataSource()
-  }
-
-  switchToMock() {
-    this.source = new MockDataSource()
+  async getAvailableFilters(options?: DataSourceAdapterOptions) {
+    const source = this.getSource(options)
+    return source.getAvailableFilters()
   }
 }
 

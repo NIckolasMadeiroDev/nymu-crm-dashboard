@@ -2,7 +2,7 @@ import { HelenaApiClient } from './helena-api-client'
 import type { HelenaContact, HelenaApiListResponse } from '@/types/helena'
 
 export class HelenaContactsService {
-  constructor(private apiClient: HelenaApiClient) {}
+  constructor(private readonly apiClient: HelenaApiClient) {}
 
   async getAllContacts(params?: {
     page?: number
@@ -23,8 +23,8 @@ export class HelenaContactsService {
       }
 
       const response = await this.apiClient.get<HelenaApiListResponse<HelenaContact>>(
-        '/contacts',
-        queryParams
+        'contact',
+        Object.keys(queryParams).length > 0 ? queryParams : undefined
       )
 
       return response.data || []
@@ -36,7 +36,7 @@ export class HelenaContactsService {
 
   async getContactById(id: string): Promise<HelenaContact> {
     try {
-      return await this.apiClient.get<HelenaContact>(`/contacts/${id}`)
+      return await this.apiClient.get<HelenaContact>(`contact/${id}`)
     } catch (error) {
       console.error(`Error fetching contact ${id} from Helena API:`, error)
       throw error

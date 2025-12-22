@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
@@ -24,7 +24,6 @@ import FiltersModal, { countActiveFilters } from '@/components/filters/FiltersMo
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useWidgetHeight } from '@/contexts/WidgetHeightContext'
 import type { DashboardData } from '@/types/dashboard'
-import { dataSourceAdapter } from '@/services/data/data-source-adapter'
 import { formatCurrency, formatNumber } from '@/utils/format-currency'
 import NymuLogo from '@/components/common/NymuLogo'
 import { themeService } from '@/services/theme/theme-service'
@@ -38,6 +37,7 @@ export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hasPermanentErrors, setHasPermanentErrors] = useState(false)
   const [showScheduling, setShowScheduling] = useState(false)
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [showHelpModal, setShowHelpModal] = useState(false)
@@ -89,17 +89,32 @@ export default function Dashboard() {
         setChartOrder([...savedOrder, ...missingCharts])
       }
     }
+    
+    let filtersToLoad: DashboardData['filters'] | undefined
+    
     if (preferences.selectedPresetId !== null) {
       setSelectedPresetId(preferences.selectedPresetId)
       const preset = filterPresetsService.getPreset(preferences.selectedPresetId)
       if (preset) {
-        loadDashboardData(preset.filters)
-        return
+        filtersToLoad = preset.filters
       }
     }
-    if (preferences.filters) {
-      loadDashboardData(preferences.filters)
+    
+    if (!filtersToLoad && preferences.filters) {
+      filtersToLoad = preferences.filters
     }
+    
+    if (!filtersToLoad) {
+      filtersToLoad = {
+        date: '2025-12-17',
+        season: '2025.1',
+        sdr: 'Todos',
+        college: 'Todas',
+        origin: '',
+      }
+    }
+    
+    loadDashboardData(filtersToLoad)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -114,12 +129,44 @@ export default function Dashboard() {
     }
   }, [dashboardData?.filters])
 
+  const isPermanentError = (errorMessage: string): boolean => {
+    const permanentErrorPatterns = [
+      'Not Found',
+      '404',
+      'Forbidden',
+      '403',
+      'Unauthorized',
+      '401',
+    ]
+    return permanentErrorPatterns.some((pattern) => 
+      errorMessage.toLowerCase().includes(pattern.toLowerCase())
+    )
+  }
+
+  const hasPermanentErrorsRef = useRef(false)
+  const isLoadingRef = useRef(false)
+
   const loadDashboardData = useCallback(async (filters?: DashboardData['filters']) => {
+    if (hasPermanentErrorsRef.current) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Dashboard] Skipping loadDashboardData due to permanent errors')
+      }
+      return
+    }
+
+    if (isLoadingRef.current) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Dashboard] Skipping loadDashboardData - already loading')
+      }
+      return
+    }
+
     try {
+      isLoadingRef.current = true
       setLoading(true)
       setError(null)
 
-      const activeFilters = filters || dashboardData?.filters || {
+      const activeFilters = filters || {
         date: '2025-12-17',
         season: '2025.1',
         sdr: 'Todos',
@@ -127,22 +174,88 @@ export default function Dashboard() {
         origin: '',
       }
 
-      const data = await dataSourceAdapter.getDashboardData(activeFilters)
+      const response = await fetch('/api/dashboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ filters: activeFilters }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        const errorMessage = errorData.error || 'Failed to load dashboard data'
+        
+        if (isPermanentError(errorMessage)) {
+          hasPermanentErrorsRef.current = true
+          setHasPermanentErrors(true)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Dashboard] Permanent error detected, stopping polling:', errorMessage)
+          }
+        }
+        
+        throw new Error(errorMessage)
+      }
+
+      const data = await response.json()
       setDashboardData(data)
+      
+      if (data.errors) {
+        const hasPermanent = Object.values(data.errors).some((err) => 
+          err && isPermanentError(err as string)
+        )
+        if (hasPermanent) {
+          hasPermanentErrorsRef.current = true
+          setHasPermanentErrors(true)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Dashboard] Permanent errors in data.errors, stopping polling')
+          }
+        } else {
+          hasPermanentErrorsRef.current = false
+          setHasPermanentErrors(false)
+        }
+      } else {
+        hasPermanentErrorsRef.current = false
+        setHasPermanentErrors(false)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data'
+      setError(errorMessage)
+      
+      if (isPermanentError(errorMessage)) {
+        hasPermanentErrorsRef.current = true
+        setHasPermanentErrors(true)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Dashboard] Permanent error in catch, stopping polling:', errorMessage)
+        }
+      }
     } finally {
+      isLoadingRef.current = false
       setLoading(false)
     }
-  }, [dashboardData?.filters])
+  }, [])
+
+  const loadDashboardDataRef = useRef(loadDashboardData)
+  loadDashboardDataRef.current = loadDashboardData
 
   useEffect(() => {
-    loadDashboardData()
+    if (hasPermanentErrors) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Dashboard] Polling disabled due to permanent errors (404, etc.)')
+      }
+      return
+    }
 
-    const interval = setInterval(loadDashboardData, 30000)
+    const intervalId = setInterval(() => {
+      if (!hasPermanentErrorsRef.current) {
+        loadDashboardDataRef.current()
+      }
+    }, 30000)
 
-    return () => clearInterval(interval)
-  }, [loadDashboardData])
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [hasPermanentErrors])
 
   useEffect(() => {
     const updateLogoVariant = () => {
@@ -174,6 +287,8 @@ export default function Dashboard() {
 
   const handleRetry = () => {
     setError(null)
+    hasPermanentErrorsRef.current = false
+    setHasPermanentErrors(false)
     setLoading(true)
     loadDashboardData()
   }
@@ -302,6 +417,8 @@ export default function Dashboard() {
     )
   }
 
+  const hasErrors = dashboardData?.errors && Object.keys(dashboardData.errors).length > 0
+
   if (isMobile) {
     return <MobileWarning />
   }
@@ -317,7 +434,37 @@ export default function Dashboard() {
       </a>
       <div className="w-full">
         <main id="main-content" role="main" aria-label="Dashboard principal do CRM">
-
+        {hasErrors && (
+          <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                  Avisos de carregamento de dados
+                </h3>
+                <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+                  {dashboardData.errors?.cards && (
+                    <li>• Cards: {dashboardData.errors.cards}</li>
+                  )}
+                  {dashboardData.errors?.contacts && (
+                    <li>• Contatos: {dashboardData.errors.contacts}</li>
+                  )}
+                  {dashboardData.errors?.panels && (
+                    <li>• Painéis: {dashboardData.errors.panels}</li>
+                  )}
+                  {dashboardData.errors?.wallets && (
+                    <li>• Carteiras: {dashboardData.errors.wallets}</li>
+                  )}
+                </ul>
+                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                  Alguns dados podem estar incompletos, mas o dashboard continua funcionando com os dados disponíveis.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6 space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
           <section
             className="bg-white rounded-lg shadow-sm p-2 sm:p-2.5 border border-gray-100 mb-2 sm:mb-2.5 dark:bg-gray-800 dark:border-gray-700"
@@ -550,4 +697,5 @@ export default function Dashboard() {
     </div>
   )
 }
+
 

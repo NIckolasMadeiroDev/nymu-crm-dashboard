@@ -2,12 +2,12 @@ import { HelenaApiClient } from './helena-api-client'
 import type { HelenaPartner, HelenaApiListResponse } from '@/types/helena'
 
 export class HelenaPartnersService {
-  constructor(private apiClient: HelenaApiClient) {}
+  constructor(private readonly apiClient: HelenaApiClient) {}
 
   async getAllPartners(): Promise<HelenaPartner[]> {
     try {
       const response = await this.apiClient.get<HelenaApiListResponse<HelenaPartner>>(
-        '/partners'
+        'partner'
       )
       return response.data || []
     } catch (error) {
@@ -18,7 +18,7 @@ export class HelenaPartnersService {
 
   async getPartnerById(id: string): Promise<HelenaPartner> {
     try {
-      return await this.apiClient.get<HelenaPartner>(`/partners/${id}`)
+      return await this.apiClient.get<HelenaPartner>(`partner/${id}`)
     } catch (error) {
       console.error(`Error fetching partner ${id} from Helena API:`, error)
       throw error
@@ -43,7 +43,7 @@ export class HelenaPartnersService {
       }
 
       return await this.apiClient.get<HelenaPartner['billingReport']>(
-        `/partners/${partnerId}/billing-report`,
+        `partner/${partnerId}/billing-report`,
         queryParams
       )
     } catch (error) {

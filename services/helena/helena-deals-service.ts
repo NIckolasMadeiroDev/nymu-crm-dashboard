@@ -1,9 +1,9 @@
 import { HelenaApiClient } from './helena-api-client'
-import type { HelenaDeal, HelenaApiListResponse } from '@/types/helena'
+import type { HelenaCard, HelenaApiListResponse } from '@/types/helena'
 import type { CrmDeal } from '@/types/crm'
 
 export class HelenaDealsService {
-  constructor(private apiClient: HelenaApiClient) {}
+  constructor(private readonly apiClient: HelenaApiClient) {}
 
   async getAllDeals(params?: {
     page?: number
@@ -31,7 +31,7 @@ export class HelenaDealsService {
         queryParams.status = params.status
       }
 
-      const response = await this.apiClient.get<HelenaApiListResponse<HelenaDeal>>(
+      const response = await this.apiClient.get<HelenaApiListResponse<HelenaCard>>(
         '/deals',
         queryParams
       )
@@ -45,7 +45,7 @@ export class HelenaDealsService {
 
   async getDealById(id: string): Promise<CrmDeal> {
     try {
-      const deal = await this.apiClient.get<HelenaDeal>(`/deals/${id}`)
+      const deal = await this.apiClient.get<HelenaCard>(`/deals/${id}`)
       return this.transformDeal(deal)
     } catch (error) {
       console.error(`Error fetching deal ${id} from Helena API:`, error)
@@ -61,20 +61,20 @@ export class HelenaDealsService {
     return this.getAllDeals({ stageId })
   }
 
-  private transformDeals(deals: HelenaDeal[]): CrmDeal[] {
+  private transformDeals(deals: HelenaCard[]): CrmDeal[] {
     return deals.map((deal) => this.transformDeal(deal))
   }
 
-  private transformDeal(deal: HelenaDeal): CrmDeal {
+  private transformDeal(deal: HelenaCard): CrmDeal {
     return {
       id: deal.id,
-      title: deal.title,
-      value: this.parseValue(deal.value),
-      stageId: deal.stageId,
-      pipelineId: deal.pipelineId,
+      title: deal.title || '',
+      value: this.parseValue(deal.monetaryAmount || deal.value),
+      stageId: deal.stepId || '',
+      pipelineId: deal.panelId || '',
       createdAt: deal.createdAt,
       updatedAt: deal.updatedAt,
-      owner: deal.ownerId,
+      owner: deal.responsibleUserId || deal.ownerId,
     }
   }
 
@@ -83,8 +83,8 @@ export class HelenaDealsService {
       return value
     }
     if (typeof value === 'string') {
-      const parsed = parseFloat(value.replace(/[^\d.-]/g, ''))
-      return isNaN(parsed) ? 0 : parsed
+      const parsed = Number.parseFloat(value.replaceAll(/[^\d.-]/g, ''))
+      return Number.isNaN(parsed) ? 0 : parsed
     }
     return 0
   }

@@ -35,8 +35,19 @@ class HelenaServiceFactory {
       return
     }
 
-    const config = getHelenaApiConfig()
-    this.apiClient = new HelenaApiClient(config)
+    try {
+      const config = getHelenaApiConfig()
+      this.apiClient = new HelenaApiClient(config)
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Helena Service Factory] Services initialized successfully')
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[Helena Service Factory] Failed to initialize:', error)
+      }
+      throw error
+    }
     this.cardsService = new HelenaCardsService(this.apiClient)
     this.panelsService = new HelenaPanelsService(this.apiClient)
     this.contactsService = new HelenaContactsService(this.apiClient)

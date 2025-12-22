@@ -2,21 +2,11 @@ import type {
   HelenaApiConfig,
   HelenaApiResponse,
 } from '@/types/helena'
-
-export class HelenaApiError extends Error {
-  constructor(
-    message: string,
-    public status?: number,
-    public code?: string
-  ) {
-    super(message)
-    this.name = 'HelenaApiError'
-  }
-}
+import { HelenaApiError } from '@/types/helena'
 
 export class HelenaApiClient {
-  private config: HelenaApiConfig
-  private defaultTimeout = 30000
+  private readonly config: HelenaApiConfig
+  private readonly defaultTimeout = 30000
 
   constructor(config: HelenaApiConfig) {
     if (!config.baseUrl) {
@@ -36,21 +26,49 @@ export class HelenaApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<HelenaApiResponse<T>> {
-    const url = `${this.config.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint
+    
+    const url = cleanEndpoint.startsWith('crm/')
+      ? `${this.config.baseUrl}/crm/v1/${cleanEndpoint.replace(/^crm\//, '')}`
+      : `${this.config.baseUrl}/core/v1/${cleanEndpoint}`
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Helena API Client] Making request to:', url)
+      console.log('[Helena API Client] Full URL:', url)
+      console.log('[Helena API Client] Base URL:', this.config.baseUrl)
+      console.log('[Helena API Client] Endpoint:', cleanEndpoint)
+    }
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
 
     try {
-      const response = await fetch(url, {
+      const fetchOptions: RequestInit = {
         ...options,
         headers: {
           'Authorization': `Bearer ${this.config.token}`,
           'Content-Type': 'application/json',
+          'User-Agent': 'Helena-CRM-Dashboard/1.0',
           ...options.headers,
         },
         signal: controller.signal,
-      })
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Helena API Client] Fetch options:', {
+          method: fetchOptions.method || 'GET',
+          url,
+          hasAuth: !!this.config.token,
+          tokenPrefix: this.config.token?.substring(0, 10),
+        })
+      }
+
+      const response = await fetch(url, fetchOptions)
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Helena API Client] Response status:', response.status)
+        console.log('[Helena API Client] Response headers:', Object.fromEntries(response.headers.entries()))
+      }
 
       clearTimeout(timeoutId)
 
@@ -79,8 +97,26 @@ export class HelenaApiClient {
         if (error.name === 'AbortError') {
           throw new HelenaApiError('Request timeout', 408, 'TIMEOUT')
         }
+        
+        // Log detalhado do erro em desenvolvimento
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[Helena API Client] Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            url,
+            cause: (error as any).cause,
+          })
+        }
+        
+        const errorMessage = error.message.includes('fetch failed') || 
+                           error.message.includes('ECONNREFUSED') ||
+                           error.message.includes('ENOTFOUND') ||
+                           error.message.includes('ECONNRESET')
+          ? `Failed to connect to ${url}. Erro: ${error.message}. Verifique se a URL está acessível e se há problemas de rede/firewall.`
+          : `Network error: ${error.message}`
         throw new HelenaApiError(
-          `Network error: ${error.message}`,
+          errorMessage,
           undefined,
           'NETWORK_ERROR'
         )
@@ -108,7 +144,7 @@ export class HelenaApiClient {
   }
 
   async get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
-    const queryString = params
+    const queryString = params && Object.keys(params).length > 0
       ? `?${new URLSearchParams(params).toString()}`
       : ''
     const fullEndpoint = `${endpoint}${queryString}`
@@ -150,9 +186,10 @@ export class HelenaApiClient {
     return response.data
   }
 
-  async delete<T>(endpoint: string): Promise<T> {
+  async delete<T>(endpoint: string, body?: unknown): Promise<T> {
     const response = await this.request<T>(endpoint, {
       method: 'DELETE',
+      body: body ? JSON.stringify(body) : undefined,
     })
 
     if (!response.data) {
