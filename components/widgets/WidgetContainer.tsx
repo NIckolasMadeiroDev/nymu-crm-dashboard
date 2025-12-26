@@ -150,7 +150,7 @@ export default function WidgetContainer({
           aria-label={`Restaurar ${title}`}
           title={`Clique para restaurar ${title}`}
         >
-          <span className="text-sm sm:text-base font-normal text-gray-700 font-secondary truncate flex-1 min-w-0 text-left">{title}</span>
+          <span className="text-xs sm:text-base font-normal text-gray-700 font-secondary truncate flex-1 min-w-0 text-left">{title}</span>
           <svg className="w-3 h-3 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
@@ -213,7 +213,7 @@ export default function WidgetContainer({
                     setIsAnalysisModalOpen(true)
                   }
                 }}
-                className="px-2 sm:px-2 md:px-2.5 py-1 sm:py-1 md:py-1.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-1 sm:gap-1 md:gap-1.5 text-[10px] sm:text-[11px] md:text-xs lg:text-sm font-semibold font-secondary focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-1 whitespace-nowrap flex-shrink-0"
+                className="px-2 sm:px-2.5 md:px-2.5 py-1 sm:py-1.5 md:py-1.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-1 sm:gap-1.5 md:gap-1.5 text-[10px] sm:text-xs md:text-xs lg:text-sm font-semibold font-secondary focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-1 whitespace-nowrap flex-shrink-0"
                 style={{
                   backgroundColor: '#FF9D02',
                   color: '#ffffff',
