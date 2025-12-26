@@ -150,7 +150,7 @@ export default function WidgetContainer({
           aria-label={`Restaurar ${title}`}
           title={`Clique para restaurar ${title}`}
         >
-          <span className="text-xs font-normal text-gray-700 font-secondary truncate flex-1 min-w-0 text-left">{title}</span>
+          <span className="text-sm sm:text-base font-normal text-gray-700 font-secondary truncate flex-1 min-w-0 text-left">{title}</span>
           <svg className="w-3 h-3 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
@@ -172,17 +172,17 @@ export default function WidgetContainer({
         fixedHeight={currentHeight}
         autoAdjustHeight={false}
       >
-        <div className="mb-0.5 sm:mb-1 md:mb-1.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-0.5 sm:gap-1 border-b border-gray-200 pb-0.5 sm:pb-1 md:pb-1.5">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="mb-0.5 sm:mb-1 md:mb-1.5 flex flex-row items-center justify-between gap-1 sm:gap-1.5 border-b border-gray-200 pb-0.5 sm:pb-1 md:pb-1.5">
+          <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 overflow-hidden">
             {dragHandleProps && (
               <div
                 {...dragHandleProps}
-                className="flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                className="flex items-center justify-center w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
                 aria-label="Arrastar para reorganizar"
                 title="Arrastar para reorganizar"
               >
                 <svg
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4"
+                  className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -196,9 +196,9 @@ export default function WidgetContainer({
                 </svg>
               </div>
             )}
-            <h3 className="text-[10px] sm:text-xs md:text-sm font-bold font-primary text-gray-900 truncate flex-1 min-w-0">{title}</h3>
+            <h3 className="text-xs sm:text-sm md:text-base lg:text-lg font-bold font-primary text-gray-900 truncate flex-1 min-w-0">{title}</h3>
             {headerAction && (
-              <div className="ml-2 flex-shrink-0">
+              <div className="ml-1 sm:ml-2 flex-shrink-0">
                 {headerAction}
               </div>
             )}
@@ -213,7 +213,7 @@ export default function WidgetContainer({
                     setIsAnalysisModalOpen(true)
                   }
                 }}
-                className="px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 rounded-lg transition-all duration-200 flex items-center gap-0.5 sm:gap-1 md:gap-1.5 text-[9px] sm:text-[10px] md:text-xs font-semibold font-secondary focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-1 whitespace-nowrap flex-shrink-0"
+                className="px-2 sm:px-2 md:px-2.5 py-1 sm:py-1 md:py-1.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-1 sm:gap-1 md:gap-1.5 text-[10px] sm:text-[11px] md:text-xs lg:text-sm font-semibold font-secondary focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-1 whitespace-nowrap flex-shrink-0"
                 style={{
                   backgroundColor: '#FF9D02',
                   color: '#ffffff',
@@ -230,7 +230,7 @@ export default function WidgetContainer({
                 title="Ver análises"
               >
                 <svg
-                  className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0"
+                  className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -242,7 +242,7 @@ export default function WidgetContainer({
                     d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                   />
                 </svg>
-                <span className="hidden sm:inline truncate">Ver Análises</span>
+                <span className="truncate">Análises</span>
               </button>
             )}
             {chartType && onChartTypeChange && (
@@ -257,11 +257,11 @@ export default function WidgetContainer({
             {onMinimize && (
               <button
                 onClick={onMinimize}
-                className="p-0.5 sm:p-0.5 md:p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+                className="p-0.5 sm:p-0.5 md:p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0 flex items-center justify-center"
                 aria-label="Minimizar widget"
                 title="Minimizar"
               >
-                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -274,11 +274,11 @@ export default function WidgetContainer({
             {onClose && (
               <button
                 onClick={onClose}
-                className="p-0.5 sm:p-0.5 md:p-1 hover:bg-red-100 rounded text-red-600 transition-colors flex-shrink-0"
+                className="p-0.5 sm:p-0.5 md:p-1 hover:bg-red-100 rounded text-red-600 transition-colors flex-shrink-0 flex items-center justify-center"
                 aria-label="Fechar widget"
                 title="Fechar"
               >
-                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
