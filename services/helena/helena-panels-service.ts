@@ -67,4 +67,9 @@ export class HelenaPanelsService {
   async getPanelById(id: string): Promise<HelenaPanel> {
     return this.apiClient.get<HelenaPanel>(`crm/v1/panel/${id}`)
   }
+
+  async getAllPanels(): Promise<HelenaPanel[]> {
+    const response = await this.listPanels({ PageSize: 100 })
+    return response.items
+  }
 }
