@@ -28,14 +28,17 @@ export class HelenaApiClient {
   ): Promise<HelenaApiResponse<T>> {
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint
     
-    const url = cleanEndpoint.startsWith('crm/')
-      ? `${this.config.baseUrl}/crm/v1/${cleanEndpoint.replace(/^crm\//, '')}`
-      : `${this.config.baseUrl}/core/v1/${cleanEndpoint}`
+    // Usar proxy do Next.js para evitar CORS
+    const isClient = typeof window !== 'undefined'
+    const url = isClient
+      ? `/api/helena-proxy?endpoint=${encodeURIComponent(cleanEndpoint)}`
+      : cleanEndpoint.startsWith('crm/')
+        ? `${this.config.baseUrl}/crm/v1/${cleanEndpoint.replace(/^crm\//, '')}`
+        : `${this.config.baseUrl}/${cleanEndpoint}`
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[Helena API Client] Making request to:', url)
-      console.log('[Helena API Client] Full URL:', url)
-      console.log('[Helena API Client] Base URL:', this.config.baseUrl)
+      console.log('[Helena API Client] Is client:', isClient)
       console.log('[Helena API Client] Endpoint:', cleanEndpoint)
     }
 
@@ -46,20 +49,26 @@ export class HelenaApiClient {
       const fetchOptions: RequestInit = {
         ...options,
         headers: {
-          'Authorization': `Bearer ${this.config.token}`,
           'Content-Type': 'application/json',
-          'User-Agent': 'Helena-CRM-Dashboard/1.0',
           ...options.headers,
         },
         signal: controller.signal,
+      }
+
+      // Adicionar Authorization apenas no servidor
+      if (!isClient) {
+        fetchOptions.headers = {
+          ...fetchOptions.headers,
+          'Authorization': `Bearer ${this.config.token}`,
+          'User-Agent': 'Helena-CRM-Dashboard/1.0',
+        }
       }
 
       if (process.env.NODE_ENV === 'development') {
         console.log('[Helena API Client] Fetch options:', {
           method: fetchOptions.method || 'GET',
           url,
-          hasAuth: !!this.config.token,
-          tokenPrefix: this.config.token?.substring(0, 10),
+          isClient,
         })
       }
 

@@ -3,6 +3,7 @@ import ContactsTable from "./ContactsTable";
 import ContactsSearchBar from "./ContactsSearchBar";
 import ContactDetailsDrawer from "./ContactDetailsDrawer";
 import ContactEditDrawer from "./ContactEditDrawer";
+import Pagination from "./Pagination";
 import { HelenaContact } from "@/services/helena/helena-contacts-service";
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 const contactsService = helenaServiceFactory.getContactsService();
@@ -14,6 +15,12 @@ export default function ContactsManager() {
   const [selectedContact, setSelectedContact] = useState<HelenaContact | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const pageSize = 15;
+
   // --- Novos estados para criação/edição/deleção ---
   const [editOpen, setEditOpen] = useState(false);
   const [editMode, setEditMode] = useState<'create'|'edit'>("create");
@@ -21,19 +28,31 @@ export default function ContactsManager() {
   const [editLoading, setEditLoading] = useState(false);
 
   // Busca contatos ao entrar ou buscar
-  const fetchContacts = useCallback(async (searchTerm?: string) => {
+  const fetchContacts = useCallback(async (searchTerm?: string, page: number = 1) => {
     setIsLoading(true);
     try {
       let data;
       if (searchTerm && searchTerm.trim() !== "") {
-        data = await contactsService.filterContacts({ textFilter: searchTerm, pageSize: 25 });
+        data = await contactsService.filterContacts({ 
+          textFilter: searchTerm, 
+          pageSize,
+          pageNumber: page 
+        });
       } else {
-        data = await contactsService.listContacts({ PageSize: 25 });
+        data = await contactsService.listContacts({ 
+          PageSize: pageSize,
+          PageNumber: page 
+        });
       }
       setContacts(data.items);
+      setTotalPages(data.totalPages);
+      setTotalItems(data.totalItems);
+      setCurrentPage(page);
     } catch (err) {
       console.error("Failed to fetch contacts:", err);
       setContacts([]);
+      setTotalPages(1);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
     }
@@ -45,7 +64,13 @@ export default function ContactsManager() {
 
   // Busca/filtra
   const handleSearch = useCallback(() => {
-    fetchContacts(search);
+    setCurrentPage(1);
+    fetchContacts(search, 1);
+  }, [fetchContacts, search]);
+
+  // Navegação de páginas
+  const handlePageChange = useCallback((page: number) => {
+    fetchContacts(search, page);
   }, [fetchContacts, search]);
 
   // Clique linha => drawer detalhes
@@ -133,6 +158,17 @@ export default function ContactsManager() {
       <div className="flex-1 min-h-[240px]">
         <ContactsTable contacts={contacts} isLoading={isLoading} onRowClick={handleRowClick} />
       </div>
+
+      {/* Paginação */}
+      {!isLoading && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={pageSize}
+          onPageChange={handlePageChange}
+        />
+      )}
       {/* Drawer de detalhes */}
       <ContactDetailsDrawer
         open={drawerOpen}

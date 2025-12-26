@@ -2,22 +2,8 @@ import type { HelenaApiConfig } from '@/types/helena'
 import { dataSourcePreferenceService } from '@/services/data/data-source-preference-service'
 
 export function getHelenaApiConfig(): HelenaApiConfig {
-  const baseUrl = process.env.HELENA_API_BASE_URL
-  const token = process.env.HELENA_API_TOKEN
-
-  if (!baseUrl) {
-    throw new Error(
-      'HELENA_API_BASE_URL environment variable is not set. ' +
-      'Please create a .env.local file based on env.template'
-    )
-  }
-
-  if (!token) {
-    throw new Error(
-      'HELENA_API_TOKEN environment variable is not set. ' +
-      'Please create a .env.local file based on env.template'
-    )
-  }
+  const baseUrl = process.env.HELENA_API_BASE_URL || 'https://api.helena.run'
+  const token = process.env.HELENA_API_TOKEN || 'pn_1ZmOn2UfqhH1X4vXOqadH13SECguNaEJtqYPjN5chQw'
 
   return {
     baseUrl: baseUrl.replace(/\/$/, ''),
@@ -27,14 +13,14 @@ export function getHelenaApiConfig(): HelenaApiConfig {
 }
 
 export function isHelenaApiEnabled(cookieHeader?: string | null): boolean {
-  const baseUrl = process.env.HELENA_API_BASE_URL
-  const token = process.env.HELENA_API_TOKEN
+  const baseUrl = process.env.HELENA_API_BASE_URL || 'https://api.helena.run'
+  const token = process.env.HELENA_API_TOKEN || 'pn_1ZmOn2UfqhH1X4vXOqadH13SECguNaEJtqYPjN5chQw'
   
   const useMockData = cookieHeader
     ? dataSourcePreferenceService.getDataSourceFromRequest(cookieHeader) === 'mock'
     : dataSourcePreferenceService.isUsingMockData()
   
-  const isEnabled = !!baseUrl && !!token && !useMockData
+  const isEnabled = !useMockData
 
   if (process.env.NODE_ENV === 'development') {
     console.log('[Helena Config] API Status Check:', {

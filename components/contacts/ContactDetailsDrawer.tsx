@@ -1,33 +1,187 @@
 import React from 'react'
+import { HelenaContact } from '@/services/helena/helena-contacts-service'
+import { formatPhoneNumber } from '@/utils/format-phone'
 
 interface ContactDetailsDrawerProps {
-  open: boolean
-  contact: any
-  onClose: () => void
-  onEdit?: () => void
-  onDelete?: () => void
+  readonly open: boolean
+  readonly contact: HelenaContact | null
+  readonly onClose: () => void
+  readonly onEdit?: () => void
+  readonly onDelete?: () => void
+}
+
+function getStatusConfig(status: string) {
+  const statusMap: Record<string, { label: string; className: string; icon: string }> = {
+    ACTIVE: { 
+      label: 'Ativo', 
+      className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800',
+      icon: '✓'
+    },
+    ARCHIVED: { 
+      label: 'Arquivado', 
+      className: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600',
+      icon: '📦'
+    },
+    BLOCKED: { 
+      label: 'Bloqueado', 
+      className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800',
+      icon: '🚫'
+    },
+  }
+
+  return statusMap[status] || { 
+    label: status, 
+    className: 'bg-gray-100 text-gray-800 border-gray-200',
+    icon: '•'
+  }
 }
 
 export default function ContactDetailsDrawer({ open, contact, onClose, onEdit, onDelete }: ContactDetailsDrawerProps) {
-  // Placeholder de drawer/side-panel (pode evoluir para modal, etc)
-  if (!open) return null
-  if (!contact) return null
+  if (!open || !contact) return null
+
+  const statusConfig = getStatusConfig(contact.status)
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-25 z-40 flex">
-      {/* Side panel */}
-      <div className="bg-white dark:bg-gray-950 shadow-xl w-full max-w-md ml-auto h-full flex flex-col p-6 animate-slide-in">
-        <button onClick={onClose} className="self-end text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-3">&times;</button>
-        <h2 className="text-2xl font-bold mb-1 text-gray-900 dark:text-white">Contato</h2>
-        <div className="flex flex-col gap-2 text-gray-800 dark:text-gray-200">
-          <span><b>Nome:</b> {contact.name}</span>
-          <span><b>Telefone:</b> {contact.phoneNumber}</span>
-          <span><b>E-mail:</b> {contact.email || '-'}</span>
-          <span><b>Status:</b> {contact.status}</span>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex">
+      <div className="bg-white dark:bg-gray-900 shadow-2xl w-full max-w-md ml-auto h-full flex flex-col overflow-hidden animate-slide-in">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            aria-label="Voltar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="font-medium">Voltar</span>
+          </button>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Detalhes do Contato</h2>
         </div>
-        <div className="flex gap-2 mt-6">
-          <button onClick={onEdit} className="rounded bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2">Editar</button>
-          <button onClick={onDelete} className="rounded bg-red-500 hover:bg-red-700 text-white px-4 py-2">Excluir</button>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          {/* Avatar e Nome */}
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <span className="text-white text-2xl font-bold">
+                {contact.name?.charAt(0)?.toUpperCase() || '?'}
+              </span>
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{contact.name}</h3>
+              <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border mt-2 ${statusConfig.className}`}>
+                <span>{statusConfig.icon}</span>
+                <span>{statusConfig.label}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Informações de Contato */}
+          <div className="space-y-4">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Informações de Contato
+              </h4>
+              
+              <div className="flex items-start space-x-3">
+                <svg className="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Telefone</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white font-mono">
+                    {formatPhoneNumber(contact.phoneNumber)}
+                  </p>
+                </div>
+              </div>
+
+              {contact.email && (
+                <div className="flex items-start space-x-3">
+                  <svg className="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">E-mail</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white break-all">
+                      {contact.email}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Tags */}
+            {contact.tags && contact.tags.length > 0 && (
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Etiquetas
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {contact.tags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium shadow-sm"
+                      style={{
+                        backgroundColor: tag.bgColor || '#e5e7eb',
+                        color: tag.textColor || '#374151',
+                      }}
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Metadados */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                Informações do Sistema
+              </h4>
+              <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between">
+                  <span>ID:</span>
+                  <span className="font-mono text-gray-900 dark:text-gray-300">{contact.id.slice(0, 8)}...</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Criado em:</span>
+                  <span className="text-gray-900 dark:text-gray-300">
+                    {new Date(contact.createdAt).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Atualizado em:</span>
+                  <span className="text-gray-900 dark:text-gray-300">
+                    {new Date(contact.updatedAt).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer com ações */}
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 space-y-2">
+          <div className="flex gap-3">
+            <button
+              onClick={onEdit}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Editar
+            </button>
+            <button
+              onClick={onDelete}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
