@@ -23,12 +23,17 @@ export interface HelenaApiResponse<T> {
 
 export interface HelenaContact {
   id: string
-  name: string
-  email?: string
-  phone?: string
   createdAt: string
   updatedAt: string
-  customFields?: Record<string, unknown>
+  companyId: string
+  name: string
+  phoneNumber: string
+  phoneNumberFormatted: string
+  email?: string | null
+  pictureUrl?: string | null
+  status: string
+  tags?: Array<{ id: string; name: string; bgColor?: string; textColor?: string }>
+  customFields?: Record<string, any>
 }
 
 export interface HelenaCard {

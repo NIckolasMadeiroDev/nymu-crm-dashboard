@@ -1,19 +1,7 @@
 import { HelenaApiClient } from './helena-api-client'
+import type { HelenaContact } from '@/types/helena'
 
-export interface HelenaContact {
-  id: string
-  createdAt: string
-  updatedAt: string
-  companyId: string
-  name: string
-  phoneNumber: string
-  phoneNumberFormatted: string
-  email?: string | null
-  pictureUrl?: string | null
-  status: string
-  tags?: Array<{ id: string; name: string; bgColor?: string; textColor?: string }>
-  customFields?: Record<string, any>
-}
+export type { HelenaContact }
 
 export interface HelenaContactsPaginatedResponse {
   items: HelenaContact[]
