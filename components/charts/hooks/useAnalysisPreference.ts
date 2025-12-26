@@ -19,11 +19,11 @@ export function useAnalysisPreference() {
       setIsEnabled(event.detail.enabled)
     }
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('analysis-preference-changed', handlePreferenceChange as EventListener)
+    if (typeof globalThis !== 'undefined') {
+      globalThis.addEventListener('analysis-preference-changed', handlePreferenceChange as EventListener)
 
       return () => {
-        window.removeEventListener('analysis-preference-changed', handlePreferenceChange as EventListener)
+        globalThis.removeEventListener('analysis-preference-changed', handlePreferenceChange as EventListener)
       }
     }
   }, [])

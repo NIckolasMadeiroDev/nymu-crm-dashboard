@@ -155,7 +155,7 @@ export default function ChartTypeSelector({
     }
     
     let top = 0
-    let position: 'bottom' | 'top' = 'bottom'
+    let position: 'bottom' | 'top' = 'bottom' // default bottom; will be set below
 
     if (spaceBelow < estimatedHeight && spaceAbove > spaceBelow) {
       position = 'top'
@@ -164,7 +164,6 @@ export default function ChartTypeSelector({
         top = 8
       }
     } else {
-      position = 'bottom'
       top = buttonRect.bottom + 8
       if (top + estimatedHeight > viewportHeight - 8) {
         top = viewportHeight - estimatedHeight - 8
@@ -277,7 +276,6 @@ export default function ChartTypeSelector({
           />
           <div 
             ref={dropdownRef}
-            role="listbox"
             className="fixed z-[9999] bg-white rounded-lg shadow-xl border border-gray-200 min-w-[240px] max-w-[320px]"
             style={{ 
               top: `${dropdownPosition.top}px`,
@@ -339,8 +337,6 @@ export default function ChartTypeSelector({
                           key={type}
                           data-chart-type={type}
                           onClick={() => handleTypeSelect(type)}
-                          role="option"
-                          aria-selected={isSelected}
                           className={`w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-100 font-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
                             isSelected 
                               ? 'bg-blue-50 text-blue-700 font-medium' 

@@ -65,20 +65,20 @@ function calculateMetricsByFilters(filters: DashboardFilters) {
   if (filters.sdr && filters.sdr !== 'Todos') {
     // Cada SDR tem performance diferente
     const sdrIndex = SDRS.indexOf(filters.sdr)
-    multiplier = 0.6 + (sdrIndex * 0.1) // Varia de 0.6 a 1.0
+    multiplier = 0.6 + sdrIndex * 0.1 // Varia de 0.6 a 1.0
   }
 
   if (filters.college && filters.college !== 'Todas') {
     // Cada faculdade tem volume diferente
     const collegeIndex = COLLEGES.indexOf(filters.college)
-    multiplier *= 0.5 + (collegeIndex * 0.15) // Varia de 0.5 a 1.25
+    multiplier *= 0.5 + collegeIndex * 0.15 // Varia de 0.5 a 1.25
   }
 
   if (filters.origin && filters.origin !== '') {
     // Cada origem tem conversão diferente
     const originIndex = ORIGINS.indexOf(filters.origin)
-    const originMultipliers = [0.8, 1.2, 1.0, 1.5, 0.9, 1.1]
-    multiplier *= originMultipliers[originIndex] || 1.0
+    const originMultipliers = [0.8, 1.2, 1, 1.5, 0.9, 1.1]
+    multiplier *= originMultipliers[originIndex] || 1
   }
 
   return multiplier
@@ -128,7 +128,9 @@ export function generateMockSalesConversion(
 
   const totalSales = adjustedSalesByWeek.reduce((sum, val) => sum + val, 0)
   const revenue = totalSales * 2000 // R$ 2000 por venda média
-  const closingRate = filters?.origin === 'Indicação' ? 40 : filters?.origin === 'Origem' ? 30 : 35
+  let closingRate = 35
+  if (filters?.origin === 'Indicação') closingRate = 40;
+  else if (filters?.origin === 'Origem') closingRate = 30
 
   return {
     closedSales: totalSales,
@@ -199,7 +201,7 @@ export function generateMockSalesByConversionTime(
           progress = Math.min(1, Math.pow(dayValue / 120, 1.2))
           break
         case 'medium': // 30 dias - crescimento moderado
-          progress = Math.min(1, Math.pow(dayValue / 120, 1.0))
+          progress = Math.min(1, Math.pow(dayValue / 120, 1))
           break
         case 'slow': // 90 dias - crescimento gradual
           progress = Math.min(1, Math.pow(dayValue / 120, 0.8))

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { CrmMetrics } from '@/types/crm'
 import { generateMockMetrics } from '@/services/mock-data-service'
 import { isHelenaApiEnabled } from '@/services/helena/helena-config'
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'

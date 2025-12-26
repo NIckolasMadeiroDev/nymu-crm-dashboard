@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { DashboardFilters, DashboardData } from '@/types/dashboard'
+import type { DashboardFilters } from '@/types/dashboard'
 import { dataSourceAdapter } from '@/services/data/data-source-adapter'
 
 export async function POST(request: NextRequest) {

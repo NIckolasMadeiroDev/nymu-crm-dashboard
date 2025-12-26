@@ -1,10 +1,10 @@
 'use client'
-
+import React from 'react'
 import { useEffect } from 'react'
 import { X, AlertTriangle, TrendingUp, TrendingDown, BarChart3, Info, TrendingUp as TrendingUpIcon } from 'lucide-react'
 import { useThemeColors } from '../hooks/useThemeColors'
 import type { Anomaly, Insight, DataAnalysisResult } from '@/services/analytics/data-analysis-service'
-import { formatNumber, formatCurrency } from '@/utils/format-currency'
+import { formatNumber } from '@/utils/format-currency'
 
 interface AnalysisModalProps {
   isOpen: boolean
@@ -38,9 +38,21 @@ export default function AnalysisModal({
         onClose()
       }
     }
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
+    globalThis.addEventListener('keydown', handleEscape)
+    return () => globalThis.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
+
+  // Focus modal for accessibility
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        const modalDiv = document.querySelector('[role="dialog"][tabindex]');
+        if (modalDiv && typeof (modalDiv as HTMLElement).focus === 'function') {
+          (modalDiv as HTMLElement).focus();
+        }
+      }, 50);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null
 
@@ -103,7 +115,7 @@ export default function AnalysisModal({
       if ('name' in label) return String(label.name)
       if ('date' in label) return String(label.date)
     }
-    return String(label)
+    return typeof label === 'object' ? JSON.stringify(label) : String(label)
   }
 
   const getInsightIcon = (type: Insight['type']) => {
@@ -146,15 +158,20 @@ export default function AnalysisModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="analysis-modal-title"
-    >
+    <React.Fragment>
+      {/* Backdrop para clicar fora e fechar */}
       <div
+        className="fixed inset-0 z-40"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <dialog
+        open
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        aria-labelledby="analysis-modal-title"
+      >
+      <section
         className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -162,6 +179,7 @@ export default function AnalysisModal({
           borderColor: themeColors.gridColor,
           borderWidth: '1px',
         }}
+        tabIndex={-1}
       >
         {/* Header */}
         <div
@@ -207,7 +225,7 @@ export default function AnalysisModal({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          {!hasAnalysis ? (
+          {!hasAnalysis && (
             <div className="text-center py-8 sm:py-12">
               <div
                 className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4"
@@ -321,7 +339,8 @@ export default function AnalysisModal({
                 </div>
               )}
             </div>
-          ) : (
+          )}
+          {hasAnalysis && (
             <div className="space-y-6">
               {/* Anomalias */}
               {hasAnomalies && (
@@ -641,8 +660,10 @@ export default function AnalysisModal({
             Fechar
           </button>
         </div>
-      </div>
-    </div>
-  )
+      </section>
+    </dialog>
+    </React.Fragment>
+  );
 }
+
 

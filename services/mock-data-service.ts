@@ -63,7 +63,7 @@ function generateDeal(seed: number, stageId: string, pipelineId: string, index: 
     pipelineId,
     createdAt: createdAt.toISOString(),
     updatedAt: updatedAt.toISOString(),
-    owner: `Vendedor ${String.fromCharCode(65 + (index % 5))}`,
+    owner: `Vendedor ${String.fromCodePoint(65 + (index % 5))}`,
   }
 }
 
