@@ -640,30 +640,34 @@ export default function Dashboard() {
                id="dashboard-export-container" 
                className="transition-all duration-300 space-y-4 sm:space-y-4 md:space-y-5"
              >
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2 md:gap-2.5 items-stretch">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
-                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Leads Criados</h3>
-                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{formatNumber(dashboardData.generationActivation.leadsCreated)}</p>
+            <div
+  className="flex flex-row gap-2 items-stretch overflow-x-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 sm:grid sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 sm:overflow-visible min-w-0"
+  style={{ WebkitOverflowScrolling: 'touch' }}
+>
+  {/* No mobile, flex horizontal com rolagem; nas telas ≥sm, vira grid como antes */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+                <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Leads Criados</h3>
+                <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatNumber(dashboardData.generationActivation.leadsCreated)}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
-                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Leads no Grupo</h3>
-                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{formatNumber(dashboardData.generationActivation.leadsInGroup)}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+                <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Leads no Grupo</h3>
+                <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatNumber(dashboardData.generationActivation.leadsInGroup)}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
-                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Participantes no Meet</h3>
-                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{formatNumber(dashboardData.generationActivation.meetParticipants)}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+                <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Participantes no Meet</h3>
+                <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatNumber(dashboardData.generationActivation.meetParticipants)}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
-                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Vendas Fechadas</h3>
-                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{formatNumber(dashboardData.salesConversion.closedSales)}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+                <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Vendas Fechadas</h3>
+                <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatNumber(dashboardData.salesConversion.closedSales)}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
-                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Taxa de Fechamento</h3>
-                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{dashboardData.salesConversion.closingRate.toFixed(0)}%</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+                <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Taxa de Fechamento</h3>
+                <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{dashboardData.salesConversion.closingRate.toFixed(0)}%</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
-                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Receita Gerada</h3>
-                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{formatCurrency(dashboardData.salesConversion.revenueGenerated)}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+                <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Receita Gerada</h3>
+                <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatCurrency(dashboardData.salesConversion.revenueGenerated)}</p>
               </div>
             </div>
 
