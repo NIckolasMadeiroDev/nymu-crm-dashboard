@@ -141,4 +141,9 @@ export class HelenaContactsService {
   async deleteContactById(id: string): Promise<void> {
     await this.apiClient.delete(`core/v1/contact/${id}`)
   }
+
+  async getAllContacts(): Promise<HelenaContact[]> {
+    const response = await this.listContacts({ PageSize: 100 })
+    return response.items
+  }
 }

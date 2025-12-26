@@ -49,7 +49,12 @@ class HelenaDataSource implements DataSource {
     return this.dashboardAdapter.getDashboardData(filters)
   }
 
-  async getAvailableFilters() {
+  async getAvailableFilters(): Promise<{
+    sdrs: string[]
+    colleges: string[]
+    origins: string[]
+    seasons: string[]
+  }> {
     try {
       const cardsService = helenaServiceFactory.getCardsService()
       const contactsService = helenaServiceFactory.getContactsService()
@@ -61,27 +66,27 @@ class HelenaDataSource implements DataSource {
 
       const deals = cards
 
-      const origins = Array.from(
+      const origins: string[] = Array.from(
         new Set(
           contacts
-            .map((contact) => contact.customFields?.source as string)
-            .filter((source): source is string => Boolean(source))
+            .map((contact: any) => contact.customFields?.source as string)
+            .filter((source: any): source is string => Boolean(source))
         )
       )
 
-      const sdrs = Array.from(
+      const sdrs: string[] = Array.from(
         new Set(
           deals
-            .map((deal) => deal.owner)
-            .filter((owner): owner is string => Boolean(owner))
+            .map((deal: any) => deal.owner)
+            .filter((owner: any): owner is string => Boolean(owner))
         )
       )
 
-      const colleges = Array.from(
+      const colleges: string[] = Array.from(
         new Set(
           contacts
-            .map((contact) => contact.customFields?.college as string)
-            .filter(Boolean)
+            .map((contact: any) => contact.customFields?.college as string)
+            .filter((college: any): college is string => Boolean(college))
         )
       )
 
