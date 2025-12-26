@@ -11,14 +11,24 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams
-    const pipelineId = searchParams.get('pipelineId') || undefined
-    const stageId = searchParams.get('stageId') || undefined
+    const pipelineId = searchParams.get('pipelineId')
+    const stageId = searchParams.get('stageId')
+
+    if (!pipelineId) {
+      return NextResponse.json(
+        { error: 'pipelineId is required' },
+        { status: 400 }
+      )
+    }
 
     const cardsService = helenaServiceFactory.getCardsService()
-    const deals = await cardsService.getAllCards({
-      panelId: pipelineId,
-      stepId: stageId,
-    })
+    
+    let deals
+    if (stageId) {
+      deals = await cardsService.getCardsByStep(pipelineId, stageId)
+    } else {
+      deals = await cardsService.getAllCardsByPanel(pipelineId)
+    }
 
     return NextResponse.json(deals)
   } catch (error) {

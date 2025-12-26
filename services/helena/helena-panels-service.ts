@@ -44,9 +44,24 @@ export interface HelenaPanelsListFilters {
   OrderDirection?: 'ASCENDING'|'DESCENDING'
 }
 
+export interface HelenaPanelCustomField {
+  id: string
+  key: string
+  name: string
+  type: string
+  required?: boolean
+  options?: string[]
+  groupId?: string
+  groupName?: string
+  order?: number
+}
+
 export class HelenaPanelsService {
   constructor(private readonly apiClient: HelenaApiClient) {}
 
+  /**
+   * Lista painéis com filtros
+   */
   async listPanels(filters?: HelenaPanelsListFilters): Promise<HelenaPanelsPaginatedResponse> {
     const params: Record<string, any> = {}
     if (filters) {
@@ -64,12 +79,73 @@ export class HelenaPanelsService {
     return this.apiClient.get<HelenaPanelsPaginatedResponse>('crm/v1/panel', params)
   }
 
-  async getPanelById(id: string): Promise<HelenaPanel> {
-    return this.apiClient.get<HelenaPanel>(`crm/v1/panel/${id}`)
+  /**
+   * Obtém um painel por ID
+   */
+  async getPanelById(id: string, includeDetails?: string[]): Promise<HelenaPanel> {
+    const params = new URLSearchParams()
+    
+    if (includeDetails && includeDetails.length > 0) {
+      includeDetails.forEach(detail => params.append('IncludeDetails', detail))
+    }
+
+    const queryString = params.toString()
+    const endpoint = queryString 
+      ? `crm/v1/panel/${id}?${queryString}`
+      : `crm/v1/panel/${id}`
+
+    return this.apiClient.get<HelenaPanel>(endpoint)
   }
 
+  /**
+   * Obtém campos personalizados de um painel
+   */
+  async getPanelCustomFields(
+    id: string, 
+    nestedList: boolean = false
+  ): Promise<HelenaPanelCustomField[]> {
+    const params = new URLSearchParams()
+    params.append('NestedList', nestedList.toString())
+
+    return this.apiClient.get<HelenaPanelCustomField[]>(
+      `crm/v1/panel/${id}/custom-fields?${params.toString()}`
+    )
+  }
+
+  /**
+   * Obtém todos os painéis (até 100)
+   */
   async getAllPanels(): Promise<HelenaPanel[]> {
     const response = await this.listPanels({ PageSize: 100 })
     return response.items
+  }
+
+  /**
+   * Busca painéis por título
+   */
+  async searchPanelsByTitle(title: string): Promise<HelenaPanel[]> {
+    const response = await this.listPanels({ 
+      Title: title,
+      PageSize: 100 
+    })
+    return response.items
+  }
+
+  /**
+   * Obtém painéis com detalhes completos (incluindo steps)
+   */
+  async getPanelsWithDetails(): Promise<HelenaPanel[]> {
+    const response = await this.listPanels({ 
+      IncludeDetails: ['steps', 'tags'],
+      PageSize: 100 
+    })
+    return response.items
+  }
+
+  /**
+   * Obtém um painel com todos os detalhes
+   */
+  async getPanelWithFullDetails(id: string): Promise<HelenaPanel> {
+    return this.getPanelById(id, ['steps', 'tags', 'customFields'])
   }
 }

@@ -62,13 +62,13 @@ export class HelenaPipelinesService {
   private async getStagesForPipeline(panelId: string): Promise<CrmStage[]> {
     try {
       const cardsService = helenaServiceFactory.getCardsService()
-      const cards = await cardsService.getAllCards({ panelId })
+      const cards = await cardsService.getAllCardsByPanel(panelId)
 
       const stepsMap = new Map<string, CrmStage>()
 
-      cards.forEach((card: CrmDeal) => {
-        const stepId = card.stageId || 'unknown'
-        const stepName = card.stageId || 'Sem etapa'
+      cards.forEach((card: any) => {
+        const stepId = card.stepId || card.stageId || 'unknown'
+        const stepName = card.stepTitle || card.stepId || card.stageId || 'Sem etapa'
 
         if (!stepsMap.has(stepId)) {
           stepsMap.set(stepId, {

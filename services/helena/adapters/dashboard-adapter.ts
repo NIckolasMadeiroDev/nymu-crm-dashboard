@@ -67,8 +67,23 @@ export class DashboardAdapter {
       return error instanceof Error ? error.message : 'Erro desconhecido'
     }
 
+    // Get all panels first, then get cards from all panels
+    const allPanels = await panelsService.getAllPanels().catch((error) => {
+      const errorMessage = getErrorMessage(error)
+      errors.panels = errorMessage
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[DashboardAdapter] Error fetching panels:', errorMessage)
+      }
+      return []
+    })
+    
+    // Get cards from all panels
+    const cardsPromises = allPanels.map((panel: any) => 
+      cardsService.getAllCardsByPanel(panel.id).catch(() => [])
+    )
+    
     const results = await Promise.allSettled([
-      cardsService.getAllCards().catch((error) => {
+      Promise.all(cardsPromises).then(cardsArrays => cardsArrays.flat()).catch((error) => {
         const errorMessage = getErrorMessage(error)
         errors.cards = errorMessage
         if (process.env.NODE_ENV === 'development') {
@@ -84,14 +99,7 @@ export class DashboardAdapter {
         }
         return []
       }),
-      panelsService.getAllPanels().catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        errors.panels = errorMessage
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[DashboardAdapter] Error fetching panels:', errorMessage)
-        }
-        return []
-      }),
+      Promise.resolve(allPanels), // Use the panels we already fetched
       walletsService.getAllWallets().catch((error) => {
         const errorMessage = getErrorMessage(error)
         errors.wallets = errorMessage
@@ -126,7 +134,17 @@ export class DashboardAdapter {
       updatedAt: contact.updatedAt,
     }))
 
-    const deals = cards
+    // Convert HelenaCard to CrmDeal format
+    const deals: CrmDeal[] = cards.map((card: any) => ({
+      id: card.id,
+      title: card.title,
+      value: card.monetaryAmount || card.value || 0,
+      stageId: card.stepId || card.stageId || '',
+      pipelineId: card.panelId || card.pipelineId || '',
+      createdAt: card.createdAt,
+      updatedAt: card.updatedAt,
+      owner: card.responsibleUserId || card.ownerId
+    }))
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] Processing data:', {

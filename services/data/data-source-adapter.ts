@@ -58,11 +58,23 @@ class HelenaDataSource implements DataSource {
     try {
       const cardsService = helenaServiceFactory.getCardsService()
       const contactsService = helenaServiceFactory.getContactsService()
+      const panelsService = helenaServiceFactory.getPanelsService()
 
-      const [cards, contacts] = await Promise.all([
-        cardsService.getAllCards(),
+      // Get all panels first
+      const panels = await panelsService.getAllPanels()
+      
+      // Get cards from all panels
+      const cardsPromises = panels.map((panel: any) => 
+        cardsService.getAllCardsByPanel(panel.id).catch(() => [])
+      )
+      
+      const [cardsArrays, contacts] = await Promise.all([
+        Promise.all(cardsPromises),
         contactsService.getAllContacts(),
       ])
+      
+      // Flatten cards from all panels
+      const cards = cardsArrays.flat()
 
       const deals = cards
 

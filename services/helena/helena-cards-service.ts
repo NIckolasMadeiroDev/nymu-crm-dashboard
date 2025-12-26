@@ -1,147 +1,345 @@
 import { HelenaApiClient } from './helena-api-client'
-import type { HelenaCard, HelenaPaginatedResponse } from '@/types/helena'
-import type { CrmDeal } from '@/types/crm'
+import { HelenaCard } from '@/types/helena'
+
+export interface HelenaCardNote {
+  id: string
+  cardId: string
+  text?: string | null
+  fileUrls?: string[]
+  createdAt: string
+  updatedAt: string
+  createdBy?: {
+    id: string
+    name: string
+  }
+}
+
+export interface HelenaCardsPaginatedResponse {
+  items: HelenaCard[]
+  totalItems: number
+  totalPages: number
+  hasMorePages: boolean
+  pageNumber: number
+  pageSize: number
+  orderBy?: string
+  orderDirection?: 'ASCENDING' | 'DESCENDING'
+}
+
+export interface HelenaNotesPaginatedResponse {
+  items: HelenaCardNote[]
+  totalItems: number
+  totalPages: number
+  hasMorePages: boolean
+  pageNumber: number
+  pageSize: number
+  orderBy?: string
+  orderDirection?: 'ASCENDING' | 'DESCENDING'
+}
+
+export interface HelenaCardsListFilters {
+  PanelId: string
+  StepId?: string
+  ContactId?: string
+  ResponsibleUserId?: string
+  TextFilter?: string
+  IncludeArchived?: boolean
+  IncludeDetails?: string[]
+  'CreatedAt.Before'?: string
+  'CreatedAt.After'?: string
+  'UpdatedAt.Before'?: string
+  'UpdatedAt.After'?: string
+  PageNumber?: number
+  PageSize?: number
+  OrderBy?: string
+  OrderDirection?: 'ASCENDING' | 'DESCENDING'
+}
+
+export interface HelenaCreateCardPayload {
+  stepId: string
+  title: string
+  description?: string | null
+  position?: number | null
+  dueDate?: string | null
+  responsibleUserId?: string | null
+  tagIds?: string[] | null
+  tagNames?: string[] | null
+  contactIds?: string[] | null
+  sessionId?: string | null
+  monetaryAmount?: number | null
+  customFields?: Record<string, any> | null
+  metadata?: Record<string, any> | null
+}
+
+export interface HelenaUpdateCardPayload {
+  fields?: string[] | null
+  stepId?: string | null
+  title?: string | null
+  description?: string | null
+  position?: number | null
+  dueDate?: string | null
+  responsibleUserId?: string | null
+  tagIds?: string[] | null
+  tagNames?: string[] | null
+  contactIds?: string[] | null
+  sessionId?: string | null
+  monetaryAmount?: number | null
+  archived?: boolean | null
+  customFields?: Record<string, any> | null
+  metadata?: Record<string, any> | null
+}
+
+export interface HelenaDuplicateCardPayload {
+  copyToStepId?: string | null
+  options?: {
+    copyNotes?: boolean
+    copyAttachments?: boolean
+    copyCustomFields?: boolean
+  }
+}
+
+export interface HelenaCreateNotePayload {
+  text?: string | null
+  fileUrls?: string[] | null
+}
+
+export interface HelenaNotesListFilters {
+  'CreatedAt.Before'?: string
+  'CreatedAt.After'?: string
+  'UpdatedAt.Before'?: string
+  'UpdatedAt.After'?: string
+  PageNumber?: number
+  PageSize?: number
+  OrderBy?: string
+  OrderDirection?: 'ASCENDING' | 'DESCENDING'
+}
 
 export class HelenaCardsService {
   constructor(private readonly apiClient: HelenaApiClient) {}
 
-  async getAllCards(params?: {
-    panelId?: string
-    stepId?: string
-    contactId?: string
-    responsibleUserId?: string
-    textFilter?: string
-    includeArchived?: boolean
-  }): Promise<CrmDeal[]> {
-    try {
-      const allCards: HelenaCard[] = []
-      let pageNumber = 1
-      const pageSize = 100
-      let hasMorePages = true
-
-      while (hasMorePages) {
-        const queryParams: Record<string, string> = {
-          pageNumber: pageNumber.toString(),
-          pageSize: pageSize.toString(),
-        }
-
-        if (params?.panelId) {
-          queryParams.PanelId = params.panelId
-        }
-        if (params?.stepId) {
-          queryParams.StepId = params.stepId
-        }
-        if (params?.contactId) {
-          queryParams.ContactId = params.contactId
-        }
-        if (params?.responsibleUserId) {
-          queryParams.ResponsibleUserId = params.responsibleUserId
-        }
-        if (params?.textFilter) {
-          queryParams.TextFilter = params.textFilter
-        }
-        if (params?.includeArchived !== undefined) {
-          queryParams.IncludeArchived = params.includeArchived.toString()
-        }
-
-        const response = await this.apiClient.get<HelenaPaginatedResponse<HelenaCard>>(
-          'crm/panel/card',
-          queryParams
-        )
-
-        if (response.items && response.items.length > 0) {
-          allCards.push(...response.items)
-        }
-
-        hasMorePages = response.hasMorePages || false
-        pageNumber++
-
-        if (pageNumber > response.totalPages) {
-          break
+  /**
+   * Lista cards com filtros
+   */
+  async listCards(filters: HelenaCardsListFilters): Promise<HelenaCardsPaginatedResponse> {
+    const params = new URLSearchParams()
+    
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach(v => params.append(key, v.toString()))
+        } else {
+          params.append(key, value.toString())
         }
       }
+    })
 
-      return this.transformCards(allCards)
-    } catch (error) {
-      console.error('Error fetching cards from Helena API:', error)
-      throw error
+    return await this.apiClient.get<HelenaCardsPaginatedResponse>(
+      `crm/v1/panel/card?${params.toString()}`
+    )
+  }
+
+  /**
+   * Cria um novo card
+   */
+  async createCard(payload: HelenaCreateCardPayload): Promise<HelenaCard> {
+    return await this.apiClient.post<HelenaCard>('crm/v1/panel/card', payload)
+  }
+
+  /**
+   * Obtém um card por ID
+   */
+  async getCardById(id: string, includeDetails?: string[]): Promise<HelenaCard> {
+    const params = new URLSearchParams()
+    
+    if (includeDetails && includeDetails.length > 0) {
+      includeDetails.forEach(detail => params.append('IncludeDetails', detail))
     }
+
+    const queryString = params.toString()
+    const endpoint = queryString 
+      ? `crm/v1/panel/card/${id}?${queryString}`
+      : `crm/v1/panel/card/${id}`
+
+    return await this.apiClient.get<HelenaCard>(endpoint)
   }
 
-  async getCardById(id: string): Promise<CrmDeal> {
-    try {
-      const card = await this.apiClient.get<HelenaCard>(`crm/panel/card/${id}`)
-      return this.transformCard(card)
-    } catch (error) {
-      console.error(`Error fetching card ${id} from Helena API:`, error)
-      throw error
+  /**
+   * Atualiza um card
+   */
+  async updateCard(id: string, payload: HelenaUpdateCardPayload): Promise<HelenaCard> {
+    return await this.apiClient.put<HelenaCard>(`crm/v2/panel/card/${id}`, payload)
+  }
+
+  /**
+   * Duplica um card
+   */
+  async duplicateCard(id: string, payload?: HelenaDuplicateCardPayload): Promise<HelenaCard> {
+    return await this.apiClient.post<HelenaCard>(
+      `crm/v1/panel/card/${id}/duplicate`,
+      payload || {}
+    )
+  }
+
+  /**
+   * Lista anotações de um card
+   */
+  async listCardNotes(
+    cardId: string,
+    filters?: HelenaNotesListFilters
+  ): Promise<HelenaNotesPaginatedResponse> {
+    const params = new URLSearchParams()
+    
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString())
+        }
+      })
     }
+
+    const queryString = params.toString()
+    const endpoint = queryString
+      ? `crm/v1/panel/card/${cardId}/note?${queryString}`
+      : `crm/v1/panel/card/${cardId}/note`
+
+    return await this.apiClient.get<HelenaNotesPaginatedResponse>(endpoint)
   }
 
-  async getCardsByPanel(panelId: string): Promise<CrmDeal[]> {
-    return this.getAllCards({ panelId })
+  /**
+   * Adiciona uma anotação a um card
+   */
+  async addCardNote(cardId: string, payload: HelenaCreateNotePayload): Promise<HelenaCardNote> {
+    return await this.apiClient.post<HelenaCardNote>(
+      `crm/v1/panel/card/${cardId}/note`,
+      payload
+    )
   }
 
-  async getCardsByStep(stepId: string): Promise<CrmDeal[]> {
-    return this.getAllCards({ stepId })
+  /**
+   * Remove uma anotação de um card
+   */
+  async removeCardNote(cardId: string, noteId: string): Promise<void> {
+    await this.apiClient.delete(`crm/v1/panel/card/${cardId}/note/${noteId}`)
   }
 
-  async createCard(card: Partial<HelenaCard>): Promise<CrmDeal> {
-    try {
-      const created = await this.apiClient.post<HelenaCard>('crm/panel/card', card)
-      return this.transformCard(created)
-    } catch (error) {
-      console.error('Error creating card in Helena API:', error)
-      throw error
-    }
+  /**
+   * Obtém todos os cards de um painel (até 100)
+   */
+  async getAllCardsByPanel(panelId: string): Promise<HelenaCard[]> {
+    const response = await this.listCards({
+      PanelId: panelId,
+      PageSize: 100,
+      IncludeArchived: false
+    })
+    return response.items
   }
 
-  async updateCard(id: string, card: Partial<HelenaCard>): Promise<CrmDeal> {
-    try {
-      const updated = await this.apiClient.put<HelenaCard>(`crm/panel/card/${id}`, card)
-      return this.transformCard(updated)
-    } catch (error) {
-      console.error(`Error updating card ${id} in Helena API:`, error)
-      throw error
-    }
+  /**
+   * Obtém cards por etapa
+   */
+  async getCardsByStep(panelId: string, stepId: string): Promise<HelenaCard[]> {
+    const response = await this.listCards({
+      PanelId: panelId,
+      StepId: stepId,
+      PageSize: 100,
+      IncludeArchived: false
+    })
+    return response.items
   }
 
-  async duplicateCard(id: string): Promise<CrmDeal> {
-    try {
-      const duplicated = await this.apiClient.post<HelenaCard>(`crm/panel/card/${id}/duplicate`)
-      return this.transformCard(duplicated)
-    } catch (error) {
-      console.error(`Error duplicating card ${id} in Helena API:`, error)
-      throw error
-    }
+  /**
+   * Obtém cards por contato
+   */
+  async getCardsByContact(panelId: string, contactId: string): Promise<HelenaCard[]> {
+    const response = await this.listCards({
+      PanelId: panelId,
+      ContactId: contactId,
+      PageSize: 100
+    })
+    return response.items
   }
 
-  private transformCards(cards: HelenaCard[]): CrmDeal[] {
-    return cards.map((card) => this.transformCard(card))
+  /**
+   * Obtém cards por responsável
+   */
+  async getCardsByResponsible(panelId: string, userId: string): Promise<HelenaCard[]> {
+    const response = await this.listCards({
+      PanelId: panelId,
+      ResponsibleUserId: userId,
+      PageSize: 100,
+      IncludeArchived: false
+    })
+    return response.items
   }
 
-  private transformCard(card: HelenaCard): CrmDeal {
-    return {
-      id: card.id,
-      title: card.title || '',
-      value: this.parseValue(card.monetaryAmount || card.value),
-      stageId: card.stepId || '',
-      pipelineId: card.panelId || '',
-      createdAt: card.createdAt,
-      updatedAt: card.updatedAt,
-      owner: card.responsibleUserId || card.ownerId,
-    }
+  /**
+   * Busca cards por texto
+   */
+  async searchCards(panelId: string, searchText: string): Promise<HelenaCard[]> {
+    const response = await this.listCards({
+      PanelId: panelId,
+      TextFilter: searchText,
+      PageSize: 100
+    })
+    return response.items
   }
 
-  private parseValue(value: unknown): number {
-    if (typeof value === 'number') {
-      return value
-    }
-    if (typeof value === 'string') {
-      const parsed = Number.parseFloat(value.replaceAll(/[^\d.-]/g, ''))
-      return Number.isNaN(parsed) ? 0 : parsed
-    }
-    return 0
+  /**
+   * Arquiva um card
+   */
+  async archiveCard(id: string): Promise<HelenaCard> {
+    return await this.updateCard(id, {
+      fields: ['archived'],
+      archived: true
+    })
+  }
+
+  /**
+   * Desarquiva um card
+   */
+  async unarchiveCard(id: string): Promise<HelenaCard> {
+    return await this.updateCard(id, {
+      fields: ['archived'],
+      archived: false
+    })
+  }
+
+  /**
+   * Move um card para outra etapa
+   */
+  async moveCardToStep(cardId: string, stepId: string): Promise<HelenaCard> {
+    return await this.updateCard(cardId, {
+      fields: ['stepId'],
+      stepId
+    })
+  }
+
+  /**
+   * Atualiza o valor monetário de um card
+   */
+  async updateCardValue(cardId: string, monetaryAmount: number): Promise<HelenaCard> {
+    return await this.updateCard(cardId, {
+      fields: ['monetaryAmount'],
+      monetaryAmount
+    })
+  }
+
+  /**
+   * Atualiza o responsável de um card
+   */
+  async updateCardResponsible(cardId: string, userId: string | null): Promise<HelenaCard> {
+    return await this.updateCard(cardId, {
+      fields: ['responsibleUserId'],
+      responsibleUserId: userId
+    })
+  }
+
+  /**
+   * Atualiza a data de vencimento de um card
+   */
+  async updateCardDueDate(cardId: string, dueDate: string | null): Promise<HelenaCard> {
+    return await this.updateCard(cardId, {
+      fields: ['dueDate'],
+      dueDate
+    })
   }
 }
-

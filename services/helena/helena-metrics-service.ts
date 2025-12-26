@@ -16,12 +16,19 @@ export class HelenaMetricsService {
     dateTo?: string
   }): Promise<CrmMetrics> {
     try {
-      const [cards, panels] = await Promise.all([
-        this.cardsService.getAllCards({
-          panelId: params?.pipelineId,
-        }),
-        this.panelsService.getAllPanels(),
-      ])
+      const panels = await this.panelsService.getAllPanels()
+      
+      let cards: any[] = []
+      if (params?.pipelineId) {
+        cards = await this.cardsService.getAllCardsByPanel(params.pipelineId)
+      } else {
+        // Get cards from all panels
+        const cardsPromises = panels.map((panel: any) => 
+          this.cardsService.getAllCardsByPanel(panel.id).catch(() => [])
+        )
+        const cardsArrays = await Promise.all(cardsPromises)
+        cards = cardsArrays.flat()
+      }
 
       const filteredCards = this.filterCardsByDateRange(cards, params?.dateFrom, params?.dateTo)
 

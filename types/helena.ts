@@ -43,7 +43,9 @@ export interface HelenaCard {
   value?: number
   monetaryAmount?: number
   stepId?: string
+  stageId?: string // Alias for stepId (for compatibility)
   panelId?: string
+  pipelineId?: string // Alias for panelId (for compatibility)
   panelTitle?: string
   stepTitle?: string
   stepPhase?: string
@@ -63,6 +65,8 @@ export interface HelenaCard {
   archived?: boolean
   customFields?: Record<string, unknown>
   metadata?: Record<string, unknown>
+  tags?: Array<{ id: string; name: string; bgColor?: string; textColor?: string }>
+  sessionId?: string
 }
 
 export interface HelenaPanel {
