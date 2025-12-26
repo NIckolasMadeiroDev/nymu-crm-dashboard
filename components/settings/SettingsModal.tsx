@@ -110,7 +110,7 @@ export default function SettingsModal({
       />
       <dialog
         open={isOpen}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent"
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 w-full max-w-full bg-transparent"
         aria-modal="true"
         aria-labelledby="settings-modal-title"
         onCancel={onClose}
