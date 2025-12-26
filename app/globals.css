@@ -1332,3 +1332,23 @@ html.dark .rdp-day_selected {
   }
 }
 
+/* Hide Vercel floating button/toolbar */
+#__next-build-watcher,
+[data-nextjs-dialog-overlay],
+[data-nextjs-toast],
+.__next-error-overlay,
+#vercel-live-feedback-button,
+[id^="vercel-"],
+[class*="vercel-"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Hide Vercel Speed Insights and Analytics widgets */
+[data-vercel-speed-insights],
+[data-vercel-analytics] {
+  display: none !important;
+}
+

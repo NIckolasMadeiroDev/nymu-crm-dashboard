@@ -47,6 +47,25 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="light dark" />
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            /* Hide Vercel toolbar and floating buttons */
+            #__next-build-watcher,
+            [data-nextjs-dialog-overlay],
+            [data-nextjs-toast],
+            .__next-error-overlay,
+            #vercel-live-feedback-button,
+            [id^="vercel-"],
+            [class*="vercel-"],
+            [data-vercel-speed-insights],
+            [data-vercel-analytics] {
+              display: none !important;
+              visibility: hidden !important;
+              opacity: 0 !important;
+              pointer-events: none !important;
+            }
+          `
+        }} />
       </head>
       <body className={`${spaceGrotesk.variable} ${roboto.variable} antialiased`}>
         <LanguageProvider>
