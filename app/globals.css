@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force color scheme to respect custom colors */
+html {
+  color-scheme: light !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
 :root {
   --background: #F7F7F7;
   --foreground: #333333;
@@ -19,25 +25,38 @@
   --theme-background: #F7F7F7;
   --theme-foreground: #333333;
   --theme-accent: #FF9D02;
+  
+  /* Prevent system color overrides */
+  color-scheme: light !important;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #333333;
     --foreground: #F7F7F7;
+    /* Force light mode colors even in dark mode preference */
+    color-scheme: light !important;
   }
 }
 
 html {
   font-size: calc(16px * var(--accessibility-font-size) / 100) !important;
+  /* Prevent iOS/Android from applying system colors */
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: var(--font-roboto);
+  color: var(--foreground) !important;
+  background: var(--background) !important;
+  font-family: var(--font-roboto) !important;
   letter-spacing: var(--accessibility-letter-spacing);
   line-height: var(--accessibility-line-height);
+  /* Prevent mobile browsers from overriding colors */
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }
 
 /* High contrast mode - Improved accessibility with better readability */
@@ -1330,6 +1349,68 @@ html.dark .rdp-day_selected {
     transition-property: color, background-color, border-color, opacity, transform !important;
     transition-duration: 0s !important;
   }
+}
+
+/* Force custom colors on all elements - Prevent mobile OS overrides */
+* {
+  -webkit-tap-highlight-color: rgba(255, 157, 2, 0.2) !important;
+  -webkit-touch-callout: default;
+}
+
+/* Prevent iOS Safari from changing colors */
+input,
+textarea,
+select,
+button {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Force button colors */
+button,
+[role="button"],
+a {
+  -webkit-tap-highlight-color: rgba(255, 157, 2, 0.2) !important;
+}
+
+/* Prevent Android from applying system colors */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="search"],
+textarea {
+  background-color: white !important;
+  color: #333333 !important;
+}
+
+/* Dark mode inputs */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="tel"],
+.dark input[type="search"],
+.dark textarea {
+  background-color: #374151 !important;
+  color: #f3f4f6 !important;
+}
+
+/* Specific color enforcement for primary brand color */
+.bg-yellow-400,
+.bg-yellow-500 {
+  background-color: #FF9D02 !important;
+}
+
+.text-yellow-400,
+.text-yellow-500 {
+  color: #FF9D02 !important;
+}
+
+.bg-indigo-600 {
+  background-color: #4f46e5 !important;
+}
+
+.text-indigo-600 {
+  color: #4f46e5 !important;
 }
 
 /* Hide Vercel floating button/toolbar */

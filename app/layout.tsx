@@ -24,6 +24,23 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: 'NYMU CRM Dashboard',
   description: 'Real-time CRM dashboard',
+  manifest: '/manifest.json',
+  themeColor: '#FF9D02',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'NYMU CRM',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    viewportFit: 'cover',
+  },
   icons: {
     icon: [
       { url: '/logos/yellow-logo.png', type: 'image/png', sizes: 'any' },
@@ -46,9 +63,24 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <meta name="color-scheme" content="light dark" />
+        <meta name="color-scheme" content="light" />
+        <meta name="theme-color" content="#FF9D02" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <style dangerouslySetInnerHTML={{
           __html: `
+            /* Force color scheme and prevent system overrides */
+            :root {
+              color-scheme: light !important;
+              -webkit-tap-highlight-color: rgba(255, 157, 2, 0.2) !important;
+            }
+            html, body {
+              color-scheme: light !important;
+              -webkit-text-size-adjust: 100% !important;
+              -webkit-font-smoothing: antialiased !important;
+            }
             /* Hide Vercel toolbar and floating buttons */
             #__next-build-watcher,
             [data-nextjs-dialog-overlay],
