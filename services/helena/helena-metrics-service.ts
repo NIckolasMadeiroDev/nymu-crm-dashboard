@@ -39,7 +39,7 @@ export class HelenaMetricsService {
 
       const wonCards = filteredCards.filter((card) => {
         const panel = panels.find((p) => p.id === card.pipelineId)
-        const step = panel?.stages.find((s) => s.id === card.stageId)
+        const step = panel?.steps?.find((s) => s.id === card.stageId)
         return step?.name.toLowerCase().includes('fechado') && 
                step?.name.toLowerCase().includes('ganho')
       })
