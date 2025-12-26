@@ -34,7 +34,7 @@ import type { DrillContext } from '@/services/drill/drill-service'
 export default function Dashboard() {
   const { t } = useLanguage()
   useWidgetHeight() // Usado no SettingsModal através do contexto
-  const { getDynamicSpan, minimizedCharts } = useChartMinimization()
+  const { getDynamicSpan } = useChartMinimization()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -91,15 +91,13 @@ export default function Dashboard() {
       filtersToLoad = preferences.filters
     }
     
-    if (!filtersToLoad) {
-      filtersToLoad = {
-        date: '2025-12-17',
-        season: '2025.1',
-        sdr: 'Todos',
-        college: 'Todas',
-        origin: '',
-      }
-    }
+filtersToLoad ??= {
+  date: '2025-12-17',
+  season: '2025.1',
+  sdr: 'Todos',
+  college: 'Todas',
+  origin: '',
+}
     
     loadDashboardData(filtersToLoad)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,18 +131,38 @@ export default function Dashboard() {
   const hasPermanentErrorsRef = useRef(false)
   const isLoadingRef = useRef(false)
 
-  const loadDashboardData = useCallback(async (filters?: DashboardData['filters']) => {
-    if (hasPermanentErrorsRef.current) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Dashboard] Skipping loadDashboardData due to permanent errors')
-      }
+  const handlePermanentError = useCallback((errorMessage: string) => {
+    hasPermanentErrorsRef.current = true
+    setHasPermanentErrors(true)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Dashboard] Permanent error detected:', errorMessage)
+    }
+  }, [])
+
+  const clearPermanentError = useCallback(() => {
+    hasPermanentErrorsRef.current = false
+    setHasPermanentErrors(false)
+  }, [])
+
+  const checkDataErrors = useCallback((data: any) => {
+    if (!data.errors) {
+      clearPermanentError()
       return
     }
 
-    if (isLoadingRef.current) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Dashboard] Skipping loadDashboardData - already loading')
-      }
+    const hasPermanent = Object.values(data.errors).some((err) => 
+      err && isPermanentError(err as string)
+    )
+    
+    if (hasPermanent) {
+      handlePermanentError('Errors in data.errors')
+    } else {
+      clearPermanentError()
+    }
+  }, [handlePermanentError, clearPermanentError])
+
+  const loadDashboardData = useCallback(async (filters?: DashboardData['filters']) => {
+    if (hasPermanentErrorsRef.current || isLoadingRef.current) {
       return
     }
 
@@ -174,11 +192,7 @@ export default function Dashboard() {
         const errorMessage = errorData.error || 'Failed to load dashboard data'
         
         if (isPermanentError(errorMessage)) {
-          hasPermanentErrorsRef.current = true
-          setHasPermanentErrors(true)
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[Dashboard] Permanent error detected, stopping polling:', errorMessage)
-          }
+          handlePermanentError(errorMessage)
         }
         
         throw new Error(errorMessage)
@@ -186,41 +200,19 @@ export default function Dashboard() {
 
       const data = await response.json()
       setDashboardData(data)
-      
-      if (data.errors) {
-        const hasPermanent = Object.values(data.errors).some((err) => 
-          err && isPermanentError(err as string)
-        )
-        if (hasPermanent) {
-          hasPermanentErrorsRef.current = true
-          setHasPermanentErrors(true)
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[Dashboard] Permanent errors in data.errors, stopping polling')
-          }
-        } else {
-          hasPermanentErrorsRef.current = false
-          setHasPermanentErrors(false)
-        }
-      } else {
-        hasPermanentErrorsRef.current = false
-        setHasPermanentErrors(false)
-      }
+      checkDataErrors(data)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data'
       setError(errorMessage)
       
       if (isPermanentError(errorMessage)) {
-        hasPermanentErrorsRef.current = true
-        setHasPermanentErrors(true)
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[Dashboard] Permanent error in catch, stopping polling:', errorMessage)
-        }
+        handlePermanentError(errorMessage)
       }
     } finally {
       isLoadingRef.current = false
       setLoading(false)
     }
-  }, [])
+  }, [handlePermanentError, checkDataErrors])
 
   const loadDashboardDataRef = useRef(loadDashboardData)
   loadDashboardDataRef.current = loadDashboardData
@@ -388,7 +380,7 @@ export default function Dashboard() {
       default:
         return null
     }
-  }, [dashboardData, chartOrder, chartLayout, getDynamicSpan, minimizedCharts])
+  }, [dashboardData, chartOrder, chartLayout, getDynamicSpan])
 
   if (loading && !dashboardData) {
     return (
@@ -417,7 +409,7 @@ export default function Dashboard() {
       <a href="#main-content" className="skip-to-main">
         Pular para conteúdo principal
       </a>
-      <div className="w-auto min-w-[40px]">
+      <div className="w-auto min-w-0">
         <main id="main-content" role="main" aria-label="Dashboard principal do CRM">
         {hasErrors && (
           <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -456,7 +448,7 @@ export default function Dashboard() {
             aria-label="Controles do dashboard"
           >
             <div className="flex flex-nowrap gap-1 overflow-x-auto py-1 sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 sm:gap-2 sm:overflow-visible sm:py-0 items-center justify-start">
-              <div className="col-span-2 sm:col-span-1 w-auto flex items-center justify-start sm:ml-2 hidden sm:flex">
+              <div className="col-span-2 sm:col-span-1 w-auto items-center justify-start sm:ml-2 hidden sm:flex">
                 <NymuLogo
                   variant={logoVariant}
                   type="logotype"
@@ -467,7 +459,7 @@ export default function Dashboard() {
                   style={{ maxWidth: 'min(100px, 100%)' }}
                 />
               </div>
-              <div className="col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1 xl:col-span-1 w-auto min-w-[40px] flex items-center">
+              <div className="col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1 xl:col-span-1 w-auto min-w-0 flex items-center">
                 <FilterPresets
                   onSelectPreset={handleFilterChange}
                   currentFilters={dashboardData.filters}
@@ -483,7 +475,7 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label="Abrir ajuda"
-                className="w-auto min-w-[40px] px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="w-auto min-w-0 px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 whitespace-nowrap"
               >
                 <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -504,7 +496,7 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label="Abrir filtros"
-                className="relative w-auto min-w-[40px] px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="relative w-auto min-w-0 px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap"
               >
                 <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -521,8 +513,8 @@ export default function Dashboard() {
                   </span>
                 )}
               </button>
-              <div className="col-span-2 sm:col-span-1 w-auto min-w-[40px]">
-                <ExportButton data={dashboardData} className="w-auto min-w-[40px]" />
+              <div className="col-span-2 sm:col-span-1 w-auto min-w-0">
+                <ExportButton data={dashboardData} className="w-auto min-w-0" />
               </div>
               <button
                 onClick={() => setShowSettingsModal(true)}
@@ -533,7 +525,7 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label="Abrir configurações"
-                className="w-auto min-w-[40px] px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="w-auto min-w-0 px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 whitespace-nowrap"
               >
                 <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -560,7 +552,7 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label={t.scheduling.title}
-                className="w-auto min-w-[40px] px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="w-auto min-w-0 px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap"
               >
                 <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -572,8 +564,8 @@ export default function Dashboard() {
                 </svg>
                 <span className="hidden sm:inline truncate">{t.scheduling.title}</span>
               </button>
-              <div className="col-span-2 sm:col-span-1 w-auto min-w-[40px]">
-                <ShareButton filters={dashboardData.filters} className="w-auto min-w-[40px]" />
+              <div className="col-span-2 sm:col-span-1 w-auto min-w-0">
+                <ShareButton filters={dashboardData.filters} className="w-auto min-w-0" />
               </div>
             </div>
           </section>
