@@ -238,13 +238,13 @@ export default function ChartTypeSelector({
             setSearchQuery('')
           }
         }}
-        className="px-1 sm:px-1.5 md:px-2 lg:px-3 py-0.5 sm:py-1 md:py-1.5 lg:py-2 text-[8px] sm:text-[9px] md:text-[10px] lg:text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-secondary flex items-center gap-0.5 sm:gap-1 md:gap-1.5 lg:gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap"
+        className="px-2 sm:px-2.5 md:px-2.5 py-1 sm:py-1.5 md:py-1.5 text-[10px] sm:text-xs md:text-xs lg:text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-secondary flex items-center gap-1 sm:gap-1.5 md:gap-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap"
         aria-label="Trocar tipo de gráfico"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         title="Clique para trocar o tipo de gráfico"
       >
-        <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 lg:w-4 lg:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -256,7 +256,7 @@ export default function ChartTypeSelector({
           {getChartTypeInfo(currentType).label || t.charts.selectType}
         </span>
         <svg 
-          className={`w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 lg:w-4 lg:h-4 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
