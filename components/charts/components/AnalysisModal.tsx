@@ -1,6 +1,5 @@
 'use client'
-import React from 'react'
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { X, AlertTriangle, TrendingUp, TrendingDown, BarChart3, Info, TrendingUp as TrendingUpIcon } from 'lucide-react'
 import { useThemeColors } from '../hooks/useThemeColors'
 import type { Anomaly, Insight, DataAnalysisResult } from '@/services/analytics/data-analysis-service'

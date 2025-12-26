@@ -174,6 +174,8 @@ export default function ChartInsights({
           formattedValue = value.toLocaleString('pt-BR')
         } else if (typeof value === 'string') {
           formattedValue = value
+        } else if (typeof value === 'object' && value !== null) {
+          formattedValue = JSON.stringify(value)
         } else {
           formattedValue = String(value)
         }

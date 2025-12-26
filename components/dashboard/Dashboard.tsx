@@ -417,7 +417,7 @@ export default function Dashboard() {
       <a href="#main-content" className="skip-to-main">
         Pular para conteúdo principal
       </a>
-      <div className="w-full">
+      <div className="w-auto min-w-[40px]">
         <main id="main-content" role="main" aria-label="Dashboard principal do CRM">
         {hasErrors && (
           <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -455,8 +455,8 @@ export default function Dashboard() {
             className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-3 md:p-3 border border-gray-100 dark:border-gray-700 mb-2 sm:mb-3"
             aria-label="Controles do dashboard"
           >
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-1.5 sm:gap-2 items-center overflow-hidden">
-              <div className="col-span-2 sm:col-span-1 w-auto flex items-center justify-start sm:ml-2">
+            <div className="flex flex-nowrap gap-1 overflow-x-auto py-1 sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 sm:gap-2 sm:overflow-visible sm:py-0 items-center justify-start">
+              <div className="col-span-2 sm:col-span-1 w-auto flex items-center justify-start sm:ml-2 hidden sm:flex">
                 <NymuLogo
                   variant={logoVariant}
                   type="logotype"
@@ -467,7 +467,7 @@ export default function Dashboard() {
                   style={{ maxWidth: 'min(100px, 100%)' }}
                 />
               </div>
-              <div className="col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1 xl:col-span-1 w-full flex items-center">
+              <div className="col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1 xl:col-span-1 w-auto min-w-[40px] flex items-center">
                 <FilterPresets
                   onSelectPreset={handleFilterChange}
                   currentFilters={dashboardData.filters}
@@ -483,7 +483,7 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label="Abrir ajuda"
-                className="w-full px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="w-auto min-w-[40px] px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
               >
                 <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -504,7 +504,7 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label="Abrir filtros"
-                className="relative w-full px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="relative w-auto min-w-[40px] px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
               >
                 <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -521,8 +521,8 @@ export default function Dashboard() {
                   </span>
                 )}
               </button>
-              <div className="col-span-2 sm:col-span-1 w-full">
-                <ExportButton data={dashboardData} className="w-full" />
+              <div className="col-span-2 sm:col-span-1 w-auto min-w-[40px]">
+                <ExportButton data={dashboardData} className="w-auto min-w-[40px]" />
               </div>
               <button
                 onClick={() => setShowSettingsModal(true)}
@@ -533,7 +533,7 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label="Abrir configurações"
-                className="w-full px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="w-auto min-w-[40px] px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
               >
                 <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -560,7 +560,7 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label={t.scheduling.title}
-                className="w-full px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="w-auto min-w-[40px] px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
               >
                 <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -572,8 +572,8 @@ export default function Dashboard() {
                 </svg>
                 <span className="hidden sm:inline truncate">{t.scheduling.title}</span>
               </button>
-              <div className="col-span-2 sm:col-span-1 w-full">
-                <ShareButton filters={dashboardData.filters} className="w-full" />
+              <div className="col-span-2 sm:col-span-1 w-auto min-w-[40px]">
+                <ShareButton filters={dashboardData.filters} className="w-auto min-w-[40px]" />
               </div>
             </div>
           </section>
