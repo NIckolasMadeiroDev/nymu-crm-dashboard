@@ -25,22 +25,6 @@ export const metadata: Metadata = {
   title: 'NYMU CRM Dashboard',
   description: 'Real-time CRM dashboard',
   manifest: '/manifest.json',
-  themeColor: '#FF9D02',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'NYMU CRM',
-  },
-  formatDetection: {
-    telephone: false,
-  },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-    viewportFit: 'cover',
-  },
   icons: {
     icon: [
       { url: '/logos/yellow-logo.png', type: 'image/png', sizes: 'any' },
