@@ -25,10 +25,10 @@ export default function ExportButton({ data, className = '' }: Readonly<ExportBu
           }}
           aria-label="Abrir configurações de exportação"
           aria-expanded={showConfigPanel}
-          className="w-full px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+          className="w-full px-2 sm:px-2 md:px-2 py-1.5 sm:py-1.5 md:py-1.5 text-[10px] sm:text-[11px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
         >
           <svg
-            className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 flex-shrink-0"
+            className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -41,7 +41,7 @@ export default function ExportButton({ data, className = '' }: Readonly<ExportBu
               d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <span className="hidden md:inline truncate">Exportar</span>
+          <span className="hidden sm:inline truncate">Exportar</span>
         </button>
       </div>
 

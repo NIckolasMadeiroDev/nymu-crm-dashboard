@@ -5,7 +5,6 @@ import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage from '@/components/ui/ErrorMessage'
-import MobileWarning from '@/components/ui/MobileWarning'
 import GenerationActivationWithControls from './GenerationActivationWithControls'
 import SalesConversionWithControls from './SalesConversionWithControls'
 import ConversionRatesWithControls from './ConversionRatesWithControls'
@@ -45,26 +44,12 @@ export default function Dashboard() {
   const [showHelpModal, setShowHelpModal] = useState(false)
   const [drillContext, setDrillContext] = useState<DrillContext | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
   type LogoVariant = 'twocolor' | 'white'
   type ChartLayout = 'one' | 'two' | 'three'
   
   const [logoVariant, setLogoVariant] = useState<LogoVariant>('twocolor')
   const [chartLayout, setChartLayout] = useState<ChartLayout>('three')
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-
-    return () => {
-      window.removeEventListener('resize', checkMobile)
-    }
-  }, [])
 
   const defaultChartOrder = [
     'sales-conversion-chart',
@@ -320,11 +305,11 @@ export default function Dashboard() {
       case 'one':
         return 'grid-cols-1'
       case 'two':
-        return 'grid-cols-1 lg:grid-cols-2'
+        return 'grid-cols-1 sm:grid-cols-1 md:grid-cols-2'
       case 'three':
-        return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+        return 'grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
       default:
-        return 'grid-cols-1 lg:grid-cols-2'
+        return 'grid-cols-1 sm:grid-cols-1 md:grid-cols-2'
     }
   }
 
@@ -423,16 +408,12 @@ export default function Dashboard() {
 
   const hasErrors = dashboardData?.errors && Object.keys(dashboardData.errors).length > 0
 
-  if (isMobile) {
-    return <MobileWarning />
-  }
-
   if (!dashboardData) {
     return null
   }
 
   return (
-    <div className="min-h-screen px-2 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-3 md:py-4 lg:py-6" style={{ backgroundColor: 'var(--theme-background)' }}>
+    <div className="min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-5 lg:py-6" style={{ backgroundColor: 'var(--theme-background)' }}>
       <a href="#main-content" className="skip-to-main">
         Pular para conteúdo principal
       </a>
@@ -469,13 +450,13 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6 space-y-2 sm:space-y-3 md:space-y-4 lg:space-y-5">
+        <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6 space-y-3 sm:space-y-4 md:space-y-5">
           <section
-            className="bg-white rounded-lg shadow-sm p-2 sm:p-2.5 border border-gray-100 mb-2 sm:mb-2.5 dark:bg-gray-800 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-3 md:p-3 border border-gray-100 dark:border-gray-700 mb-2 sm:mb-3"
             aria-label="Controles do dashboard"
           >
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-0.5 sm:gap-1 items-center overflow-hidden">
-              <div className="col-span-1 w-auto flex items-center justify-start ml-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-1.5 sm:gap-2 items-center overflow-hidden">
+              <div className="col-span-2 sm:col-span-1 w-auto flex items-center justify-start sm:ml-2">
                 <NymuLogo
                   variant={logoVariant}
                   type="logotype"
@@ -483,10 +464,10 @@ export default function Dashboard() {
                   height={36}
                   priority
                   className="focus:outline-none w-auto h-auto"
-                  style={{ maxWidth: 'min(90px, 100%)' }}
+                  style={{ maxWidth: 'min(100px, 100%)' }}
                 />
               </div>
-              <div className="col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-1 xl:col-span-1 w-full flex items-center">
+              <div className="col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1 xl:col-span-1 w-full flex items-center">
                 <FilterPresets
                   onSelectPreset={handleFilterChange}
                   currentFilters={dashboardData.filters}
@@ -502,9 +483,9 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label="Abrir ajuda"
-                className="w-full px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="w-full px-2 sm:px-2 md:px-2 py-1.5 sm:py-1.5 md:py-1.5 text-[10px] sm:text-[11px] md:text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-secondary flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
               >
-                <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -512,7 +493,7 @@ export default function Dashboard() {
                     d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="hidden md:inline truncate">Ajuda</span>
+                <span className="hidden sm:inline truncate">Ajuda</span>
               </button>
               <button
                 onClick={() => setShowFiltersModal(true)}
@@ -523,9 +504,9 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label="Abrir filtros"
-                className="relative w-full px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="relative w-full px-2 sm:px-2 md:px-2 py-1.5 sm:py-1.5 md:py-1.5 text-[10px] sm:text-[11px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
               >
-                <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -533,14 +514,14 @@ export default function Dashboard() {
                     d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                   />
                 </svg>
-                <span className="hidden md:inline truncate">Filtros</span>
+                <span className="hidden sm:inline truncate">Filtros</span>
                 {dashboardData && countActiveFilters(dashboardData.filters) > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
                     {countActiveFilters(dashboardData.filters)}
                   </span>
                 )}
               </button>
-              <div className="w-full">
+              <div className="col-span-2 sm:col-span-1 w-full">
                 <ExportButton data={dashboardData} className="w-full" />
               </div>
               <button
@@ -552,9 +533,9 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label="Abrir configurações"
-                className="w-full px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="w-full px-2 sm:px-2 md:px-2 py-1.5 sm:py-1.5 md:py-1.5 text-[10px] sm:text-[11px] md:text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-secondary flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
               >
-                <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -568,7 +549,7 @@ export default function Dashboard() {
                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                   />
                 </svg>
-                <span className="hidden md:inline truncate">Configurações</span>
+                <span className="hidden sm:inline truncate">Config</span>
               </button>
               <button
                 onClick={() => setShowScheduling(true)}
@@ -579,9 +560,9 @@ export default function Dashboard() {
                   }
                 }}
                 aria-label={t.scheduling.title}
-                className="w-full px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
+                className="w-full px-2 sm:px-2 md:px-2 py-1.5 sm:py-1.5 md:py-1.5 text-[10px] sm:text-[11px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0"
               >
-                <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -589,9 +570,9 @@ export default function Dashboard() {
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="hidden md:inline truncate">{t.scheduling.title}</span>
+                <span className="hidden sm:inline truncate">{t.scheduling.title}</span>
               </button>
-              <div className="w-full">
+              <div className="col-span-2 sm:col-span-1 w-full">
                 <ShareButton filters={dashboardData.filters} className="w-full" />
               </div>
             </div>
@@ -657,32 +638,32 @@ export default function Dashboard() {
           return (
              <div 
                id="dashboard-export-container" 
-               className="transition-all duration-300 space-y-3 sm:space-y-4 md:space-y-5"
+               className="transition-all duration-300 space-y-4 sm:space-y-4 md:space-y-5"
              >
-            <div className="grid grid-cols-6 gap-1.5 sm:gap-2 md:gap-2.5 items-stretch">
-              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
-                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Leads Criados</h3>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{formatNumber(dashboardData.generationActivation.leadsCreated)}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2 md:gap-2.5 items-stretch">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
+                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Leads Criados</h3>
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{formatNumber(dashboardData.generationActivation.leadsCreated)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
-                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Leads no Grupo</h3>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{formatNumber(dashboardData.generationActivation.leadsInGroup)}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
+                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Leads no Grupo</h3>
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{formatNumber(dashboardData.generationActivation.leadsInGroup)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
-                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Participantes no Meet</h3>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{formatNumber(dashboardData.generationActivation.meetParticipants)}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
+                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Participantes no Meet</h3>
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{formatNumber(dashboardData.generationActivation.meetParticipants)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
-                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Vendas Fechadas</h3>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{formatNumber(dashboardData.salesConversion.closedSales)}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
+                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Vendas Fechadas</h3>
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{formatNumber(dashboardData.salesConversion.closedSales)}</p>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
-                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Taxa de Fechamento</h3>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{dashboardData.salesConversion.closingRate.toFixed(0)}%</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
+                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Taxa de Fechamento</h3>
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{dashboardData.salesConversion.closingRate.toFixed(0)}%</p>
               </div>
-              <div className="bg-white rounded-lg shadow-sm p-1.5 sm:p-2 md:p-2.5 border border-gray-100 flex flex-col justify-between min-w-0">
-                <h3 className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-600 font-secondary mb-0.5 sm:mb-1 truncate">Receita Gerada</h3>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 font-primary break-words">{formatCurrency(dashboardData.salesConversion.revenueGenerated)}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-0">
+                <h3 className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-1 sm:mb-1 truncate">Receita Gerada</h3>
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words">{formatCurrency(dashboardData.salesConversion.revenueGenerated)}</p>
               </div>
             </div>
 

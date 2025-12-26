@@ -12,11 +12,11 @@ interface DraggableChartProps {
 
 const spanClasses: Record<number, string> = {
   1: 'col-span-1',
-  2: 'col-span-2',
-  3: 'col-span-3',
-  4: 'col-span-4',
-  5: 'col-span-5',
-  6: 'col-span-6',
+  2: 'col-span-1 md:col-span-2',
+  3: 'col-span-1 md:col-span-3',
+  4: 'col-span-1 md:col-span-4',
+  5: 'col-span-1 md:col-span-5',
+  6: 'col-span-1 md:col-span-6',
 }
 
 export default function DraggableChart({ id, span = 1, children }: DraggableChartProps) {

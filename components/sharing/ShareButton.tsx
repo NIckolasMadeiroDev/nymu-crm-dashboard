@@ -44,9 +44,9 @@ export default function ShareButton({ filters, className = '' }: Readonly<ShareB
         disabled={isSharing}
         aria-label="Compartilhar dashboard"
         aria-busy={isSharing}
-        className={`w-full px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 md:py-1.5 text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-secondary flex items-center justify-center gap-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0 ${className}`}
+        className={`w-full px-2 sm:px-2 md:px-2 py-1.5 sm:py-1.5 md:py-1.5 text-[10px] sm:text-[11px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-secondary flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap min-w-0 ${className}`}
       >
-        <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -54,7 +54,7 @@ export default function ShareButton({ filters, className = '' }: Readonly<ShareB
             d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
           />
         </svg>
-        <span className="hidden md:inline truncate">Compartilhar</span>
+        <span className="hidden sm:inline truncate">Compartilhar</span>
       </button>
 
       {showModal && shareLink && (
