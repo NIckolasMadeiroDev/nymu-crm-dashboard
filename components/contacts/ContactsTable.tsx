@@ -138,10 +138,10 @@ export default function ContactsTable({ contacts, isLoading, onRowClick }: Conta
       {/* Versão Mobile */}
       <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
         {contacts.map((contact) => (
-          <div
+          <button
             key={contact.id}
             onClick={() => onRowClick?.(contact)}
-            className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+            className="w-full p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
           >
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -182,7 +182,7 @@ export default function ContactsTable({ contacts, isLoading, onRowClick }: Conta
                 ))}
               </div>
             )}
-          </div>
+          </button>
         ))}
       </div>
     </div>

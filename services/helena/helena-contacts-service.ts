@@ -1,6 +1,5 @@
 import { HelenaApiClient } from './helena-api-client'
 import type { HelenaContact } from '@/types/helena'
-
 export type { HelenaContact }
 
 export interface HelenaContactsPaginatedResponse {

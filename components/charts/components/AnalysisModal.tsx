@@ -172,13 +172,11 @@ export default function AnalysisModal({
       >
       <section
         className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
         style={{
           backgroundColor: themeColors.background,
           borderColor: themeColors.gridColor,
           borderWidth: '1px',
         }}
-        tabIndex={-1}
       >
         {/* Header */}
         <div

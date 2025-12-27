@@ -29,8 +29,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
     const masked = maskPhoneInput(e.target.value)
     setPhoneDisplay(masked)
-    // Salvar apenas números
-    const cleaned = e.target.value.replace(/\D/g, '')
+    const cleaned = e.target.value.replaceAll(/\D/g, '')
     handleChange('phoneNumber', cleaned)
   }
 
@@ -69,7 +68,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
           {/* Nome */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Nome completo <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -79,6 +78,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
                 </svg>
               </div>
               <input
+                id="contact-name"
                 type="text"
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
                 placeholder="Ex: João Silva"
@@ -91,7 +91,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
 
           {/* Telefone */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Telefone <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -101,6 +101,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
                 </svg>
               </div>
               <input
+                id="contact-phone"
                 type="tel"
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-800 dark:text-white font-mono transition-all"
                 placeholder="(00) 00000-0000"
@@ -117,7 +118,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
 
           {/* E-mail */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               E-mail
             </label>
             <div className="relative">
@@ -127,6 +128,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
                 </svg>
               </div>
               <input
+                id="contact-email"
                 type="email"
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
                 placeholder="exemplo@email.com"
@@ -138,10 +140,11 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="contact-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Status
             </label>
             <select
+              id="contact-status"
               className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
               value={form.status || 'ACTIVE'}
               onChange={e => handleChange('status', e.target.value)}

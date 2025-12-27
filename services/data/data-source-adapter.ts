@@ -39,7 +39,7 @@ class MockDataSource implements DataSource {
 }
 
 class HelenaDataSource implements DataSource {
-  private dashboardAdapter: DashboardAdapter
+  private readonly dashboardAdapter: DashboardAdapter
 
   constructor() {
     this.dashboardAdapter = new DashboardAdapter()
@@ -82,7 +82,7 @@ class HelenaDataSource implements DataSource {
         new Set(
           contacts
             .map((contact: any) => contact.customFields?.source as string)
-            .filter((source: any): source is string => Boolean(source))
+            .filter(Boolean)
         )
       )
 
@@ -90,7 +90,7 @@ class HelenaDataSource implements DataSource {
         new Set(
           deals
             .map((deal: any) => deal.owner)
-            .filter((owner: any): owner is string => Boolean(owner))
+            .filter(Boolean)
         )
       )
 
@@ -98,7 +98,7 @@ class HelenaDataSource implements DataSource {
         new Set(
           contacts
             .map((contact: any) => contact.customFields?.college as string)
-            .filter((college: any): college is string => Boolean(college))
+            .filter(Boolean)
         )
       )
 

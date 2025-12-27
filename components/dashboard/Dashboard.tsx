@@ -20,6 +20,8 @@ import DrillNavigation from '@/components/drill/DrillNavigation'
 import SettingsModal from '@/components/settings/SettingsModal'
 import HelpModal from '@/components/help/HelpModal'
 import ContactsManagerDashboardModal from './ContactsManagerDashboardModal'
+import CrmDropdownMenu from '@/components/crm/CrmDropdownMenu'
+import PanelsManagerModal from '@/components/crm/PanelsManagerModal'
 import FiltersModal, { countActiveFilters } from '@/components/filters/FiltersModal'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useWidgetHeight } from '@/contexts/WidgetHeightContext'
@@ -44,6 +46,7 @@ export default function Dashboard() {
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [showHelpModal, setShowHelpModal] = useState(false)
   const [showContactsModal, setShowContactsModal] = useState(false)
+  const [showPanelsModal, setShowPanelsModal] = useState(false)
   const [drillContext, setDrillContext] = useState<DrillContext | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   type LogoVariant = 'twocolor' | 'white'
@@ -450,7 +453,7 @@ filtersToLoad ??= {
             aria-label="Controles do dashboard"
           >
             <div className="flex flex-nowrap gap-1 overflow-x-auto py-1 sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 sm:gap-2 sm:overflow-visible sm:py-0 items-center justify-start">
-              <div className="col-span-2 sm:col-span-1 w-auto items-center justify-start sm:ml-2 hidden sm:flex">
+              <div className="w-auto items-center justify-start flex">
                 <NymuLogo
                   variant={logoVariant}
                   type="logotype"
@@ -458,7 +461,7 @@ filtersToLoad ??= {
                   height={36}
                   priority
                   className="focus:outline-none w-auto h-auto"
-                  style={{ maxWidth: 'min(100px, 100%)' }}
+                  style={{ maxWidth: 'min(80px, 100%)', maxHeight: '24px' }}
                 />
               </div>
               <div className="col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1 xl:col-span-1 w-auto min-w-0 flex items-center">
@@ -468,27 +471,10 @@ filtersToLoad ??= {
                   onPresetSelected={handlePresetSelected}
                 />
               </div>
-              <button
-                onClick={() => setShowContactsModal(true)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    setShowContactsModal(true)
-                  }
-                }}
-                aria-label="Abrir gestão de contatos"
-                className="w-auto min-w-0 px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 whitespace-nowrap"
-              >
-                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-                <span className="hidden sm:inline truncate">Contatos</span>
-              </button>
+              <CrmDropdownMenu
+                onContactsClick={() => setShowContactsModal(true)}
+                onPanelsClick={() => setShowPanelsModal(true)}
+              />
               <button
                 onClick={() => setShowHelpModal(true)}
                 onKeyDown={(e) => {
@@ -608,6 +594,10 @@ filtersToLoad ??= {
           <ContactsManagerDashboardModal
             open={showContactsModal}
             onClose={() => setShowContactsModal(false)}
+          />
+          <PanelsManagerModal
+            open={showPanelsModal}
+            onClose={() => setShowPanelsModal(false)}
           />
           {dashboardData && (
             <FiltersModal

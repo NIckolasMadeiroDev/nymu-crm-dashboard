@@ -6,6 +6,12 @@
 html {
   color-scheme: light !important;
   -webkit-tap-highlight-color: transparent !important;
+  font-size: calc(16px * var(--accessibility-font-size) / 100) !important;
+  /* Prevent iOS/Android from applying system colors */
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
 }
 
 :root {
@@ -37,15 +43,6 @@ html {
     /* Force light mode colors even in dark mode preference */
     color-scheme: light !important;
   }
-}
-
-html {
-  font-size: calc(16px * var(--accessibility-font-size) / 100) !important;
-  /* Prevent iOS/Android from applying system colors */
-  -webkit-text-size-adjust: 100% !important;
-  -moz-text-size-adjust: 100% !important;
-  -ms-text-size-adjust: 100% !important;
-  text-size-adjust: 100% !important;
 }
 
 body {

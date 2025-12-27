@@ -33,7 +33,7 @@ export class HelenaApiClient {
     const url = isClient
       ? `/api/helena-proxy?endpoint=${encodeURIComponent(cleanEndpoint)}`
       : cleanEndpoint.startsWith('crm/')
-        ? `${this.config.baseUrl}/crm/v1/${cleanEndpoint.replace(/^crm\//, '')}`
+      ? `${this.config.baseUrl}/crm/v1/${cleanEndpoint.replace(/^crm\//, '')}`
         : `${this.config.baseUrl}/${cleanEndpoint}`
 
     if (process.env.NODE_ENV === 'development') {

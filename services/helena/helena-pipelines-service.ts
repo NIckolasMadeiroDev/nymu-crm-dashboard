@@ -1,7 +1,7 @@
 import { HelenaApiClient } from './helena-api-client'
 import { helenaServiceFactory } from './helena-service-factory'
 import type { HelenaPanel, HelenaPaginatedResponse } from '@/types/helena'
-import type { CrmPipeline, CrmStage, CrmDeal } from '@/types/crm'
+import type { CrmPipeline, CrmStage } from '@/types/crm'
 
 export class HelenaPipelinesService {
   constructor(private readonly apiClient: HelenaApiClient) {}

@@ -52,7 +52,7 @@ export default function ChartInsights({
         requestAnimationFrame(() => {
           if (contentRef.current) {
             // Limita altura máxima para 60% da viewport para evitar crescimento infinito
-            const maxHeight = typeof globalThis !== 'undefined' ? globalThis.innerHeight * 0.6 : 400
+            const maxHeight = (typeof globalThis !== 'undefined' && globalThis.innerHeight) ? globalThis.innerHeight * 0.6 : 400
             const calculatedHeight = contentRef.current.scrollHeight
             const height = Math.min(maxHeight, calculatedHeight)
             setContentHeight(height)
@@ -175,7 +175,7 @@ export default function ChartInsights({
         } else if (typeof value === 'string') {
           formattedValue = value
         } else if (typeof value === 'object' && value !== null) {
-          formattedValue = JSON.stringify(value)
+          formattedValue = JSON.stringify(value, null, 2)
         } else {
           formattedValue = String(value)
         }

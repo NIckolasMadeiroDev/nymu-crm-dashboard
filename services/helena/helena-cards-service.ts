@@ -177,7 +177,7 @@ export class HelenaCardsService {
       `crm/v1/panel/card/${id}/duplicate`,
       payload || {}
     )
-  }
+        }
 
   /**
    * Lista anotações de um card

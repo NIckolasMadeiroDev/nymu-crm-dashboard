@@ -147,5 +147,5 @@ export class HelenaPanelsService {
    */
   async getPanelWithFullDetails(id: string): Promise<HelenaPanel> {
     return this.getPanelById(id, ['steps', 'tags', 'customFields'])
+    }
   }
-}
