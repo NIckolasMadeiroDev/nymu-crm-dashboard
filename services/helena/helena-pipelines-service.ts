@@ -1,6 +1,7 @@
 import { HelenaApiClient } from './helena-api-client'
 import { helenaServiceFactory } from './helena-service-factory'
-import type { HelenaPanel, HelenaPaginatedResponse } from '@/types/helena'
+import type { HelenaPaginatedResponse } from '@/types/helena'
+import type { HelenaPanel } from './helena-panels-service'
 import type { CrmPipeline, CrmStage } from '@/types/crm'
 
 export class HelenaPipelinesService {
@@ -111,7 +112,7 @@ export class HelenaPipelinesService {
 
     return {
       id: panel.id,
-      name: panel.name,
+      name: panel.title,
       stages,
       totalValue,
       totalDeals,

@@ -5,7 +5,7 @@ import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 import type { HelenaCard } from '@/types/helena'
 import type { HelenaCardNote } from '@/services/helena/helena-cards-service'
 import type { HelenaContact } from '@/types/helena'
-import type { HelenaPanel } from '@/types/helena'
+import type { HelenaPanel } from '@/services/helena/helena-panels-service'
 import type { PanelStep } from '@/services/helena/helena-panels-service'
 
 interface CardDetailsModalProps {
