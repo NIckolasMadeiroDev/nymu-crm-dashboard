@@ -12,6 +12,7 @@ import { HelenaUsersService } from './helena-users-service'
 import { HelenaFieldsService } from './helena-fields-service'
 import { HelenaFilesService } from './helena-files-service'
 import { HelenaMetricsService } from './helena-metrics-service'
+import { HelenaDepartmentsService } from './helena-departments-service'
 import { getHelenaApiConfig } from './helena-config'
 
 class HelenaServiceFactory {
@@ -29,6 +30,7 @@ class HelenaServiceFactory {
   private fieldsService: HelenaFieldsService | null = null
   private filesService: HelenaFilesService | null = null
   private metricsService: HelenaMetricsService | null = null
+  private departmentsService: HelenaDepartmentsService | null = null
 
   private initializeServices(): void {
     if (this.apiClient) {
@@ -60,6 +62,7 @@ class HelenaServiceFactory {
     this.usersService = new HelenaUsersService(this.apiClient)
     this.fieldsService = new HelenaFieldsService(this.apiClient)
     this.filesService = new HelenaFilesService(this.apiClient)
+    this.departmentsService = new HelenaDepartmentsService(this.apiClient)
     this.metricsService = new HelenaMetricsService(
       this.apiClient,
       this.cardsService,
@@ -169,6 +172,14 @@ class HelenaServiceFactory {
       throw new Error('Helena Metrics Service not initialized')
     }
     return this.metricsService
+  }
+
+  getDepartmentsService(): HelenaDepartmentsService {
+    this.initializeServices()
+    if (!this.departmentsService) {
+      throw new Error('Helena Departments Service not initialized')
+    }
+    return this.departmentsService
   }
 
   getApiClient(): HelenaApiClient {
