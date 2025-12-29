@@ -60,7 +60,8 @@ export default function SalesConversion({ data }: Readonly<SalesConversionProps>
         },
       ],
     }
-  }, [data, useAdaptive, adaptiveScale])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data])
 
   // Detectar se precisa usar formatação adaptativa
   const allValues = useMemo(() => {

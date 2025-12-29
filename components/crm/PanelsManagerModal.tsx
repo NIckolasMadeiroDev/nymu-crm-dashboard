@@ -284,7 +284,15 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
       {/* Panel View Modal */}
       {showPanelView && selectedPanel && (
         <PanelViewModal
-          panel={selectedPanel}
+          panel={{
+            ...selectedPanel,
+            steps: selectedPanel.steps
+              ? selectedPanel.steps.map(step => ({
+                  ...step,
+                  id: step.id || ''
+                }))
+              : []
+          }}
           open={showPanelView}
           onClose={handleClosePanelView}
         />

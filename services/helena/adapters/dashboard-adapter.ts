@@ -184,8 +184,9 @@ export class DashboardAdapter {
         const sortedCards = contactCards.sort((a: any, b: any) => {
           const stepA = stepMap.get(a.stepId || '')
           const stepB = stepMap.get(b.stepId || '')
-          const posA = stepA?.position || 0
-          const posB = stepB?.position || 0
+          // Safely get "position", otherwise default to 0
+          const posA = typeof stepA === 'object' && stepA !== null && 'position' in stepA ? (stepA as any).position || 0 : 0
+          const posB = typeof stepB === 'object' && stepB !== null && 'position' in stepB ? (stepB as any).position || 0 : 0
           return posB - posA // Higher position = more advanced
         })
         
@@ -738,11 +739,11 @@ export class DashboardAdapter {
         
         qualityData.push({
           origin: groupKey,
-          displayOrigin,
           meetParticipationRate,
           purchaseRate,
         })
       }
+
     })
 
     // Ordenar por número de leads (maior primeiro), depois por taxa de conversão
@@ -989,7 +990,7 @@ export class DashboardAdapter {
           channelMap.set(tag.name, count + 1)
         })
       } else if (card.contactIds && card.contactIds.length > 0) {
-        const contact = allContacts.find(c => card.contactIds?.includes(c.id))
+        const contact = allContacts.find((c: { id: string }) => card.contactIds?.includes(c.id))
         if (contact?.customFields?.source) {
           const source = contact.customFields.source as string
           const count = channelMap.get(source) || 0
