@@ -13,10 +13,10 @@ export class HelenaWalletsService {
 
       while (hasMorePages) {
         const response = await this.apiClient.get<HelenaPaginatedResponse<HelenaWallet>>(
-          'portfolio',
+          'core/v1/portfolio',
           {
-            pageNumber: pageNumber.toString(),
-            pageSize: pageSize.toString(),
+            PageNumber: pageNumber.toString(),
+            PageSize: pageSize.toString(),
           }
         )
 
@@ -34,8 +34,9 @@ export class HelenaWalletsService {
 
       return allWallets
     } catch (error) {
-      console.error('Error fetching wallets from Helena API:', error)
-      throw error
+      // Wallets endpoint may not be available, return empty array instead of throwing
+      console.warn('Warning: Could not fetch wallets (endpoint may not be available):', error)
+      return []
     }
   }
 

@@ -30,11 +30,24 @@ export class HelenaApiClient {
     
     // Usar proxy do Next.js para evitar CORS
     const isClient = typeof window !== 'undefined'
-    const url = isClient
-      ? `/api/helena-proxy?endpoint=${encodeURIComponent(cleanEndpoint)}`
-      : cleanEndpoint.startsWith('crm/')
-      ? `${this.config.baseUrl}/crm/v1/${cleanEndpoint.replace(/^crm\//, '')}`
-        : `${this.config.baseUrl}/${cleanEndpoint}`
+    
+    // Build URL - if endpoint already has query string, preserve it
+    let url: string
+    if (isClient) {
+      // Client-side: use proxy
+      url = `/api/helena-proxy?endpoint=${encodeURIComponent(cleanEndpoint)}`
+    } else {
+      // Server-side: build direct URL
+      // baseUrl already includes the domain (e.g., https://api.helena.run)
+      // cleanEndpoint is like "crm/v1/panel" or "core/v1/contact"
+      if (cleanEndpoint.startsWith('crm/v1/') || cleanEndpoint.startsWith('core/v1/')) {
+        url = `${this.config.baseUrl}/${cleanEndpoint}`
+      } else if (cleanEndpoint.startsWith('crm/')) {
+        url = `${this.config.baseUrl}/crm/v1/${cleanEndpoint.replace(/^crm\//, '')}`
+      } else {
+        url = `${this.config.baseUrl}/${cleanEndpoint}`
+      }
+    }
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[Helena API Client] Making request to:', url)
@@ -90,7 +103,37 @@ export class HelenaApiClient {
         )
       }
 
-      const data: T = await response.json()
+      // Try to parse JSON, but handle non-JSON responses gracefully
+      let data: T
+      try {
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          data = await response.json()
+        } else {
+          // If not JSON, try to parse anyway or return empty object
+          const text = await response.text()
+          if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+            data = JSON.parse(text)
+          } else {
+            // Non-JSON response - might be HTML error page or plain text
+            throw new HelenaApiError(
+              `Invalid response format. Expected JSON but got: ${contentType || 'unknown'}. Response: ${text.substring(0, 100)}`,
+              response.status,
+              'INVALID_RESPONSE'
+            )
+          }
+        }
+      } catch (parseError) {
+        if (parseError instanceof HelenaApiError) {
+          throw parseError
+        }
+        const text = await response.text().catch(() => 'Unable to read response')
+        throw new HelenaApiError(
+          `Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}. Response: ${text.substring(0, 200)}`,
+          response.status,
+          'PARSE_ERROR'
+        )
+      }
       return {
         data,
         success: true,
@@ -140,22 +183,62 @@ export class HelenaApiClient {
     code?: string
   }> {
     try {
-      const errorData = await response.json()
-      return {
-        message: errorData.message || errorData.error || response.statusText,
-        code: errorData.code,
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        const errorData = await response.json()
+        return {
+          message: errorData.message || errorData.error || response.statusText,
+          code: errorData.code,
+        }
+      } else {
+        // Try to read as text for non-JSON responses
+        const text = await response.text()
+        // Check if it's HTML error page
+        if (text.includes('<html') || text.includes('<!DOCTYPE')) {
+          return {
+            message: `HTTP ${response.status}: ${response.statusText} - Server returned HTML error page`,
+            code: 'HTML_ERROR',
+          }
+        }
+        // Check if it starts with "ERROR:"
+        if (text.trim().startsWith('ERROR:')) {
+          return {
+            message: text.trim().substring(0, 500),
+            code: 'SERVER_ERROR',
+          }
+        }
+        // Return text response (truncated)
+        return {
+          message: text.substring(0, 500) || response.statusText,
+          code: 'TEXT_ERROR',
+        }
       }
-    } catch {
+    } catch (parseError) {
       return {
-        message: response.statusText,
+        message: `HTTP ${response.status}: ${response.statusText} - Failed to parse error response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`,
+        code: 'PARSE_ERROR',
       }
     }
   }
 
-  async get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
-    const queryString = params && Object.keys(params).length > 0
-      ? `?${new URLSearchParams(params).toString()}`
-      : ''
+  async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
+    let queryString = ''
+    if (params && Object.keys(params).length > 0) {
+      const searchParams = new URLSearchParams()
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          // Handle arrays - API expects multiple parameters with same name
+          if (Array.isArray(value)) {
+            value.forEach((item) => {
+              searchParams.append(key, item.toString())
+            })
+          } else {
+            searchParams.append(key, value.toString())
+          }
+        }
+      })
+      queryString = `?${searchParams.toString()}`
+    }
     const fullEndpoint = `${endpoint}${queryString}`
 
     const response = await this.request<T>(fullEndpoint, {

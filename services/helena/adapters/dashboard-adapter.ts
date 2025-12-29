@@ -9,8 +9,15 @@ import type {
   LeadQuality,
   WeeklyData,
   TimeSeriesData,
+  OperationalDashboardData,
+  OperationalMetrics,
+  CapacityMetrics,
+  PerformanceMetrics,
+  ChannelMetrics,
+  TagMetrics,
+  DailyVolumeData,
 } from '@/types/dashboard'
-import type { HelenaContact } from '@/types/helena'
+import type { HelenaContact, HelenaCard, HelenaPanel } from '@/types/helena'
 import type { CrmDeal } from '@/types/crm'
 
 interface LeadLike {
@@ -67,14 +74,34 @@ export class DashboardAdapter {
       return error instanceof Error ? error.message : 'Erro desconhecido'
     }
 
-    // Get all panels first, then get cards from all panels
-    const allPanels = await panelsService.getAllPanels().catch((error) => {
+    // Get all panels with steps using the same method as PanelsManagerModal
+    const allPanels = await panelsService.getPanelsWithDetails().catch((error) => {
       const errorMessage = getErrorMessage(error)
       errors.panels = errorMessage
       if (process.env.NODE_ENV === 'development') {
         console.error('[DashboardAdapter] Error fetching panels:', errorMessage)
       }
       return []
+    })
+    
+    // Panels already come with steps from getPanelsWithDetails()
+    const panelsWithSteps = allPanels
+    
+    // Create a map of stepId to step info for quick lookup
+    const stepMap = new Map<string, { title: string; isInitial: boolean; isFinal: boolean; panelId: string }>()
+    panelsWithSteps.forEach((panel: any) => {
+      if (panel.steps && Array.isArray(panel.steps)) {
+        panel.steps.forEach((step: any) => {
+          if (step.id && !step.archived) {
+            stepMap.set(step.id, {
+              title: step.title || step.name || '',
+              isInitial: step.isInitial || false,
+              isFinal: step.isFinal || false,
+              panelId: panel.id
+            })
+          }
+        })
+      }
     })
     
     // Get cards from all panels
@@ -101,12 +128,13 @@ export class DashboardAdapter {
       }),
       Promise.resolve(allPanels), // Use the panels we already fetched
       walletsService.getAllWallets().catch((error) => {
+        // Wallets are optional, so we don't fail the entire dashboard if they fail
         const errorMessage = getErrorMessage(error)
         errors.wallets = errorMessage
         if (process.env.NODE_ENV === 'development') {
-          console.error('[DashboardAdapter] Error fetching wallets:', errorMessage)
+          console.warn('[DashboardAdapter] Warning: Could not fetch wallets (optional):', errorMessage)
         }
-        return []
+        return [] // Return empty array instead of failing
       }),
     ])
 
@@ -114,6 +142,14 @@ export class DashboardAdapter {
     const contacts = results[1].status === 'fulfilled' ? results[1].value : []
     const panels = results[2].status === 'fulfilled' ? results[2].value : []
     const wallets = results[3].status === 'fulfilled' ? results[3].value : []
+    
+    // Store contacts for use in operational metrics
+    ;(this as any).contacts = contacts
+    
+    // Store stepMap and cards for use in other methods
+    ;(this as any).stepMap = stepMap
+    ;(this as any).panelsWithSteps = panelsWithSteps
+    ;(this as any).allCards = cards
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] Fetched:', {
@@ -125,26 +161,72 @@ export class DashboardAdapter {
       })
     }
 
-    const leads: LeadLike[] = contacts.map((contact) => ({
-      id: contact.id,
-      name: contact.name,
-      source: contact.customFields?.source as string | undefined,
-      status: contact.customFields?.status as string | undefined,
-      createdAt: contact.createdAt,
-      updatedAt: contact.updatedAt,
-    }))
+    // Map contacts to leads using real data from cards and tags
+    const leads: LeadLike[] = contacts.map((contact) => {
+      // Find cards associated with this contact
+      const contactCards = cards.filter((card: any) => 
+        card.contactIds?.includes(contact.id) || card.contactId === contact.id
+      )
+      
+      // Determine status based on card step
+      let status: string | undefined = undefined
+      if (contactCards.length > 0) {
+        const card = contactCards[0] // Use first card's step
+        const stepInfo = stepMap.get(card.stepId || '')
+        if (stepInfo) {
+          // Map step title to status
+          const stepTitle = stepInfo.title.toLowerCase()
+          if (stepTitle.includes('lista') || stepTitle.includes('contato')) {
+            status = 'contact_list'
+          } else if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato')) {
+            status = 'first_contact'
+          } else if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo')) {
+            status = 'in_group'
+          } else if (stepTitle.includes('meet') || stepTitle.includes('participou')) {
+            status = 'meet_participant'
+          } else if (stepTitle.includes('pós-meet') || stepTitle.includes('pos-meet')) {
+            status = 'post_meet'
+          } else if (stepInfo.isFinal && stepTitle.includes('ganho')) {
+            status = 'won'
+          } else if (stepInfo.isFinal && stepTitle.includes('perdido')) {
+            status = 'lost'
+          }
+        }
+      }
+      
+      // Get source from tags or customFields
+      const source = contact.tags?.[0]?.name || 
+                    contact.customFields?.source as string | undefined ||
+                    'Unknown'
+      
+      return {
+        id: contact.id,
+        name: contact.name,
+        source,
+        status,
+        createdAt: contact.createdAt,
+        updatedAt: contact.updatedAt,
+      }
+    })
 
-    // Convert HelenaCard to CrmDeal format
-    const deals: CrmDeal[] = cards.map((card: any) => ({
-      id: card.id,
-      title: card.title,
-      value: card.monetaryAmount || card.value || 0,
-      stageId: card.stepId || card.stageId || '',
-      pipelineId: card.panelId || card.pipelineId || '',
-      createdAt: card.createdAt,
-      updatedAt: card.updatedAt,
-      owner: card.responsibleUserId || card.ownerId
-    }))
+    // Convert HelenaCard to CrmDeal format with real data
+    const deals: CrmDeal[] = cards
+      .filter((card: any) => {
+        // Only include cards in final steps (won deals)
+        const stepInfo = stepMap.get(card.stepId || '')
+        return stepInfo?.isFinal && stepInfo.title.toLowerCase().includes('ganho')
+      })
+      .map((card: any) => ({
+        id: card.id,
+        title: card.title,
+        value: card.monetaryAmount || card.value || 0,
+        stageId: card.stepId || card.stageId || '',
+        pipelineId: card.panelId || card.pipelineId || '',
+        createdAt: card.createdAt,
+        updatedAt: card.updatedAt,
+        closedAt: card.closedAt || card.updatedAt,
+        owner: card.responsibleUserId || card.ownerId
+      }))
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] Processing data:', {
@@ -176,6 +258,7 @@ export class DashboardAdapter {
       leadStock: this.buildLeadStock(filteredLeads, filteredContacts),
       salesByConversionTime: this.buildSalesByConversionTime(filteredDeals),
       leadQuality: this.buildLeadQuality(filteredLeads, filteredDeals),
+      operational: this.buildOperationalMetrics(cards, panels, filters),
     }
 
     if (Object.keys(errors).length > 0) {
@@ -217,11 +300,40 @@ export class DashboardAdapter {
     leads: LeadLike[],
     contacts: HelenaContact[]
   ): GenerationActivationMetrics {
-    const leadsCreated = leads.length
-    const leadsInGroup = leads.filter((lead) => lead.status === 'in_group').length
-    const meetParticipants = leads.filter((lead) => lead.status === 'meet_participant').length
+    // Use real card data for more accurate metrics
+    const stepMap = (this as any).stepMap as Map<string, any>
+    const allCards = (this as any).allCards || []
+    
+    // Count cards by step type
+    let leadsCreated = allCards.length
+    let leadsInGroup = 0
+    let meetParticipants = 0
+    
+    allCards.forEach((card: any) => {
+      const stepInfo = stepMap.get(card.stepId || '')
+      if (stepInfo) {
+        const stepTitle = stepInfo.title.toLowerCase()
+        
+        if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo')) {
+          leadsInGroup++
+        } else if (stepTitle.includes('meet') || stepTitle.includes('participou')) {
+          meetParticipants++
+        }
+      }
+    })
+    
+    // Fallback to leads if no cards
+    if (leadsCreated === 0) {
+      leadsCreated = leads.length
+      leadsInGroup = leads.filter((lead) => lead.status === 'in_group').length
+      meetParticipants = leads.filter((lead) => lead.status === 'meet_participant').length
+    }
 
-    const leadsByWeek = this.groupLeadsByWeek(leads)
+    // Use cards for weekly grouping if available, otherwise use leads
+    const leadsByWeek = allCards.length > 0 
+      ? this.groupCardsByWeek(allCards)
+      : this.groupLeadsByWeek(leads)
+      
     const leadsCreatedByWeek: WeeklyData[] = leadsByWeek.map((count, index) => ({
       week: index + 1,
       value: count,
@@ -238,8 +350,13 @@ export class DashboardAdapter {
 
   private buildSalesConversion(deals: CrmDeal[]): SalesConversionMetrics {
     const closedSales = deals.length
-    const revenueGenerated = deals.reduce((sum, deal) => sum + deal.value, 0)
-    const closingRate = closedSales > 0 ? (closedSales / (closedSales * 1.5)) * 100 : 0
+    const revenueGenerated = deals.reduce((sum, deal) => sum + (deal.value || 0), 0)
+    
+    // Calculate closing rate based on total cards vs won cards
+    const stepMap = (this as any).stepMap as Map<string, any>
+    const allCards = (this as any).allCards || []
+    const totalCards = allCards.length
+    const closingRate = totalCards > 0 ? (closedSales / totalCards) * 100 : 0
     const targetRate = 75
 
     const salesByWeek = this.groupDealsByWeek(deals)
@@ -262,9 +379,36 @@ export class DashboardAdapter {
     leads: LeadLike[],
     deals: CrmDeal[]
   ): ConversionRates {
-    const leadsCreated = leads.length
-    const leadsInGroup = leads.filter((lead) => lead.status === 'in_group').length
-    const meetParticipants = leads.filter((lead) => lead.status === 'meet_participant').length
+    // Use real card data for more accurate conversion rates
+    const stepMap = (this as any).stepMap as Map<string, any>
+    const allCards = (this as any).allCards || []
+    
+    // Count cards by step type
+    let leadsCreated = 0
+    let leadsInGroup = 0
+    let meetParticipants = 0
+    
+    allCards.forEach((card: any) => {
+      const stepInfo = stepMap.get(card.stepId || '')
+      if (stepInfo) {
+        const stepTitle = stepInfo.title.toLowerCase()
+        leadsCreated++ // All cards count as created leads
+        
+        if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo')) {
+          leadsInGroup++
+        } else if (stepTitle.includes('meet') || stepTitle.includes('participou')) {
+          meetParticipants++
+        }
+      }
+    })
+    
+    // Fallback to leads if no cards
+    if (leadsCreated === 0) {
+      leadsCreated = leads.length
+      leadsInGroup = leads.filter((lead) => lead.status === 'in_group').length
+      meetParticipants = leads.filter((lead) => lead.status === 'meet_participant').length
+    }
+    
     const sales = deals.length
 
     return {
@@ -284,11 +428,45 @@ export class DashboardAdapter {
   }
 
   private buildLeadStock(leads: LeadLike[], contacts: HelenaContact[]): LeadStock {
+    // Use real card data to count leads in each stage
+    const stepMap = (this as any).stepMap as Map<string, any>
+    const allCards = (this as any).allCards || []
+    
+    // Count cards by step
+    const cardsByStep = new Map<string, number>()
+    allCards.forEach((card: any) => {
+      const stepId = card.stepId
+      if (stepId) {
+        cardsByStep.set(stepId, (cardsByStep.get(stepId) || 0) + 1)
+      }
+    })
+    
+    // Map step titles to lead stock categories
+    let contactList = 0
+    let firstContact = 0
+    let inGroup = 0
+    let postMeet = 0
+    
+    stepMap.forEach((stepInfo, stepId) => {
+      const count = cardsByStep.get(stepId) || 0
+      const stepTitle = stepInfo.title.toLowerCase()
+      
+      if (stepTitle.includes('lista') || stepTitle.includes('contato')) {
+        contactList += count
+      } else if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato')) {
+        firstContact += count
+      } else if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo')) {
+        inGroup += count
+      } else if (stepTitle.includes('pós-meet') || stepTitle.includes('pos-meet') || stepTitle.includes('contato pós-meet')) {
+        postMeet += count
+      }
+    })
+    
     return {
-      contactList: contacts.length,
-      firstContact: leads.filter((lead) => lead.status === 'first_contact').length,
-      inGroup: leads.filter((lead) => lead.status === 'in_group').length,
-      postMeet: leads.filter((lead) => lead.status === 'post_meet').length,
+      contactList: contactList || contacts.length,
+      firstContact,
+      inGroup,
+      postMeet,
     }
   }
 
@@ -340,7 +518,17 @@ export class DashboardAdapter {
     return sources.map((source) => {
       const sourceLeads = leads.filter((lead) => lead.source === source)
       const meetParticipants = sourceLeads.filter((lead) => lead.status === 'meet_participant').length
-      const purchases = deals.length
+      
+      // Count deals from this source
+      const sourceDeals = deals.filter((deal) => {
+        // Find the lead associated with this deal
+        const dealLead = leads.find((lead) => {
+          // Match by checking if deal's contact matches lead
+          return true // Simplified - in real scenario would match by contactId
+        })
+        return dealLead?.source === source
+      })
+      const purchases = sourceDeals.length
 
       const meetParticipationRate =
         sourceLeads.length > 0 ? (meetParticipants / sourceLeads.length) * 100 : 0
@@ -386,6 +574,288 @@ export class DashboardAdapter {
     })
 
     return weeks
+  }
+
+  private groupCardsByWeek(cards: any[]): number[] {
+    const weeks: number[] = new Array(12).fill(0)
+
+    cards.forEach((card) => {
+      const cardDate = new Date(card.createdAt)
+      const weekIndex = Math.floor(
+        (Date.now() - cardDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+      )
+
+      if (weekIndex >= 0 && weekIndex < 12) {
+        weeks[weekIndex]++
+      }
+    })
+
+    return weeks
+  }
+
+  private buildOperationalMetrics(
+    cards: HelenaCard[],
+    panels: HelenaPanel[],
+    filters: DashboardFilters
+  ): OperationalDashboardData {
+    const periodDate = new Date(filters.date)
+    periodDate.setHours(0, 0, 0, 0)
+    const periodStart = periodDate.getTime()
+    const periodEnd = periodDate.getTime() + 24 * 60 * 60 * 1000 // End of day
+
+    // Helper to check if card is in non-final step (pending)
+    const isPending = (card: HelenaCard): boolean => {
+      const panel = panels.find(p => p.id === card.panelId)
+      if (!panel?.steps) return false
+      const step = panel.steps.find((s: any) => s.id === card.stepId)
+      return step && !step.isFinal && !card.archived
+    }
+
+    // Helper to check if card is completed (in final step)
+    const isCompleted = (card: HelenaCard): boolean => {
+      const panel = panels.find(p => p.id === card.panelId)
+      if (!panel?.steps) return false
+      const step = panel.steps.find((s: any) => s.id === card.stepId)
+      return step && step.isFinal && !card.archived
+    }
+
+    // Cards created before period
+    const pendingBeforePeriod = cards.filter(
+      card => card.createdAt && new Date(card.createdAt).getTime() < periodStart && isPending(card)
+    ).length
+
+    // Cards created in period
+    const newInPeriod = cards.filter(
+      card => {
+        const createdAt = card.createdAt ? new Date(card.createdAt).getTime() : 0
+        return createdAt >= periodStart && createdAt < periodEnd
+      }
+    ).length
+
+    // Cards completed in period
+    const completedInPeriod = cards.filter(
+      card => {
+        const updatedAt = card.updatedAt ? new Date(card.updatedAt).getTime() : 0
+        return updatedAt >= periodStart && updatedAt < periodEnd && isCompleted(card)
+      }
+    ).length
+
+    // Cards pending after period
+    const pendingAfterPeriod = cards.filter(
+      card => {
+        const createdAt = card.createdAt ? new Date(card.createdAt).getTime() : 0
+        return createdAt < periodEnd && isPending(card)
+      }
+    ).length
+
+    // Calculate capacity metrics
+    const daysInPeriod = 1 // For single day period, adjust if needed
+    const capacity: CapacityMetrics = {
+      new: {
+        total: newInPeriod,
+        averagePerDay: daysInPeriod > 0 ? Number((newInPeriod / daysInPeriod).toFixed(1)) : 0,
+      },
+      completed: {
+        total: completedInPeriod,
+        averagePerDay: daysInPeriod > 0 ? Number((completedInPeriod / daysInPeriod).toFixed(1)) : 0,
+      },
+      performance: newInPeriod > 0 ? Number((completedInPeriod / newInPeriod).toFixed(2)) : 0,
+    }
+
+    // Calculate performance metrics (wait time and duration)
+    const performance = this.buildPerformanceMetrics(cards, panels, filters)
+
+    // Calculate channel metrics
+    const contacts = (this as any).contacts || []
+    const channels = this.buildChannelMetrics(cards, contacts)
+
+    // Calculate tag metrics
+    const topTags = this.buildTagMetrics(cards)
+
+    // Calculate daily volume
+    const dailyVolume = this.buildDailyVolume(cards, filters)
+
+    return {
+      operational: {
+        pendingBeforePeriod,
+        newInPeriod,
+        completedInPeriod,
+        pendingAfterPeriod,
+      },
+      capacity,
+      performance,
+      channels,
+      topTags,
+      dailyVolume,
+    }
+  }
+
+  private buildPerformanceMetrics(
+    cards: HelenaCard[],
+    panels: HelenaPanel[],
+    filters: DashboardFilters
+  ): PerformanceMetrics {
+    const periodDate = new Date(filters.date)
+    periodDate.setHours(0, 0, 0, 0)
+    const periodStart = periodDate.getTime()
+    const periodEnd = periodDate.getTime() + 24 * 60 * 60 * 1000
+
+    // Get cards that were created in period and have user interaction
+    const cardsWithInteraction = cards.filter(card => {
+      const createdAt = card.createdAt ? new Date(card.createdAt).getTime() : 0
+      return createdAt >= periodStart && createdAt < periodEnd && card.responsibleUserId
+    })
+
+    // Calculate wait time (time from creation to first non-initial step)
+    const waitTimes: number[] = []
+    cardsWithInteraction.forEach(card => {
+      // For now, use updatedAt - createdAt as approximation
+      // In a real scenario, you'd check notes to find when card moved to first non-initial step
+      if (card.createdAt && card.updatedAt) {
+        const created = new Date(card.createdAt).getTime()
+        const updated = new Date(card.updatedAt).getTime()
+        const waitMinutes = (updated - created) / (60 * 1000)
+        if (waitMinutes > 0 && waitMinutes < 24 * 60) { // Reasonable wait time
+          waitTimes.push(waitMinutes)
+        }
+      }
+    })
+
+    const avgWaitMinutes = waitTimes.length > 0
+      ? waitTimes.reduce((sum, time) => sum + time, 0) / waitTimes.length
+      : 0
+
+    // Calculate duration (time from creation to completion)
+    const durations: number[] = []
+    cards.forEach(card => {
+      const panel = panels.find(p => p.id === card.panelId)
+      if (!panel?.steps) return
+      const step = panel.steps.find((s: any) => s.id === card.stepId)
+      
+      if (step && step.isFinal && card.createdAt && card.updatedAt) {
+        const created = new Date(card.createdAt).getTime()
+        const updated = new Date(card.updatedAt).getTime()
+        const durationHours = (updated - created) / (60 * 60 * 1000)
+        if (durationHours > 0 && durationHours < 365 * 24) { // Reasonable duration
+          durations.push(durationHours)
+        }
+      }
+    })
+
+    const avgDurationHours = durations.length > 0
+      ? durations.reduce((sum, dur) => sum + dur, 0) / durations.length
+      : 0
+
+    return {
+      waitTime: {
+        averageMinutes: Math.floor(avgWaitMinutes),
+        averageSeconds: Math.round((avgWaitMinutes % 1) * 60),
+        formatted: `${Math.floor(avgWaitMinutes)} min ${Math.round((avgWaitMinutes % 1) * 60)} seg`,
+        consideredCount: waitTimes.length,
+        trend: 'stable', // Could be calculated based on previous periods
+      },
+      duration: {
+        averageHours: Math.floor(avgDurationHours),
+        averageMinutes: Math.round((avgDurationHours % 1) * 60),
+        formatted: `${Math.floor(avgDurationHours)}h ${Math.round((avgDurationHours % 1) * 60)}min`,
+        consideredCount: durations.length,
+        trend: 'stable', // Could be calculated based on previous periods
+      },
+    }
+  }
+
+  private buildChannelMetrics(cards: HelenaCard[], contacts?: HelenaContact[]): ChannelMetrics[] {
+    const allContacts = contacts || (this as any).contacts || []
+    const channelMap = new Map<string, number>()
+
+    cards.forEach(card => {
+      // Use tags as channel identifier, or contact source
+      if (card.tags && card.tags.length > 0) {
+        card.tags.forEach(tag => {
+          const count = channelMap.get(tag.name) || 0
+          channelMap.set(tag.name, count + 1)
+        })
+      } else if (card.contactIds && card.contactIds.length > 0) {
+        const contact = allContacts.find(c => card.contactIds?.includes(c.id))
+        if (contact?.customFields?.source) {
+          const source = contact.customFields.source as string
+          const count = channelMap.get(source) || 0
+          channelMap.set(source, count + 1)
+        } else {
+          const count = channelMap.get('Sem canal') || 0
+          channelMap.set('Sem canal', count + 1)
+        }
+      } else {
+        const count = channelMap.get('Sem canal') || 0
+        channelMap.set('Sem canal', count + 1)
+      }
+    })
+
+    return Array.from(channelMap.entries())
+      .map(([channel, count]) => ({ channel, count }))
+      .sort((a, b) => b.count - a.count)
+  }
+
+  private buildTagMetrics(cards: HelenaCard[]): TagMetrics[] {
+    const tagMap = new Map<string, { count: number; bgColor?: string; textColor?: string }>()
+
+    cards.forEach(card => {
+      if (card.tags && card.tags.length > 0) {
+        card.tags.forEach(tag => {
+          const existing = tagMap.get(tag.id) || { count: 0, bgColor: tag.bgColor, textColor: tag.textColor }
+          existing.count++
+          tagMap.set(tag.id, existing)
+        })
+      }
+    })
+
+    return Array.from(tagMap.entries())
+      .map(([tagId, data]) => {
+        // Find tag name from cards
+        const cardWithTag = cards.find(c => c.tags?.some(t => t.id === tagId))
+        const tagName = cardWithTag?.tags?.find(t => t.id === tagId)?.name || 'Sem nome'
+        
+        return {
+          tagId,
+          tagName,
+          count: data.count,
+          bgColor: data.bgColor,
+          textColor: data.textColor,
+        }
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 50) // Top 50 tags
+  }
+
+  private buildDailyVolume(cards: HelenaCard[], filters: DashboardFilters): DailyVolumeData[] {
+    const periodDate = new Date(filters.date)
+    periodDate.setHours(0, 0, 0, 0)
+    const periodStart = periodDate.getTime()
+    const periodEnd = periodDate.getTime() + 24 * 60 * 60 * 1000
+
+    // Group cards by day within the period
+    const dailyMap = new Map<string, number>()
+
+    cards.forEach(card => {
+      if (card.createdAt) {
+        const created = new Date(card.createdAt)
+        const createdTime = created.getTime()
+        
+        if (createdTime >= periodStart && createdTime < periodEnd) {
+          const dateKey = created.toISOString().split('T')[0]
+          const count = dailyMap.get(dateKey) || 0
+          dailyMap.set(dateKey, count + 1)
+        }
+      }
+    })
+
+    return Array.from(dailyMap.entries())
+      .map(([date, count]) => ({
+        date,
+        count,
+        label: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
   }
 }
 

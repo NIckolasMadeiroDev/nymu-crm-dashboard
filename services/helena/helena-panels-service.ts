@@ -100,6 +100,7 @@ export class HelenaPanelsService {
     const params: Record<string, any> = {}
     if (filters) {
       if (filters.Title) params.Title = filters.Title
+      // IncludeDetails as array will be handled by apiClient.get to create multiple parameters
       if (filters.IncludeDetails) params.IncludeDetails = filters.IncludeDetails
       if (filters.CreatedAt_Before) params.CreatedAt_Before = filters.CreatedAt_Before
       if (filters.CreatedAt_After) params.CreatedAt_After = filters.CreatedAt_After

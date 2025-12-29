@@ -44,12 +44,14 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
   }, [open, cardId, panelId])
 
   useEffect(() => {
-    if (card && panel) {
+    // Só construir histórico quando card, panel E notas estiverem disponíveis
+    // E não estiver mais carregando notas
+    if (card && panel && !isLoadingNotes) {
       setSelectedStepId(card.stepId || '')
       buildHistory()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card, notes, panel])
+  }, [card, notes, panel, isLoadingNotes])
 
   useEffect(() => {
     if (card && card.contactIds && card.contactIds.length > 0) {
@@ -194,11 +196,6 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
   const buildHistory = () => {
     if (!card || !panel) return
 
-    console.log('buildHistory: Iniciando construção', { 
-      notesCount: notes.length,
-      notes: notes 
-    })
-
     const historyEntries: HistoryEntry[] = []
 
     // Adicionar criação do card
@@ -324,11 +321,6 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
           : new Date(b.date).getTime()
       
       return dateA - dateB
-    })
-
-    console.log('buildHistory: Histórico final', { 
-      entriesCount: historyEntries.length,
-      entries: historyEntries 
     })
 
     setHistory(historyEntries)

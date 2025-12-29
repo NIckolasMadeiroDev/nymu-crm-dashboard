@@ -67,6 +67,70 @@ export interface TimeSeriesData {
   value: number
 }
 
+export interface OperationalMetrics {
+  pendingBeforePeriod: number
+  newInPeriod: number
+  completedInPeriod: number
+  pendingAfterPeriod: number
+}
+
+export interface CapacityMetrics {
+  new: {
+    total: number
+    averagePerDay: number
+  }
+  completed: {
+    total: number
+    averagePerDay: number
+  }
+  performance: number // ratio completed/new
+}
+
+export interface PerformanceMetrics {
+  waitTime: {
+    averageMinutes: number
+    averageSeconds: number
+    formatted: string
+    consideredCount: number
+    trend: string
+  }
+  duration: {
+    averageHours: number
+    averageMinutes: number
+    formatted: string
+    consideredCount: number
+    trend: string
+  }
+}
+
+export interface ChannelMetrics {
+  channel: string
+  count: number
+}
+
+export interface TagMetrics {
+  tagId: string
+  tagName: string
+  count: number
+  bgColor?: string
+  textColor?: string
+}
+
+export interface DailyVolumeData {
+  date: string
+  count: number
+  label: string
+}
+
+export interface OperationalDashboardData {
+  operational: OperationalMetrics
+  capacity: CapacityMetrics
+  performance: PerformanceMetrics
+  channels: ChannelMetrics[]
+  topTags: TagMetrics[]
+  dailyVolume: DailyVolumeData[]
+}
+
 export interface DashboardData {
   filters: DashboardFilters
   generationActivation: GenerationActivationMetrics
@@ -75,6 +139,7 @@ export interface DashboardData {
   leadStock: LeadStock
   salesByConversionTime: SalesByConversionTime
   leadQuality: LeadQuality[]
+  operational?: OperationalDashboardData
   errors?: {
     cards?: string
     contacts?: string
