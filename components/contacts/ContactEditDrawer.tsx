@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { HelenaContact } from '@/services/helena/helena-contacts-service'
+import type { HelenaContact } from '@/types/helena'
 import { maskPhoneInput } from '@/utils/format-phone'
 
 interface ContactEditDrawerProps {

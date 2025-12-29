@@ -4,7 +4,7 @@ import ContactsSearchBar from "./ContactsSearchBar";
 import ContactDetailsDrawer from "./ContactDetailsDrawer";
 import ContactEditDrawer from "./ContactEditDrawer";
 import Pagination from "./Pagination";
-import { HelenaContact } from "@/services/helena/helena-contacts-service";
+import type { HelenaContact } from "@/types/helena";
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 const contactsService = helenaServiceFactory.getContactsService();
 

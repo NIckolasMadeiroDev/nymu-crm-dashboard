@@ -17,7 +17,8 @@ import type {
   TagMetrics,
   DailyVolumeData,
 } from '@/types/dashboard'
-import type { HelenaContact, HelenaCard, HelenaPanel } from '@/types/helena'
+import type { HelenaContact, HelenaCard } from '@/types/helena'
+import type { HelenaPanel } from '@/services/helena/helena-panels-service'
 import type { CrmDeal } from '@/types/crm'
 
 interface LeadLike {

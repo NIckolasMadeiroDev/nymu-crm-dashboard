@@ -48,7 +48,8 @@ export type {
   HelenaPanel,
   HelenaPanelsPaginatedResponse,
   HelenaPanelsListFilters,
-  HelenaPanelCustomField
+  HelenaPanelCustomField,
+  PanelStep
 } from './helena-panels-service'
 
 // Types - Contacts

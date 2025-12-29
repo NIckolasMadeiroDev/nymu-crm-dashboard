@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { HelenaContact } from '@/services/helena/helena-contacts-service'
+import type { HelenaContact } from '@/types/helena'
 import { formatPhoneNumber } from '@/utils/format-phone'
 
 type ViewMode = 'grid' | 'list'
