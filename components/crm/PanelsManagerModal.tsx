@@ -196,10 +196,19 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
           {!isLoading && filteredPanels.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredPanels.map((panel) => (
-                <button
+                <div
                   key={panel.id}
-                  className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md transition-all hover:border-blue-500 dark:hover:border-blue-500 group text-left"
+                  className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md transition-all hover:border-blue-500 dark:hover:border-blue-500 group cursor-pointer"
                   onClick={() => handleOpenPanel(panel)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleOpenPanel(panel)
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Abrir painel ${panel.title}`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -217,8 +226,12 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
                         e.stopPropagation()
                         handleEditPanel(panel)
                       }}
+                      onKeyDown={(e) => {
+                        e.stopPropagation()
+                      }}
                       className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors opacity-0 group-hover:opacity-100"
                       aria-label="Editar painel"
+                      type="button"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -254,7 +267,7 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
                       {panel.scope === 'DEPARTMENT' ? 'Equipe' : 'Pessoal'}
                     </span>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}

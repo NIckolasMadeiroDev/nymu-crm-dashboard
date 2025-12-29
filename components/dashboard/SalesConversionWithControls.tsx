@@ -15,16 +15,24 @@ export default function SalesConversionWithControls({
   dragHandleProps,
 }: SalesConversionWithControlsProps) {
   const chartConfig: ChartConfig = useMemo(() => {
+    const chartData = data.salesByWeek.map((w) => ({
+      name: w.label,
+      value: w.value,
+    }))
+    
+    // Detectar se precisa usar formatação adaptativa
+    const allValues = chartData.map((d) => Math.abs(d.value))
+    const maxValue = allValues.length > 0 ? Math.max(...allValues) : 0
+    const useAdaptive = maxValue >= 1000
+
     return {
       type: 'bar',
       title: 'Conversão de Vendas',
-      data: data.salesByWeek.map((w) => ({
-        name: w.label,
-        value: w.value,
-      })),
+      data: chartData,
       xAxisKey: 'name',
       yAxisKey: 'value',
       height: 160,
+      useAdaptive,
     }
   }, [data])
 

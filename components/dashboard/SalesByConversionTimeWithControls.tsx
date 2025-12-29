@@ -108,6 +108,20 @@ export default function SalesByConversionTimeWithControls({
       return aDays - bDays
     })
 
+    // Detectar se precisa usar formatação adaptativa
+    const allValues: number[] = []
+    seriesConfig.forEach((seriesItem) => {
+      if (seriesItem.data && seriesItem.data.length > 0) {
+        seriesItem.data.forEach((point: TimeSeriesData) => {
+          if (point && typeof point.value === 'number') {
+            allValues.push(Math.abs(point.value))
+          }
+        })
+      }
+    })
+    const maxValue = allValues.length > 0 ? Math.max(...allValues) : 0
+    const useAdaptive = maxValue >= 1000
+
     return {
       type: currentChartType === 'line' ? 'line' : 'area',
       title: 'Vendas por Tempo de Conversão',
@@ -116,6 +130,7 @@ export default function SalesByConversionTimeWithControls({
       xAxisKey: 'date',
       yAxisKey: 'value',
       height: 160,
+      useAdaptive,
     }
   }, [data, currentChartType])
 

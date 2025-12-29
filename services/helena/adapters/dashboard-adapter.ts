@@ -27,6 +27,9 @@ interface LeadLike {
   status?: string
   createdAt: string
   updatedAt: string
+  college?: string
+  tags?: Array<{ id: string; name: string; bgColor?: string; textColor?: string }>
+  customFields?: Record<string, any>
 }
 
 import { helenaServiceFactory } from '../helena-service-factory'
@@ -197,13 +200,23 @@ export class DashboardAdapter {
       // Get source from tags or customFields
       const source = contact.tags?.[0]?.name || 
                     contact.customFields?.source as string | undefined ||
+                    contact.customFields?.origem as string | undefined ||
                     'Unknown'
+      
+      // Get college from customFields
+      const college = contact.customFields?.college as string | undefined ||
+                     contact.customFields?.faculdade as string | undefined ||
+                     contact.customFields?.universidade as string | undefined ||
+                     undefined
       
       return {
         id: contact.id,
         name: contact.name,
         source,
         status,
+        college,
+        tags: contact.tags,
+        customFields: contact.customFields,
         createdAt: contact.createdAt,
         updatedAt: contact.updatedAt,
       }
@@ -513,32 +526,95 @@ export class DashboardAdapter {
   }
 
   private buildLeadQuality(leads: LeadLike[], deals: CrmDeal[]): LeadQuality[] {
-    const sources = Array.from(new Set(leads.map((lead) => lead.source || 'Unknown')))
-
-    return sources.map((source) => {
-      const sourceLeads = leads.filter((lead) => lead.source === source)
-      const meetParticipants = sourceLeads.filter((lead) => lead.status === 'meet_participant').length
+    // Criar um mapa de grupos de leads
+    const groupsMap = new Map<string, LeadLike[]>()
+    
+    leads.forEach((lead) => {
+      // Prioridade de agrupamento:
+      // 1. Tags (primeira tag)
+      // 2. Faculdade/College
+      // 3. Source/Origem
+      // 4. CustomFields com informações relevantes
       
-      // Count deals from this source
-      const sourceDeals = deals.filter((deal) => {
-        // Find the lead associated with this deal
-        const dealLead = leads.find((lead) => {
-          // Match by checking if deal's contact matches lead
-          return true // Simplified - in real scenario would match by contactId
-        })
-        return dealLead?.source === source
-      })
-      const purchases = sourceDeals.length
-
-      const meetParticipationRate =
-        sourceLeads.length > 0 ? (meetParticipants / sourceLeads.length) * 100 : 0
-      const purchaseRate = meetParticipants > 0 ? (purchases / meetParticipants) * 100 : 0
-
-      return {
-        origin: source,
-        meetParticipationRate,
-        purchaseRate,
+      let groupKey = 'Unknown'
+      
+      // Tentar agrupar por tag primeiro
+      if (lead.tags && lead.tags.length > 0) {
+        groupKey = `Tag: ${lead.tags[0].name}`
       }
+      // Se não tem tag, tentar por faculdade
+      else if (lead.college) {
+        groupKey = `Faculdade: ${lead.college}`
+      }
+      // Se não tem faculdade, usar source
+      else if (lead.source && lead.source !== 'Unknown') {
+        groupKey = lead.source
+      }
+      // Tentar outros customFields
+      else if (lead.customFields) {
+        const customSource = lead.customFields.source || 
+                            lead.customFields.origem ||
+                            lead.customFields.channel ||
+                            lead.customFields.canal
+        if (customSource) {
+          groupKey = String(customSource)
+        }
+      }
+      
+      if (!groupsMap.has(groupKey)) {
+        groupsMap.set(groupKey, [])
+      }
+      groupsMap.get(groupKey)!.push(lead)
+    })
+
+    // Calcular métricas para cada grupo
+    const qualityData: LeadQuality[] = []
+    
+    groupsMap.forEach((groupLeads, groupKey) => {
+      const meetParticipants = groupLeads.filter((lead) => lead.status === 'meet_participant').length
+      
+      // Encontrar deals associados a este grupo
+      // Match deals pelos contactIds dos cards
+      const groupLeadIds = new Set(groupLeads.map(l => l.id))
+      const groupDeals = deals.filter((deal) => {
+        // Encontrar o card associado ao deal
+        const allCards = (this as any).allCards || []
+        const dealCard = allCards.find((card: any) => card.id === deal.id)
+        
+        if (dealCard && dealCard.contactIds) {
+          // Verificar se algum contato do card está neste grupo
+          return dealCard.contactIds.some((contactId: string) => groupLeadIds.has(contactId))
+        }
+        
+        return false
+      })
+      
+      const purchases = groupDeals.length
+      const meetParticipationRate = groupLeads.length > 0 
+        ? (meetParticipants / groupLeads.length) * 100 
+        : 0
+      const purchaseRate = meetParticipants > 0 
+        ? (purchases / meetParticipants) * 100 
+        : 0
+
+      // Só adicionar grupos com pelo menos alguns leads
+      if (groupLeads.length > 0) {
+        qualityData.push({
+          origin: groupKey,
+          meetParticipationRate,
+          purchaseRate,
+        })
+      }
+    })
+
+    // Ordenar por número de leads (maior primeiro), depois por taxa de conversão
+    return qualityData.sort((a, b) => {
+      const aLeads = groupsMap.get(a.origin)?.length || 0
+      const bLeads = groupsMap.get(b.origin)?.length || 0
+      if (aLeads !== bLeads) {
+        return bLeads - aLeads
+      }
+      return b.purchaseRate - a.purchaseRate
     })
   }
 

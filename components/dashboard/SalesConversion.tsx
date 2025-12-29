@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,7 +12,7 @@ import {
 } from 'chart.js'
 import { Bar } from 'react-chartjs-2'
 import type { SalesConversionMetrics } from '@/types/dashboard'
-import { formatCurrency, formatNumber } from '@/utils/format-currency'
+import { formatCurrency, formatNumber, formatChartValue, formatAdaptiveNumber } from '@/utils/format-currency'
 
 ChartJS.register(
   CategoryScale,
@@ -28,22 +28,127 @@ interface SalesConversionProps {
 }
 
 export default function SalesConversion({ data }: Readonly<SalesConversionProps>) {
+  const [isSmallScreen, setIsSmallScreen] = useState(false)
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsSmallScreen(window.innerWidth < 640)
+    }
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
+
   const chartData = useMemo(() => {
+    // Se usando formatação adaptativa, escalar os valores para exibição
+    const scaleData = (value: number) => {
+      if (useAdaptive && adaptiveScale.scale > 1) {
+        return value / adaptiveScale.scale
+      }
+      return value
+    }
+
     return {
       labels: data.salesByWeek.map((w) => w.label),
       datasets: [
         {
           label: 'Vendas',
-          data: data.salesByWeek.map((w) => w.value),
+          data: data.salesByWeek.map((w) => scaleData(w.value)),
           backgroundColor: 'rgba(16, 185, 129, 0.5)',
           borderColor: 'rgba(16, 185, 129, 1)',
           borderWidth: 1,
         },
       ],
     }
+  }, [data, useAdaptive, adaptiveScale])
+
+  // Detectar se precisa usar formatação adaptativa
+  const allValues = useMemo(() => {
+    return data.salesByWeek.map((w) => Math.abs(w.value))
   }, [data])
 
-  const chartOptions = {
+  const maxValue = useMemo(() => Math.max(...allValues, 0), [allValues])
+  const useAdaptive = maxValue >= 1000
+  const adaptiveScale = useMemo(() => {
+    if (!useAdaptive) return { scale: 1, unit: '' }
+    const sample = formatAdaptiveNumber(maxValue)
+    return { scale: sample.scale, unit: sample.unit }
+  }, [useAdaptive, maxValue])
+
+  // Calcular domínio adaptativo - sempre calcular para garantir que valores altos sejam exibidos corretamente
+  const yAxisDomain = useMemo(() => {
+    if (maxValue === 0) {
+      return [0, 100] // Valor padrão quando não há dados
+    }
+    
+    // Sempre aplicar padding dinâmico baseado no valor máximo
+    let paddingPercent = 0.15 // Padrão 15%
+    if (maxValue < 50) {
+      paddingPercent = 0.5 // 50% para valores muito pequenos
+    } else if (maxValue < 200) {
+      paddingPercent = 0.3 // 30% para valores pequenos
+    } else if (maxValue < 1000) {
+      paddingPercent = 0.2 // 20% para valores médios
+    }
+    
+    const maxWithPadding = maxValue * (1 + paddingPercent)
+    
+    if (useAdaptive && adaptiveScale.scale > 1) {
+      // Quando usando formatação adaptativa, trabalhar com valores escalados
+      const scaledMax = maxWithPadding / adaptiveScale.scale
+      
+      // Arredondar para valor "bonito"
+      const magnitude = Math.pow(10, Math.floor(Math.log10(scaledMax)))
+      let roundedMax = Math.ceil(scaledMax / magnitude) * magnitude
+      
+      // Garantir que o valor arredondado seja sempre maior que o máximo escalado
+      if (roundedMax <= scaledMax) {
+        roundedMax += magnitude
+      }
+      
+      // Garantir mínimo de 20% acima do máximo escalado
+      const minRequiredMax = (maxValue / adaptiveScale.scale) * 1.2
+      if (roundedMax < minRequiredMax) {
+        roundedMax = Math.ceil(minRequiredMax / magnitude) * magnitude
+        if (roundedMax <= minRequiredMax) {
+          roundedMax += magnitude
+        }
+      }
+      
+      return [0, roundedMax]
+    } else {
+      // Para valores menores, arredondar normalmente
+      const magnitude = Math.pow(10, Math.floor(Math.log10(maxWithPadding)))
+      let roundedMax = Math.ceil(maxWithPadding / magnitude) * magnitude
+      
+      // Garantir que o valor arredondado seja sempre maior que o máximo
+      if (roundedMax <= maxWithPadding) {
+        roundedMax += magnitude
+      }
+      
+      // Para valores muito pequenos, usar incrementos menores
+      if (maxValue < 10) {
+        roundedMax = Math.ceil(maxWithPadding / 2) * 2
+        if (roundedMax <= maxWithPadding) roundedMax += 2
+      } else if (maxValue < 50) {
+        roundedMax = Math.ceil(maxWithPadding / 5) * 5
+        if (roundedMax <= maxWithPadding) roundedMax += 5
+      }
+      
+      // Garantir mínimo de padding mesmo após arredondamento
+      const minRequiredMax = maxValue * 1.15
+      if (roundedMax < minRequiredMax) {
+        roundedMax = Math.ceil(minRequiredMax / magnitude) * magnitude
+        if (roundedMax <= minRequiredMax) {
+          roundedMax += magnitude
+        }
+      }
+      
+      return [0, roundedMax]
+    }
+  }, [maxValue, useAdaptive, adaptiveScale])
+
+  const chartOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -53,39 +158,64 @@ export default function SalesConversion({ data }: Readonly<SalesConversionProps>
       tooltip: {
         callbacks: {
           label: function (context: any) {
-            return `Vendas: ${formatNumber(context.parsed.y)}`
+            // Converter valor escalado de volta para o valor original no tooltip
+            let value = context.parsed.y
+            if (useAdaptive && adaptiveScale.scale > 1) {
+              value = value * adaptiveScale.scale
+            }
+            const formatted = formatChartValue(value, useAdaptive)
+            return `Vendas: ${formatted}`
           },
         },
         titleFont: {
-          size: 12,
+          size: isSmallScreen ? 11 : 12,
         },
         bodyFont: {
-          size: 11,
+          size: isSmallScreen ? 10 : 11,
         },
-        padding: 8,
+        padding: isSmallScreen ? 6 : 8,
       },
     },
     scales: {
       y: {
         beginAtZero: true,
+        max: yAxisDomain[1], // Sempre definir o máximo para garantir que valores altos sejam exibidos
         ticks: {
           callback: function (value: any) {
-            return formatNumber(value)
+            // Se usando formatação adaptativa, converter o valor de volta para o formato original
+            if (useAdaptive && adaptiveScale.scale > 1) {
+              const originalValue = value * adaptiveScale.scale
+              return formatChartValue(originalValue, useAdaptive)
+            }
+            return formatChartValue(value, false)
           },
           font: {
-            size: 10,
+            size: isSmallScreen ? 9 : 10,
           },
+          maxTicksLimit: isSmallScreen ? 5 : 8,
+          stepSize: undefined, // Deixar Chart.js calcular automaticamente
         },
+        ...(useAdaptive && adaptiveScale.unit ? {
+          title: {
+            display: true,
+            text: `(${adaptiveScale.unit})`,
+            font: {
+              size: 9,
+            },
+          },
+        } : {}),
       },
       x: {
         ticks: {
           font: {
-            size: 10,
+            size: isSmallScreen ? 9 : 10,
           },
+          maxRotation: isSmallScreen ? 45 : 0,
+          minRotation: isSmallScreen ? 45 : 0,
         },
       },
     },
-  }
+  }), [useAdaptive, adaptiveScale, isSmallScreen, yAxisDomain])
 
   const progressPercentage = (data.closingRate / data.targetRate) * 100
 
@@ -142,4 +272,5 @@ export default function SalesConversion({ data }: Readonly<SalesConversionProps>
     </section>
   )
 }
+
 

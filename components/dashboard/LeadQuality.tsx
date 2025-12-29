@@ -10,10 +10,12 @@ interface LeadQualityProps {
 
 type SortColumn = 'origin' | 'meetParticipationRate' | 'purchaseRate'
 type SortDirection = 'asc' | 'desc' | null
+type GroupFilter = 'all' | 'tags' | 'college' | 'source'
 
 export default function LeadQualityComponent({ data, useNewDesign = true }: LeadQualityProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+  const [groupFilter, setGroupFilter] = useState<GroupFilter>('all')
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -31,8 +33,29 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
     }
   }
 
+  // Filtrar dados por tipo de grupo
+  const filteredData = useMemo(() => {
+    if (groupFilter === 'all') {
+      return data
+    }
+    
+    return data.filter((item) => {
+      const origin = item.origin.toLowerCase()
+      if (groupFilter === 'tags') {
+        return origin.startsWith('tag:')
+      }
+      if (groupFilter === 'college') {
+        return origin.startsWith('faculdade:')
+      }
+      if (groupFilter === 'source') {
+        return !origin.startsWith('tag:') && !origin.startsWith('faculdade:') && origin !== 'unknown'
+      }
+      return true
+    })
+  }, [data, groupFilter])
+
   const sortedData = useMemo(() => {
-    let result = [...data]
+    let result = [...filteredData]
 
     if (sortColumn && sortDirection) {
       result.sort((a, b) => {
@@ -49,7 +72,7 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
     }
 
     return result
-  }, [data, sortColumn, sortDirection])
+  }, [filteredData, sortColumn, sortDirection])
 
   const getSortIcon = (column: SortColumn) => {
     const isActive = sortColumn === column
@@ -109,9 +132,72 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
     )
   }
 
+  // Contar grupos por tipo
+  const groupCounts = useMemo(() => {
+    const tags = data.filter(d => d.origin.toLowerCase().startsWith('tag:')).length
+    const colleges = data.filter(d => d.origin.toLowerCase().startsWith('faculdade:')).length
+    const sources = data.filter(d => {
+      const origin = d.origin.toLowerCase()
+      return !origin.startsWith('tag:') && !origin.startsWith('faculdade:') && origin !== 'unknown'
+    }).length
+    
+    return { tags, colleges, sources, total: data.length }
+  }, [data])
+
   return (
-    <div className="overflow-auto flex-1 min-h-0 w-full rounded-lg" style={{ maxHeight: '100%' }}>
-      <div className="inline-block min-w-full align-middle shadow-sm">
+    <div className="flex flex-col h-full">
+      {/* Filtros de grupo */}
+      <div className="flex flex-wrap gap-2 mb-4 px-1">
+        <button
+          onClick={() => setGroupFilter('all')}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors font-secondary ${
+            groupFilter === 'all'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+          }`}
+        >
+          Todos ({groupCounts.total})
+        </button>
+        {groupCounts.tags > 0 && (
+          <button
+            onClick={() => setGroupFilter('tags')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors font-secondary ${
+              groupFilter === 'tags'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            Tags ({groupCounts.tags})
+          </button>
+        )}
+        {groupCounts.colleges > 0 && (
+          <button
+            onClick={() => setGroupFilter('college')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors font-secondary ${
+              groupFilter === 'college'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            Faculdades ({groupCounts.colleges})
+          </button>
+        )}
+        {groupCounts.sources > 0 && (
+          <button
+            onClick={() => setGroupFilter('source')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors font-secondary ${
+              groupFilter === 'source'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            Origens ({groupCounts.sources})
+          </button>
+        )}
+      </div>
+
+      <div className="overflow-auto flex-1 min-h-0 w-full rounded-lg" style={{ maxHeight: '100%' }}>
+        <div className="inline-block min-w-full align-middle shadow-sm">
           <table
           className={`min-w-full divide-y divide-gray-200 dark:divide-gray-700 nymu-dark:divide-gray-700 bg-white dark:bg-gray-800 nymu-dark:bg-gray-800 rounded-lg overflow-hidden ${
             useNewDesign ? '' : 'divide-y divide-gray-200 dark:divide-gray-700 nymu-dark:divide-gray-700'
@@ -129,11 +215,11 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                 }`}
               >
                 <div className="flex items-center gap-2 group">
-                  <span className="font-semibold">Origem</span>
+                  <span className="font-semibold">Grupo/Categoria</span>
                   <button
                     onClick={() => handleSort('origin')}
                     className="p-1 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 group-hover:bg-gray-200"
-                    aria-label="Ordenar por origem"
+                    aria-label="Ordenar por grupo"
                     title="Clique para ordenar"
                   >
                     {getSortIcon('origin')}
@@ -194,8 +280,14 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                 >
                   <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                     <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
-                        {item.origin}
+                        {item.origin.replace(/^(Tag:|Faculdade:)\s*/i, '')}
                       </div>
+                      {item.origin.toLowerCase().startsWith('tag:') && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Tag</div>
+                      )}
+                      {item.origin.toLowerCase().startsWith('faculdade:') && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Faculdade</div>
+                      )}
                     </td>
                   <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                     {useNewDesign ? (
@@ -241,6 +333,7 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
             </tbody>
           </table>
         </div>
+      </div>
     </div>
   )
 }

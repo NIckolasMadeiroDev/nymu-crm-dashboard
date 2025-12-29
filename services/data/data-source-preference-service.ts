@@ -6,7 +6,7 @@ export type DataSource = 'real' | 'mock'
 class DataSourcePreferenceService {
   getDataSource(): DataSource {
     if (typeof window === 'undefined') {
-      return 'mock'
+      return 'real'
     }
 
     const cookieValue = this.getCookie(COOKIE_NAME)
@@ -20,7 +20,7 @@ class DataSourcePreferenceService {
       return stored
     }
 
-    const defaultValue = 'mock'
+    const defaultValue = 'real'
     this.setCookie(COOKIE_NAME, defaultValue, 365)
     return defaultValue
   }
@@ -68,7 +68,7 @@ class DataSourcePreferenceService {
 
   getDataSourceFromRequest(cookieHeader: string | null): DataSource {
     if (!cookieHeader) {
-      return 'mock'
+      return 'real'
     }
 
     const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
@@ -82,7 +82,7 @@ class DataSourcePreferenceService {
       return dataSource
     }
 
-    return 'mock'
+    return 'real'
   }
 }
 

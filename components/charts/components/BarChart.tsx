@@ -15,6 +15,7 @@ import type { BarChartProps } from '../types/chart-props'
 import { useChartFormatters } from '../hooks/useChartFormatters'
 import { useThemeColors } from '../hooks/useThemeColors'
 import { useResponsiveHeight } from '../hooks/useResponsiveHeight'
+import { useResponsiveChart } from '../hooks/useResponsiveChart'
 
 const renderBars = (
   series: Array<{ key: string; name: string; color?: string }>,
@@ -54,9 +55,10 @@ export default function BarChart({
   height = 300,
   onDataPointClick,
 }: Readonly<BarChartProps>) {
-  const { formatY, formatTooltip, xAxisKey, yAxisKey } = useChartFormatters(config)
+  const { formatY, formatTooltip, xAxisKey, yAxisKey, adaptiveDomain } = useChartFormatters(config)
   const themeColors = useThemeColors()
   const responsiveHeight = useResponsiveHeight(height)
+  const responsiveChart = useResponsiveChart()
 
   const xAxisType = horizontal ? 'number' : 'category'
   const yAxisType = horizontal ? 'category' : 'number'
@@ -76,18 +78,23 @@ export default function BarChart({
           <RechartsBarChart
             data={data}
             layout={horizontal ? 'vertical' : 'horizontal'}
-            margin={{ top: 5, right: 10, left: horizontal ? 60 : -10, bottom: horizontal ? 0 : 60 }}
+            margin={{ 
+              top: 5, 
+              right: responsiveChart.marginRight,
+              left: horizontal ? responsiveChart.yAxisWidth : responsiveChart.marginLeft,
+              bottom: horizontal ? 0 : responsiveChart.marginBottom,
+            }}
           >
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={themeColors.gridColor} />}
             <XAxis
               type={xAxisType}
               dataKey={xAxisDataKey}
               stroke={themeColors.foreground}
-              style={{ fontSize: '10px' }}
+              style={{ fontSize: responsiveChart.fontSize }}
               tickFormatter={xAxisFormatter}
-              angle={horizontal ? 0 : -45}
+              angle={horizontal ? 0 : responsiveChart.xAxisAngle}
               textAnchor={horizontal ? 'middle' : 'end'}
-              height={horizontal ? 0 : 60}
+              height={horizontal ? 0 : responsiveChart.xAxisHeight}
               interval="preserveStartEnd"
             />
             <YAxis
@@ -95,9 +102,22 @@ export default function BarChart({
               dataKey={yAxisDataKey}
               tickFormatter={yAxisFormatter}
               stroke={themeColors.foreground}
-              style={{ fontSize: '10px' }}
-              width={horizontal ? 60 : 50}
+              style={{ fontSize: responsiveChart.fontSize }}
+              width={horizontal ? responsiveChart.yAxisWidth : responsiveChart.yAxisWidth}
+              tickCount={responsiveChart.tickCount}
+              domain={adaptiveDomain && !horizontal ? [adaptiveDomain.min, adaptiveDomain.max] : ['auto', 'auto']}
+              label={adaptiveDomain?.unit && !horizontal ? { value: `(${adaptiveDomain.unit})`, angle: -90, position: 'insideLeft', style: { fontSize: '9px' } } : undefined}
             />
+            {horizontal && adaptiveDomain && (
+              <XAxis
+                type="number"
+                domain={[adaptiveDomain.min, adaptiveDomain.max]}
+                tickFormatter={formatY}
+                stroke={themeColors.foreground}
+                style={{ fontSize: responsiveChart.fontSize }}
+                label={adaptiveDomain.unit ? { value: `(${adaptiveDomain.unit})`, position: 'bottom', style: { fontSize: '9px' } } : undefined}
+              />
+            )}
           <Tooltip
             contentStyle={{
               backgroundColor: themeColors.tooltipBackground,

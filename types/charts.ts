@@ -65,6 +65,7 @@ export interface ChartConfig {
   min?: number
   max?: number
   format?: 'number' | 'currency' | 'percentage'
+  useAdaptive?: boolean
   metrics?: string[]
   mapType?: 'points' | 'heatmap' | 'choropleth'
   xAxisLabel?: string

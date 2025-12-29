@@ -104,7 +104,8 @@ filtersToLoad ??= {
   origin: '',
 }
     
-    loadDashboardData(filtersToLoad)
+    // Primeira carga sempre mostra loading
+    loadDashboardData(filtersToLoad, false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -166,14 +167,29 @@ filtersToLoad ??= {
     }
   }, [handlePermanentError, clearPermanentError])
 
-  const loadDashboardData = useCallback(async (filters?: DashboardData['filters']) => {
+  const handleLoadError = useCallback((errorMessage: string, silent: boolean, hasExistingData: boolean) => {
+    if (isPermanentError(errorMessage)) {
+      handlePermanentError(errorMessage)
+    }
+    
+    if (!silent || !hasExistingData) {
+      setError(errorMessage)
+    }
+  }, [handlePermanentError])
+
+  const loadDashboardData = useCallback(async (filters?: DashboardData['filters'], silent: boolean = false) => {
     if (hasPermanentErrorsRef.current || isLoadingRef.current) {
       return
     }
 
+    const hasExistingData = dashboardData !== null
+    const shouldShowLoading = !silent && !hasExistingData
+
     try {
       isLoadingRef.current = true
-      setLoading(true)
+      if (shouldShowLoading) {
+        setLoading(true)
+      }
       setError(null)
 
       const activeFilters = filters || {
@@ -195,12 +211,12 @@ filtersToLoad ??= {
       if (!response.ok) {
         const errorData = await response.json()
         const errorMessage = errorData.error || 'Failed to load dashboard data'
+        handleLoadError(errorMessage, silent, hasExistingData)
         
-        if (isPermanentError(errorMessage)) {
-          handlePermanentError(errorMessage)
+        if (!silent || !hasExistingData) {
+          throw new Error(errorMessage)
         }
-        
-        throw new Error(errorMessage)
+        return
       }
 
       const data = await response.json()
@@ -208,16 +224,14 @@ filtersToLoad ??= {
       checkDataErrors(data)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data'
-      setError(errorMessage)
-      
-      if (isPermanentError(errorMessage)) {
-        handlePermanentError(errorMessage)
-      }
+      handleLoadError(errorMessage, silent, hasExistingData)
     } finally {
       isLoadingRef.current = false
-      setLoading(false)
+      if (shouldShowLoading) {
+        setLoading(false)
+      }
     }
-  }, [handlePermanentError, checkDataErrors])
+  }, [handleLoadError, checkDataErrors, dashboardData])
 
   const loadDashboardDataRef = useRef(loadDashboardData)
   loadDashboardDataRef.current = loadDashboardData
@@ -279,7 +293,8 @@ filtersToLoad ??= {
 
   const handleFilterChange = (filters: DashboardData['filters']) => {
     dashboardPreferencesService.saveFilters(filters)
-    loadDashboardData(filters)
+    // Atualizar em background sem recarregar a tela quando já há dados
+    loadDashboardData(filters, true)
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -607,7 +622,8 @@ filtersToLoad ??= {
               selectedPresetId={selectedPresetId}
               onPresetUpdated={() => {
                 if (dashboardData) {
-                  loadDashboardData(dashboardData.filters)
+                  // Atualizar em background sem recarregar a tela
+                  loadDashboardData(dashboardData.filters, true)
                 }
               }}
             />
@@ -617,7 +633,8 @@ filtersToLoad ??= {
               onContextChange={(context) => {
                 setDrillContext(context)
                 if (context) {
-                  handleFilterChange({ ...dashboardData.filters, ...context.filters } as DashboardData['filters'])
+                  // Atualizar em background sem recarregar a tela
+                  loadDashboardData({ ...dashboardData.filters, ...context.filters } as DashboardData['filters'], true)
                 }
               }}
             />
