@@ -14,11 +14,13 @@ interface ContactEditDrawerProps {
 export default function ContactEditDrawer({ open, loading, contact, mode, onSubmit, onClose }: ContactEditDrawerProps) {
   const [form, setForm] = useState<Partial<HelenaContact>>({})
   const [phoneDisplay, setPhoneDisplay] = useState('')
+  const [isClosing, setIsClosing] = useState(false)
 
   useEffect(() => {
     if (open) {
       setForm(contact || {})
       setPhoneDisplay(maskPhoneInput(contact?.phoneNumber || ''))
+      setIsClosing(false)
     }
   }, [contact, open])
 
@@ -33,6 +35,13 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
     handleChange('phoneNumber', cleaned)
   }
 
+  const handleClose = () => {
+    setIsClosing(true)
+    setTimeout(() => {
+      onClose()
+    }, 300)
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     onSubmit(form)
@@ -41,34 +50,44 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex">
+    <>
+      <button 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 cursor-default" 
+        onClick={handleClose}
+        aria-label="Fechar modal"
+        type="button"
+      ></button>
+      
       <form 
         onSubmit={handleSubmit} 
-        className="bg-white dark:bg-gray-900 shadow-2xl w-full max-w-md ml-auto h-full flex flex-col overflow-hidden animate-slide-in"
+        className={`fixed right-0 top-0 bottom-0 bg-white dark:bg-gray-900 shadow-2xl w-full max-w-md flex flex-col overflow-hidden z-50 ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="contact-edit-title"
       >
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             type="button"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-            aria-label="Voltar"
+            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            aria-label="Fechar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            <span className="font-medium">Voltar</span>
           </button>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {mode === 'create' ? '✨ Novo Contato' : '✏️ Editar Contato'}
+          <h2 id="contact-edit-title" className="text-xl font-semibold text-gray-900 dark:text-white font-primary">
+            {mode === 'create' ? 'Novo Contato' : 'Editar Contato'}
           </h2>
+          <div className="w-8"></div>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
           {/* Nome */}
           <div>
-            <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
               Nome completo <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -80,7 +99,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
               <input
                 id="contact-name"
                 type="text"
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all font-secondary"
                 placeholder="Ex: João Silva"
                 value={form.name || ''}
                 onChange={e => handleChange('name', e.target.value)}
@@ -91,7 +110,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
 
           {/* Telefone */}
           <div>
-            <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
               Telefone <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -103,7 +122,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
               <input
                 id="contact-phone"
                 type="tel"
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-800 dark:text-white font-mono transition-all"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white font-mono transition-all font-secondary"
                 placeholder="(00) 00000-0000"
                 value={phoneDisplay}
                 onChange={handlePhoneChange}
@@ -111,14 +130,14 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
                 required
               />
             </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 font-secondary">
               Digite apenas números, a formatação é automática
             </p>
           </div>
 
           {/* E-mail */}
           <div>
-            <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
               E-mail
             </label>
             <div className="relative">
@@ -130,7 +149,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
               <input
                 id="contact-email"
                 type="email"
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all font-secondary"
                 placeholder="exemplo@email.com"
                 value={form.email || ''}
                 onChange={e => handleChange('email', e.target.value)}
@@ -140,12 +159,12 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
 
           {/* Status */}
           <div>
-            <label htmlFor="contact-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="contact-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
               Status
             </label>
             <select
               id="contact-status"
-              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all font-secondary"
               value={form.status || 'ACTIVE'}
               onChange={e => handleChange('status', e.target.value)}
             >
@@ -157,12 +176,12 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 space-y-3">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-3">
           <div className="flex gap-3">
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-lg font-medium transition-colors shadow-sm disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors shadow-sm disabled:cursor-not-allowed font-secondary"
             >
               {loading ? (
                 <>
@@ -184,15 +203,15 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={loading}
-            className="w-full px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-secondary"
           >
             Cancelar
           </button>
         </div>
       </form>
-    </div>
+    </>
   )
 }
 

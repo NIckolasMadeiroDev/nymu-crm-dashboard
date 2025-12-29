@@ -453,15 +453,14 @@ filtersToLoad ??= {
             aria-label="Controles do dashboard"
           >
             <div className="flex flex-nowrap gap-1 overflow-x-auto py-1 sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 sm:gap-2 sm:overflow-visible sm:py-0 items-center justify-start">
-              <div className="w-auto items-center justify-start flex">
+              <div className="flex items-center justify-center col-span-1 px-1">
                 <NymuLogo
                   variant={logoVariant}
                   type="logotype"
-                  width={144}
-                  height={36}
+                  width={120}
+                  height={30}
                   priority
-                  className="focus:outline-none w-auto h-auto"
-                  style={{ maxWidth: 'min(80px, 100%)', maxHeight: '24px' }}
+                  className="focus:outline-none"
                 />
               </div>
               <div className="col-span-2 sm:col-span-2 md:col-span-1 lg:col-span-1 xl:col-span-1 w-auto min-w-0 flex items-center">

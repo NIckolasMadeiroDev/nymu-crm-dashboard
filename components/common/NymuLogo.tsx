@@ -48,19 +48,18 @@ export default function NymuLogo({
       }
     }
   }
-
+  
   return (
-    <div className={`inline-block ${className}`} style={{ height: `${height}px`, width: `${width}px`, ...style }}>
-      <div className="relative w-full h-full" style={{ aspectRatio: `${width}/${height}` }}>
-        <Image
-          src={getLogoPath()}
-          alt="NYMU Logo"
-          fill
-          priority={priority}
-          className="object-contain"
-          sizes={`${width}px`}
-        />
-      </div>
+    <div className={`inline-flex items-center justify-center ${className}`} style={{ ...style }}>
+      <Image
+        src={getLogoPath()}
+        alt="NYMU Logo"
+        width={width}
+        height={height}
+        priority={priority}
+        className="object-contain"
+        style={{ width: 'auto', height: 'auto', maxWidth: '100%' }}
+      />
     </div>
   )
 }

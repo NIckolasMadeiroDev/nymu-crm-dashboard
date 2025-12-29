@@ -55,7 +55,7 @@ export default function Pagination({
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
       {/* Info */}
-      <div className="text-sm text-gray-600 dark:text-gray-400">
+      <div className="text-sm text-gray-600 dark:text-gray-400 font-secondary">
         Mostrando <span className="font-medium text-gray-900 dark:text-white">{startItem}</span> a{' '}
         <span className="font-medium text-gray-900 dark:text-white">{endItem}</span> de{' '}
         <span className="font-medium text-gray-900 dark:text-white">{totalItems}</span> resultados
@@ -67,7 +67,7 @@ export default function Pagination({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary"
           aria-label="Página anterior"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,8 +97,8 @@ export default function Pagination({
                 onClick={() => onPageChange(pageNum)}
                 className={`min-w-[40px] h-10 px-3 rounded-lg font-medium transition-all ${
                   currentPage === pageNum
-                    ? 'bg-indigo-600 text-white shadow-md scale-105'
-                    : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-indigo-300 dark:hover:border-indigo-700'
+                    ? 'bg-blue-600 text-white shadow-md scale-105'
+                    : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-300 dark:hover:border-blue-700'
                 }`}
                 aria-label={`Página ${pageNum}`}
                 aria-current={currentPage === pageNum ? 'page' : undefined}
@@ -113,7 +113,7 @@ export default function Pagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary"
           aria-label="Próxima página"
         >
           <span className="hidden sm:inline">Próxima</span>
