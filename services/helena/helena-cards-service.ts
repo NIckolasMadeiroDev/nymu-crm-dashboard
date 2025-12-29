@@ -224,13 +224,35 @@ export class HelenaCardsService {
   /**
    * Obtém todos os cards de um painel (até 100)
    */
-  async getAllCardsByPanel(panelId: string): Promise<HelenaCard[]> {
-    const response = await this.listCards({
-      PanelId: panelId,
-      PageSize: 100,
-      IncludeArchived: false
-    })
-    return response.items
+  async getAllCardsByPanel(panelId: string, includeDetails?: string[]): Promise<HelenaCard[]> {
+    const detailsToInclude = includeDetails || ['contactIds', 'tags']
+    const allCards: HelenaCard[] = []
+    let pageNumber = 1
+    const pageSize = 100
+    let hasMorePages = true
+
+    while (hasMorePages) {
+      const response = await this.listCards({
+        IncludeDetails: detailsToInclude,
+        PanelId: panelId,
+        PageSize: pageSize,
+        PageNumber: pageNumber,
+        IncludeArchived: false
+      })
+
+      if (response.items && response.items.length > 0) {
+        allCards.push(...response.items)
+      }
+
+      hasMorePages = response.hasMorePages || false
+      pageNumber++
+
+      if (pageNumber > response.totalPages) {
+        break
+      }
+    }
+
+    return allCards
   }
 
   /**

@@ -129,8 +129,33 @@ export class HelenaContactsService {
     await this.apiClient.delete(`core/v1/contact/${id}`)
   }
 
-  async getAllContacts(): Promise<HelenaContact[]> {
-    const response = await this.listContacts({ PageSize: 100 })
-    return response.items
+  async getAllContacts(includeDetails?: string[]): Promise<HelenaContact[]> {
+    const allContacts: HelenaContact[] = []
+    let pageNumber = 1
+    const pageSize = 100
+    let hasMorePages = true
+
+    const detailsToInclude = includeDetails || ['tags', 'customFields']
+
+    while (hasMorePages) {
+      const response = await this.listContacts({
+        IncludeDetails: detailsToInclude,
+        PageSize: pageSize,
+        PageNumber: pageNumber,
+      })
+
+      if (response.items && response.items.length > 0) {
+        allContacts.push(...response.items)
+      }
+
+      hasMorePages = response.hasMorePages || false
+      pageNumber++
+
+      if (pageNumber > response.totalPages) {
+        break
+      }
+    }
+
+    return allContacts
   }
 }

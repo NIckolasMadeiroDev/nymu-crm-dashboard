@@ -107,9 +107,14 @@ export class DashboardAdapter {
       }
     })
     
-    // Get cards from all panels
+    // Get cards from all panels with contactIds and tags included
     const cardsPromises = allPanels.map((panel: any) => 
-      cardsService.getAllCardsByPanel(panel.id).catch(() => [])
+      cardsService.getAllCardsByPanel(panel.id, ['contactIds', 'tags', 'responsibleUser']).catch((error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[DashboardAdapter] Error fetching cards for panel ${panel.id}:`, error)
+        }
+        return []
+      })
     )
     
     const results = await Promise.allSettled([
@@ -121,7 +126,7 @@ export class DashboardAdapter {
         }
         return []
       }),
-      contactsService.getAllContacts().catch((error) => {
+      contactsService.getAllContacts(['tags', 'customFields']).catch((error) => {
         const errorMessage = getErrorMessage(error)
         errors.contacts = errorMessage
         if (process.env.NODE_ENV === 'development') {
@@ -171,30 +176,53 @@ export class DashboardAdapter {
         card.contactIds?.includes(contact.id) || card.contactId === contact.id
       )
       
-      // Determine status based on card step
+      // Determine status based on card step - use the most advanced card
       let status: string | undefined = undefined
       if (contactCards.length > 0) {
-        const card = contactCards[0] // Use first card's step
+        // Sort cards by step position to get the most advanced one
+        const sortedCards = contactCards.sort((a: any, b: any) => {
+          const stepA = stepMap.get(a.stepId || '')
+          const stepB = stepMap.get(b.stepId || '')
+          const posA = stepA?.position || 0
+          const posB = stepB?.position || 0
+          return posB - posA // Higher position = more advanced
+        })
+        
+        const card = sortedCards[0] // Use most advanced card's step
         const stepInfo = stepMap.get(card.stepId || '')
         if (stepInfo) {
-          // Map step title to status
+          // Map step title to status - more flexible matching
           const stepTitle = stepInfo.title.toLowerCase()
-          if (stepTitle.includes('lista') || stepTitle.includes('contato')) {
-            status = 'contact_list'
-          } else if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato')) {
-            status = 'first_contact'
-          } else if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo')) {
-            status = 'in_group'
-          } else if (stepTitle.includes('meet') || stepTitle.includes('participou')) {
-            status = 'meet_participant'
-          } else if (stepTitle.includes('pós-meet') || stepTitle.includes('pos-meet')) {
-            status = 'post_meet'
-          } else if (stepInfo.isFinal && stepTitle.includes('ganho')) {
-            status = 'won'
-          } else if (stepInfo.isFinal && stepTitle.includes('perdido')) {
-            status = 'lost'
+          
+          // Check for final steps first
+          if (stepInfo.isFinal) {
+            if (stepTitle.includes('ganho') || stepTitle.includes('ganho') || stepTitle.includes('cliente ganho') || stepTitle.includes('fechado')) {
+              status = 'won'
+            } else if (stepTitle.includes('perdido') || stepTitle.includes('cliente perdido') || stepTitle.includes('perda')) {
+              status = 'lost'
+            }
+          }
+          
+          // If not final, check intermediate steps
+          if (!status) {
+            if (stepTitle.includes('meet') || stepTitle.includes('participou') || stepTitle.includes('participante')) {
+              status = 'meet_participant'
+            } else if (stepTitle.includes('pós-meet') || stepTitle.includes('pos-meet') || stepTitle.includes('pos meet') || stepTitle.includes('pós meet')) {
+              status = 'post_meet'
+            } else if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo') || stepTitle.includes('no grupo')) {
+              status = 'in_group'
+            } else if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato') || stepTitle.includes('contato inicial')) {
+              status = 'first_contact'
+            } else if (stepTitle.includes('lista') || stepTitle.includes('contato') || stepInfo.isInitial) {
+              status = 'contact_list'
+            }
           }
         }
+      }
+      
+      // Default to contact_list if no card found
+      if (!status) {
+        status = 'contact_list'
       }
       
       // Get source from tags or customFields
@@ -248,6 +276,33 @@ export class DashboardAdapter {
         totalContacts: contacts.length,
         totalPanels: panels.length,
         totalWallets: wallets.length,
+        totalCards: cards.length,
+        stepMapSize: stepMap.size,
+        sampleSteps: Array.from(stepMap.entries()).slice(0, 5).map(([id, info]) => ({
+          id,
+          title: info.title,
+          isInitial: info.isInitial,
+          isFinal: info.isFinal,
+        })),
+        leadsWithStatus: leads.filter(l => l.status).length,
+        leadsStatusBreakdown: {
+          contact_list: leads.filter(l => l.status === 'contact_list').length,
+          first_contact: leads.filter(l => l.status === 'first_contact').length,
+          in_group: leads.filter(l => l.status === 'in_group').length,
+          meet_participant: leads.filter(l => l.status === 'meet_participant').length,
+          post_meet: leads.filter(l => l.status === 'post_meet').length,
+          won: leads.filter(l => l.status === 'won').length,
+          lost: leads.filter(l => l.status === 'lost').length,
+          undefined: leads.filter(l => !l.status).length,
+        },
+        cardsWithContactIds: cards.filter((c: any) => c.contactIds && c.contactIds.length > 0).length,
+        sampleCard: cards[0] ? {
+          id: cards[0].id,
+          title: cards[0].title,
+          stepId: cards[0].stepId,
+          contactIds: cards[0].contactIds,
+          stepInfo: cards[0].stepId ? stepMap.get(cards[0].stepId) : null,
+        } : null,
       })
     }
 
@@ -407,19 +462,31 @@ export class DashboardAdapter {
         const stepTitle = stepInfo.title.toLowerCase()
         leadsCreated++ // All cards count as created leads
         
-        if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo')) {
+        // More flexible matching
+        if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo') || stepTitle.includes('no grupo')) {
           leadsInGroup++
-        } else if (stepTitle.includes('meet') || stepTitle.includes('participou')) {
+        }
+        
+        if (stepTitle.includes('meet') || stepTitle.includes('participou') || stepTitle.includes('participante')) {
           meetParticipants++
         }
+      } else {
+        // Count cards without step info as created
+        leadsCreated++
       }
     })
+    
+    // Also count from leads status
+    const leadsInGroupFromStatus = leads.filter((lead) => lead.status === 'in_group' || lead.status === 'meet_participant' || lead.status === 'post_meet').length
+    const meetParticipantsFromStatus = leads.filter((lead) => lead.status === 'meet_participant' || lead.status === 'post_meet').length
+    
+    // Use maximum to ensure we capture all
+    leadsInGroup = Math.max(leadsInGroup, leadsInGroupFromStatus)
+    meetParticipants = Math.max(meetParticipants, meetParticipantsFromStatus)
     
     // Fallback to leads if no cards
     if (leadsCreated === 0) {
       leadsCreated = leads.length
-      leadsInGroup = leads.filter((lead) => lead.status === 'in_group').length
-      meetParticipants = leads.filter((lead) => lead.status === 'meet_participant').length
     }
     
     const sales = deals.length
@@ -462,21 +529,55 @@ export class DashboardAdapter {
     
     stepMap.forEach((stepInfo, stepId) => {
       const count = cardsByStep.get(stepId) || 0
+      if (count === 0) return
+      
       const stepTitle = stepInfo.title.toLowerCase()
       
-      if (stepTitle.includes('lista') || stepTitle.includes('contato')) {
+      // More flexible matching with priority order
+      if (stepInfo.isInitial || stepTitle.includes('lista') || stepTitle.includes('contato') || stepTitle.includes('novo') || stepTitle.includes('carência')) {
         contactList += count
-      } else if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato')) {
+      } else if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato') || stepTitle.includes('contato inicial')) {
         firstContact += count
-      } else if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo')) {
+      } else if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo') || stepTitle.includes('no grupo')) {
         inGroup += count
-      } else if (stepTitle.includes('pós-meet') || stepTitle.includes('pos-meet') || stepTitle.includes('contato pós-meet')) {
+      } else if (stepTitle.includes('pós-meet') || stepTitle.includes('pos-meet') || stepTitle.includes('pos meet') || stepTitle.includes('pós meet') || stepTitle.includes('contato pós-meet')) {
         postMeet += count
+      } else {
+        // Default to contact list if step doesn't match any category
+        contactList += count
       }
     })
     
+    // Also count from leads status as fallback
+    const contactListFromLeads = leads.filter((lead) => lead.status === 'contact_list' || !lead.status).length
+    const firstContactFromLeads = leads.filter((lead) => lead.status === 'first_contact').length
+    const inGroupFromLeads = leads.filter((lead) => lead.status === 'in_group').length
+    const postMeetFromLeads = leads.filter((lead) => lead.status === 'post_meet').length
+    
+    // Use maximum to ensure we capture all leads
+    contactList = Math.max(contactList, contactListFromLeads)
+    firstContact = Math.max(firstContact, firstContactFromLeads)
+    inGroup = Math.max(inGroup, inGroupFromLeads)
+    postMeet = Math.max(postMeet, postMeetFromLeads)
+    
+    // Fallback to total contacts if no cards found
+    if (contactList === 0 && firstContact === 0 && inGroup === 0 && postMeet === 0) {
+      contactList = contacts.length
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] buildLeadStock:', {
+        contactList,
+        firstContact,
+        inGroup,
+        postMeet,
+        totalCards: allCards.length,
+        cardsByStepCount: cardsByStep.size,
+      })
+    }
+    
     return {
-      contactList: contactList || contacts.length,
+      contactList,
       firstContact,
       inGroup,
       postMeet,
@@ -526,6 +627,21 @@ export class DashboardAdapter {
   }
 
   private buildLeadQuality(leads: LeadLike[], deals: CrmDeal[]): LeadQuality[] {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] buildLeadQuality - Input:', {
+        totalLeads: leads.length,
+        totalDeals: deals.length,
+        sampleLead: leads[0] ? {
+          id: leads[0].id,
+          name: leads[0].name,
+          tags: leads[0].tags,
+          college: leads[0].college,
+          source: leads[0].source,
+          customFields: leads[0].customFields,
+        } : null,
+      })
+    }
+
     // Criar um mapa de grupos de leads
     const groupsMap = new Map<string, LeadLike[]>()
     
@@ -539,7 +655,7 @@ export class DashboardAdapter {
       let groupKey = 'Unknown'
       
       // Tentar agrupar por tag primeiro
-      if (lead.tags && lead.tags.length > 0) {
+      if (lead.tags && lead.tags.length > 0 && lead.tags[0].name) {
         groupKey = `Tag: ${lead.tags[0].name}`
       }
       // Se não tem tag, tentar por faculdade
@@ -548,7 +664,7 @@ export class DashboardAdapter {
       }
       // Se não tem faculdade, usar source
       else if (lead.source && lead.source !== 'Unknown') {
-        groupKey = lead.source
+        groupKey = `Origem: ${lead.source}`
       }
       // Tentar outros customFields
       else if (lead.customFields) {
@@ -557,7 +673,7 @@ export class DashboardAdapter {
                             lead.customFields.channel ||
                             lead.customFields.canal
         if (customSource) {
-          groupKey = String(customSource)
+          groupKey = `Origem: ${String(customSource)}`
         }
       }
       
@@ -566,6 +682,16 @@ export class DashboardAdapter {
       }
       groupsMap.get(groupKey)!.push(lead)
     })
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] buildLeadQuality - Groups:', {
+        totalGroups: groupsMap.size,
+        groups: Array.from(groupsMap.entries()).map(([key, leads]) => ({
+          key,
+          count: leads.length,
+        })),
+      })
+    }
 
     // Calcular métricas para cada grupo
     const qualityData: LeadQuality[] = []
@@ -599,8 +725,19 @@ export class DashboardAdapter {
 
       // Só adicionar grupos com pelo menos alguns leads
       if (groupLeads.length > 0) {
+        // Criar displayOrigin removendo prefixos para exibição mais limpa
+        let displayOrigin = groupKey
+        if (groupKey.startsWith('Tag: ')) {
+          displayOrigin = groupKey.replace('Tag: ', '')
+        } else if (groupKey.startsWith('Faculdade: ')) {
+          displayOrigin = groupKey.replace('Faculdade: ', '')
+        } else if (groupKey.startsWith('Origem: ')) {
+          displayOrigin = groupKey.replace('Origem: ', '')
+        }
+        
         qualityData.push({
           origin: groupKey,
+          displayOrigin,
           meetParticipationRate,
           purchaseRate,
         })
@@ -674,25 +811,24 @@ export class DashboardAdapter {
     panels: HelenaPanel[],
     filters: DashboardFilters
   ): OperationalDashboardData {
+    const stepMap = (this as any).stepMap as Map<string, any>
     const periodDate = new Date(filters.date)
     periodDate.setHours(0, 0, 0, 0)
     const periodStart = periodDate.getTime()
     const periodEnd = periodDate.getTime() + 24 * 60 * 60 * 1000 // End of day
 
-    // Helper to check if card is in non-final step (pending)
+    // Helper to check if card is in non-final step (pending) - use stepMap
     const isPending = (card: HelenaCard): boolean => {
-      const panel = panels.find(p => p.id === card.panelId)
-      if (!panel?.steps) return false
-      const step = panel.steps.find((s: any) => s.id === card.stepId)
-      return step && !step.isFinal && !card.archived
+      if (card.archived) return false
+      const stepInfo = stepMap.get(card.stepId || '')
+      return stepInfo && !stepInfo.isFinal
     }
 
-    // Helper to check if card is completed (in final step)
+    // Helper to check if card is completed (in final step) - use stepMap
     const isCompleted = (card: HelenaCard): boolean => {
-      const panel = panels.find(p => p.id === card.panelId)
-      if (!panel?.steps) return false
-      const step = panel.steps.find((s: any) => s.id === card.stepId)
-      return step && step.isFinal && !card.archived
+      if (card.archived) return false
+      const stepInfo = stepMap.get(card.stepId || '')
+      return stepInfo && stepInfo.isFinal
     }
 
     // Cards created before period

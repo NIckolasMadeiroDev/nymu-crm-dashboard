@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
-import type { HelenaCard, HelenaCardNote } from '@/services/helena/helena-cards-service'
+import type { HelenaCard } from '@/types/helena'
+import type { HelenaCardNote } from '@/services/helena/helena-cards-service'
 import type { HelenaContact } from '@/services/helena/helena-contacts-service'
 import type { HelenaPanel } from '@/services/helena/helena-panels-service'
 import type { PanelStep } from '@/services/helena/helena-panels-service'
