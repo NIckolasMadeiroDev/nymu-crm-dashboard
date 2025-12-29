@@ -61,7 +61,7 @@ export default function ContactsManager() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [pageSize]);
 
   useEffect(() => {
     fetchContacts(); // inicializa lista
@@ -194,7 +194,12 @@ export default function ContactsManager() {
                       : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600'
                   }`}
                 >
-                  {status === 'ALL' ? 'Todos' : status === 'ACTIVE' ? 'Ativos' : status === 'ARCHIVED' ? 'Arquivados' : 'Bloqueados'}
+                  {(() => {
+                    if (status === 'ALL') return 'Todos'
+                    if (status === 'ACTIVE') return 'Ativos'
+                    if (status === 'ARCHIVED') return 'Arquivados'
+                    return 'Bloqueados'
+                  })()}
                 </button>
               ))}
             </div>

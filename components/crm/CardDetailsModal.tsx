@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 import type { HelenaCard, HelenaCardNote } from '@/services/helena/helena-cards-service'
 import type { HelenaContact } from '@/services/helena/helena-contacts-service'
@@ -35,33 +35,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
   const [isLoadingContacts, setIsLoadingContacts] = useState(false)
   const [isLoadingNotes, setIsLoadingNotes] = useState(false)
 
-  useEffect(() => {
-    if (open && cardId && panelId) {
-      fetchCardDetails()
-      fetchNotes()
-      fetchPanel()
-    }
-  }, [open, cardId, panelId])
-
-  useEffect(() => {
-    // Só construir histórico quando card, panel E notas estiverem disponíveis
-    // E não estiver mais carregando notas
-    if (card && panel && !isLoadingNotes) {
-      setSelectedStepId(card.stepId || '')
-      buildHistory()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card, notes, panel, isLoadingNotes])
-
-  useEffect(() => {
-    if (card && card.contactIds && card.contactIds.length > 0) {
-      fetchContacts()
-    } else {
-      setContacts([])
-    }
-  }, [card])
-
-  const fetchCardDetails = async () => {
+  const fetchCardDetails = useCallback(async () => {
     setIsLoading(true)
     try {
       const cardsService = helenaServiceFactory.getCardsService()
@@ -73,9 +47,9 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [cardId])
 
-  const fetchPanel = async () => {
+  const fetchPanel = useCallback(async () => {
     try {
       const panelsService = helenaServiceFactory.getPanelsService()
       const data = await panelsService.getPanelById(panelId, ['steps'])
@@ -83,10 +57,13 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
     } catch (error) {
       console.error('Erro ao carregar painel:', error)
     }
-  }
+  }, [panelId])
 
-  const fetchContacts = async () => {
-    if (!card?.contactIds || card.contactIds.length === 0) return
+  const fetchContacts = useCallback(async () => {
+    if (!card?.contactIds || card.contactIds.length === 0) {
+      setContacts([])
+      return
+    }
     
     setIsLoadingContacts(true)
     try {
@@ -101,7 +78,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
     } finally {
       setIsLoadingContacts(false)
     }
-  }
+  }, [card])
 
   const handleMoveToStep = async (newStepId: string) => {
     if (!card || !panel || newStepId === card.stepId) return
@@ -146,7 +123,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
     }
   }
 
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     setIsLoadingNotes(true)
     try {
       const cardsService = helenaServiceFactory.getCardsService()
@@ -165,7 +142,33 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
     } finally {
       setIsLoadingNotes(false)
     }
-  }
+  }, [cardId])
+
+  useEffect(() => {
+    if (open && cardId && panelId) {
+      fetchCardDetails()
+      fetchNotes()
+      fetchPanel()
+    }
+  }, [open, cardId, panelId, fetchCardDetails, fetchNotes, fetchPanel])
+
+  useEffect(() => {
+    // Só construir histórico quando card, panel E notas estiverem disponíveis
+    // E não estiver mais carregando notas
+    if (card && panel && !isLoadingNotes) {
+      setSelectedStepId(card.stepId || '')
+      buildHistory()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card, notes, panel, isLoadingNotes])
+
+  useEffect(() => {
+    if (card && card.contactIds && card.contactIds.length > 0) {
+      fetchContacts()
+    } else {
+      setContacts([])
+    }
+  }, [card, fetchContacts])
 
   const formatCurrency = (value?: number | null) => {
     if (!value) return 'R$ 0,00'

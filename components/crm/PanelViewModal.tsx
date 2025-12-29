@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 import CardDetailsModal from './CardDetailsModal'
 
@@ -47,13 +47,8 @@ export default function PanelViewModal({ panel, open, onClose }: PanelViewModalP
   const [selectedCard, setSelectedCard] = useState<Card | null>(null)
   const [showCardDetails, setShowCardDetails] = useState(false)
 
-  useEffect(() => {
-    if (open && panel) {
-      fetchCards()
-    }
-  }, [open, panel])
-
-  const fetchCards = async () => {
+  const fetchCards = useCallback(async () => {
+    if (!panel?.id) return
     setIsLoading(true)
     try {
       const cardsService = helenaServiceFactory.getCardsService()
@@ -64,7 +59,13 @@ export default function PanelViewModal({ panel, open, onClose }: PanelViewModalP
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [panel])
+
+  useEffect(() => {
+    if (open && panel) {
+      fetchCards()
+    }
+  }, [open, panel, fetchCards])
 
   // Organizar steps e cards por stepId
   const stepsWithCards = useMemo(() => {
