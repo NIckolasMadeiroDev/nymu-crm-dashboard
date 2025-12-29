@@ -56,6 +56,40 @@ export interface HelenaPanelCustomField {
   order?: number
 }
 
+export interface PanelStep {
+  id?: string
+  title: string
+  position: number
+  isInitial: boolean
+  isFinal: boolean
+  archived?: boolean
+  color?: string
+  cardCount?: number
+  overdueCardCount?: number
+  monetaryAmount?: number
+}
+
+export interface CreatePanelPayload {
+  title: string
+  key?: string
+  description?: string
+  scope: 'PERSONAL' | 'DEPARTMENT'
+  departmentIds?: string[]
+  isRestrictedService?: boolean
+  viewType?: 'ALL' | 'INDIVIDUAL'
+}
+
+export interface UpdatePanelPayload {
+  title?: string
+  key?: string
+  description?: string
+  scope?: 'PERSONAL' | 'DEPARTMENT'
+  departmentIds?: string[]
+  isRestrictedService?: boolean
+  viewType?: 'ALL' | 'INDIVIDUAL'
+  archived?: boolean
+}
+
 export class HelenaPanelsService {
   constructor(private readonly apiClient: HelenaApiClient) {}
 
@@ -147,5 +181,54 @@ export class HelenaPanelsService {
    */
   async getPanelWithFullDetails(id: string): Promise<HelenaPanel> {
     return this.getPanelById(id, ['steps', 'tags', 'customFields'])
-    }
   }
+
+  /**
+   * Cria um novo painel
+   */
+  async createPanel(payload: CreatePanelPayload): Promise<HelenaPanel> {
+    return this.apiClient.post<HelenaPanel>('crm/v1/panel', payload)
+  }
+
+  /**
+   * Atualiza um painel existente
+   */
+  async updatePanel(id: string, payload: UpdatePanelPayload): Promise<HelenaPanel> {
+    return this.apiClient.put<HelenaPanel>(`crm/v1/panel/${id}`, payload)
+  }
+
+  /**
+   * Arquiva um painel
+   */
+  async archivePanel(id: string): Promise<HelenaPanel> {
+    return this.updatePanel(id, { archived: true })
+  }
+
+  /**
+   * Desarquiva um painel
+   */
+  async unarchivePanel(id: string): Promise<HelenaPanel> {
+    return this.updatePanel(id, { archived: false })
+  }
+
+  /**
+   * Cria uma nova etapa/fase em um painel
+   */
+  async createPanelStep(panelId: string, step: Partial<PanelStep>): Promise<any> {
+    return this.apiClient.post(`crm/v1/panel/${panelId}/step`, step)
+  }
+
+  /**
+   * Atualiza uma etapa/fase de um painel
+   */
+  async updatePanelStep(panelId: string, stepId: string, step: Partial<PanelStep>): Promise<any> {
+    return this.apiClient.put(`crm/v1/panel/${panelId}/step/${stepId}`, step)
+  }
+
+  /**
+   * Arquiva/Remove uma etapa/fase de um painel
+   */
+  async deletePanelStep(panelId: string, stepId: string): Promise<void> {
+    return this.apiClient.put(`crm/v1/panel/${panelId}/step/${stepId}`, { archived: true })
+  }
+}

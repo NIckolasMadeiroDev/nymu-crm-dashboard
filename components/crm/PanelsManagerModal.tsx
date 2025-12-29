@@ -3,6 +3,20 @@
 import { useState, useEffect } from 'react'
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 import PanelViewModal from './PanelViewModal'
+import PanelEditModal from './PanelEditModal'
+
+interface PanelStep {
+  id?: string
+  title: string
+  position: number
+  isInitial: boolean
+  isFinal: boolean
+  archived?: boolean
+  color?: string
+  cardCount?: number
+  overdueCardCount?: number
+  monetaryAmount?: number
+}
 
 interface Panel {
   id: string
@@ -15,6 +29,7 @@ interface Panel {
   archived: boolean
   createdAt: string
   updatedAt: string
+  steps?: PanelStep[]
 }
 
 interface PanelsManagerModalProps {
@@ -28,6 +43,8 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedPanel, setSelectedPanel] = useState<Panel | null>(null)
   const [showPanelView, setShowPanelView] = useState(false)
+  const [showPanelEdit, setShowPanelEdit] = useState(false)
+  const [editingPanel, setEditingPanel] = useState<Panel | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -39,7 +56,7 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
     setIsLoading(true)
     try {
       const panelsService = helenaServiceFactory.getPanelsService()
-      const data = await panelsService.getAllPanels()
+      const data = await panelsService.getPanelsWithDetails()
       setPanels(data as Panel[])
     } catch (error) {
       console.error('Erro ao carregar painéis:', error)
@@ -64,6 +81,25 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
   const handleClosePanelView = () => {
     setShowPanelView(false)
     setSelectedPanel(null)
+  }
+
+  const handleCreatePanel = () => {
+    setEditingPanel(null)
+    setShowPanelEdit(true)
+  }
+
+  const handleEditPanel = (panel: Panel) => {
+    setEditingPanel(panel)
+    setShowPanelEdit(true)
+  }
+
+  const handleClosePanelEdit = () => {
+    setShowPanelEdit(false)
+    setEditingPanel(null)
+  }
+
+  const handleSavePanel = () => {
+    fetchPanels()
   }
 
   const getDepartmentBadges = (departmentIds: string[] | null) => {
@@ -128,6 +164,7 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
               </svg>
             </div>
             <button
+              onClick={handleCreatePanel}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm font-secondary"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +215,7 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        // TODO: Implementar edição
+                        handleEditPanel(panel)
                       }}
                       className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors opacity-0 group-hover:opacity-100"
                       aria-label="Editar painel"
@@ -237,6 +274,16 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
           panel={selectedPanel}
           open={showPanelView}
           onClose={handleClosePanelView}
+        />
+      )}
+
+      {/* Panel Edit Modal */}
+      {showPanelEdit && (
+        <PanelEditModal
+          panel={editingPanel}
+          open={showPanelEdit}
+          onClose={handleClosePanelEdit}
+          onSave={handleSavePanel}
         />
       )}
     </>
