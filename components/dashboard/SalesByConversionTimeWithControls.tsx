@@ -138,69 +138,72 @@ export default function SalesByConversionTimeWithControls({
     }
   }, [])
 
+  // Função auxiliar para extrair dias de uma string
+  const extractDays = (dateStr: string): number | null => {
+    const regex = /(\d+)d/
+    const match = regex.exec(dateStr)
+    return match ? Number.parseInt(match[1], 10) : null
+  }
+
+  // Função auxiliar para obter nome da série
+  const getSeriesName = (key: string): string => {
+    const seriesNames: Record<string, string> = {
+      sevenDays: '7 Dias',
+      thirtyDays: '30 Dias',
+      ninetyDays: '90 Dias',
+      oneEightyDays: '180 Dias',
+    }
+    return seriesNames[key] || key
+  }
+
+  // Função auxiliar para identificar série ativa
+  const identifyActiveSeries = (clickData: any): { key: string; name: string } => {
+    if (clickData.sevenDays && clickData.sevenDays > 0) {
+      return { key: 'sevenDays', name: '7 Dias' }
+    }
+    if (clickData.thirtyDays && clickData.thirtyDays > 0) {
+      return { key: 'thirtyDays', name: '30 Dias' }
+    }
+    if (clickData.ninetyDays && clickData.ninetyDays > 0) {
+      return { key: 'ninetyDays', name: '90 Dias' }
+    }
+    if (clickData.oneEightyDays && clickData.oneEightyDays > 0) {
+      return { key: 'oneEightyDays', name: '180 Dias' }
+    }
+    if (clickData.seriesKey) {
+      return { key: clickData.seriesKey, name: clickData.seriesName || getSeriesName(clickData.seriesKey) }
+    }
+    return { key: 'sevenDays', name: '7 Dias' }
+  }
+
   const handleDataPointClick = (clickData: any) => {
     console.log('[SalesByConversionTimeWithControls] handleDataPointClick called with:', clickData)
-    if (onDataPointClick && clickData) {
-      // Para gráficos de tempo de conversão, o clickData pode ter diferentes formatos
-      if (clickData.date) {
-        // Extrair número de dias do formato "Xd" (ex: "21d")
-        const daysMatch = (clickData.date as string).match(/(\d+)d/)
-        if (daysMatch) {
-          const days = Number.parseInt(daysMatch[1], 10)
-          
-          // Determinar qual série tem valor > 0 para identificar a série clicada
-          let seriesKey = 'sevenDays'
-          let seriesName = '7 Dias'
-          
-          if (clickData.sevenDays && clickData.sevenDays > 0) {
-            seriesKey = 'sevenDays'
-            seriesName = '7 Dias'
-          } else if (clickData.thirtyDays && clickData.thirtyDays > 0) {
-            seriesKey = 'thirtyDays'
-            seriesName = '30 Dias'
-          } else if (clickData.ninetyDays && clickData.ninetyDays > 0) {
-            seriesKey = 'ninetyDays'
-            seriesName = '90 Dias'
-          } else if (clickData.oneEightyDays && clickData.oneEightyDays > 0) {
-            seriesKey = 'oneEightyDays'
-            seriesName = '180 Dias'
-          } else if (clickData.seriesKey) {
-            // Se já tem seriesKey, usar diretamente
-            seriesKey = clickData.seriesKey
-            seriesName = clickData.seriesName || 
-                        (seriesKey === 'sevenDays' ? '7 Dias' :
-                         seriesKey === 'thirtyDays' ? '30 Dias' :
-                         seriesKey === 'ninetyDays' ? '90 Dias' :
-                         seriesKey === 'oneEightyDays' ? '180 Dias' : seriesKey)
-          }
-          
-          console.log('[SalesByConversionTimeWithControls] Calling onDataPointClick with:', days, seriesKey, seriesName)
-          onDataPointClick(days, seriesKey, seriesName)
-        }
-      } else if (clickData.seriesKey && clickData.date) {
-        // Formato alternativo com seriesKey explícito
-        const daysMatch = (clickData.date as string).match(/(\d+)d/)
-        if (daysMatch) {
-          const days = Number.parseInt(daysMatch[1], 10)
-          const seriesName = clickData.seriesName || clickData.seriesKey
+    if (!onDataPointClick || !clickData) return
+
+    // Para gráficos de tempo de conversão, o clickData pode ter diferentes formatos
+    if (clickData.date) {
+      const days = extractDays(clickData.date as string)
+      if (days !== null) {
+        if (clickData.seriesKey) {
+          // Formato alternativo com seriesKey explícito
+          const seriesName = clickData.seriesName || getSeriesName(clickData.seriesKey)
           console.log('[SalesByConversionTimeWithControls] Calling onDataPointClick (alt format) with:', days, clickData.seriesKey, seriesName)
           onDataPointClick(days, clickData.seriesKey, seriesName)
+        } else {
+          const series = identifyActiveSeries(clickData)
+          console.log('[SalesByConversionTimeWithControls] Calling onDataPointClick with:', days, series.key, series.name)
+          onDataPointClick(days, series.key, series.name)
         }
-      } else if (clickData.x !== undefined) {
-        // Formato scatter/bubble
-        const days = clickData.x
-        const seriesKey = clickData.category || 'sevenDays'
-        const seriesName = seriesKey === 'sevenDays' ? '7 Dias' :
-                          seriesKey === 'thirtyDays' ? '30 Dias' :
-                          seriesKey === 'ninetyDays' ? '90 Dias' :
-                          seriesKey === 'oneEightyDays' ? '180 Dias' : seriesKey
-        console.log('[SalesByConversionTimeWithControls] Calling onDataPointClick (scatter) with:', days, seriesKey, seriesName)
-        onDataPointClick(days, seriesKey, seriesName)
-      } else {
-        console.warn('[SalesByConversionTimeWithControls] clickData format not recognized:', clickData)
       }
+    } else if (typeof clickData.x === 'number') {
+      // Formato scatter/bubble
+      const days = clickData.x
+      const seriesKey = clickData.category || 'sevenDays'
+      const seriesName = getSeriesName(seriesKey)
+      console.log('[SalesByConversionTimeWithControls] Calling onDataPointClick (scatter) with:', days, seriesKey, seriesName)
+      onDataPointClick(days, seriesKey, seriesName)
     } else {
-      console.warn('[SalesByConversionTimeWithControls] onDataPointClick not available or clickData is null')
+      console.warn('[SalesByConversionTimeWithControls] clickData format not recognized:', clickData)
     }
   }
 

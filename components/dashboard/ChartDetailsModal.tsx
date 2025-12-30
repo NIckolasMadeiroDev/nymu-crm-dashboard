@@ -241,16 +241,6 @@ export default function ChartDetailsModal({
     setExpandedGroups(newExpanded)
   }
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) {
-      return <ArrowUpDown size={14} className="text-gray-400" />
-    }
-    return sortDirection === 'asc' ? (
-      <ArrowUp size={14} className="text-blue-600 dark:text-blue-400" />
-    ) : (
-      <ArrowDown size={14} className="text-blue-600 dark:text-blue-400" />
-    )
-  }
 
   if (!isOpen) return null
 
@@ -261,10 +251,9 @@ export default function ChartDetailsModal({
         onClick={onClose}
         aria-hidden="true"
       />
-      <div
-        className="fixed inset-4 sm:inset-8 lg:inset-12 bg-white dark:bg-gray-900 rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden"
-        role="dialog"
-        aria-modal="true"
+      <dialog
+        open={isOpen}
+        className="fixed inset-4 sm:inset-8 lg:inset-12 bg-white dark:bg-gray-900 rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden border-0 p-0"
         aria-labelledby="chart-details-title"
       >
         {/* Header */}
@@ -357,11 +346,15 @@ export default function ChartDetailsModal({
           {processedDeals.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 dark:text-gray-400 font-secondary">
-                {searchTerm
-                  ? 'Nenhum resultado encontrado para a busca.'
-                  : title.toLowerCase().includes('leads criados')
-                  ? 'Nenhum lead encontrado para este período.'
-                  : 'Nenhuma venda encontrada para este período.'}
+                {(() => {
+                  if (searchTerm) {
+                    return 'Nenhum resultado encontrado para a busca.'
+                  }
+                  if (title.toLowerCase().includes('leads criados')) {
+                    return 'Nenhum lead encontrado para este período.'
+                  }
+                  return 'Nenhuma venda encontrada para este período.'
+                })()}
               </p>
             </div>
           ) : (
@@ -407,7 +400,7 @@ export default function ChartDetailsModal({
                               >
                                 <div className="flex items-center gap-2">
                                   Título
-                                  <SortIcon field="title" />
+                                  <SortIcon field="title" sortField={sortField} sortDirection={sortDirection} />
                                 </div>
                               </th>
                               <th
@@ -416,7 +409,7 @@ export default function ChartDetailsModal({
                               >
                                 <div className="flex items-center gap-2">
                                   Valor
-                                  <SortIcon field="value" />
+                                  <SortIcon field="value" sortField={sortField} sortDirection={sortDirection} />
                                 </div>
                               </th>
                               <th
@@ -425,7 +418,7 @@ export default function ChartDetailsModal({
                               >
                                 <div className="flex items-center gap-2">
                                   Responsável
-                                  <SortIcon field="owner" />
+                                  <SortIcon field="owner" sortField={sortField} sortDirection={sortDirection} />
                                 </div>
                               </th>
                               <th
@@ -434,7 +427,7 @@ export default function ChartDetailsModal({
                               >
                                 <div className="flex items-center gap-2">
                                   Contato / Lead
-                                  <SortIcon field="contact" />
+                                  <SortIcon field="contact" sortField={sortField} sortDirection={sortDirection} />
                                 </div>
                               </th>
                               <th
@@ -443,7 +436,7 @@ export default function ChartDetailsModal({
                               >
                                 <div className="flex items-center gap-2">
                                   Data
-                                  <SortIcon field="date" />
+                                  <SortIcon field="date" sortField={sortField} sortDirection={sortDirection} />
                                 </div>
                               </th>
                             </tr>
@@ -515,7 +508,19 @@ export default function ChartDetailsModal({
             </div>
           )}
         </div>
-      </div>
+      </dialog>
     </>
+  )
+}
+
+// Componente SortIcon movido para fora do componente principal
+function SortIcon({ field, sortField, sortDirection }: Readonly<{ field: SortField; sortField: SortField; sortDirection: SortDirection }>) {
+  if (sortField !== field) {
+    return <ArrowUpDown size={14} className="text-gray-400" />
+  }
+  return sortDirection === 'asc' ? (
+    <ArrowUp size={14} className="text-blue-600 dark:text-blue-400" />
+  ) : (
+    <ArrowDown size={14} className="text-blue-600 dark:text-blue-400" />
   )
 }

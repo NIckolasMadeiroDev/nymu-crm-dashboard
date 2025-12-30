@@ -68,7 +68,7 @@ export default function LineChart({
                     ? Number.parseInt(nextState.activeIndex, 10) 
                     : Number(nextState.activeIndex)
                   console.log('[RechartsLineChart] Parsed activeIndex:', activeIndex, 'from', nextState.activeIndex)
-                  if (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < data.length) {
+                  if (!Number.isNaN(activeIndex) && activeIndex >= 0 && activeIndex < data.length) {
                     payload = data[activeIndex]
                     console.log('[RechartsLineChart] Using activeIndex to get data:', payload)
                   } else {
@@ -138,7 +138,7 @@ export default function LineChart({
                 dot={{ r: 3 }}
                 activeDot={{ r: 5, onClick: onDataPointClick ? (dotProps: any, e: any) => {
                   console.log('[LineChart] activeDot onClick:', { dotProps, e, s })
-                  if (dotProps && dotProps.payload) {
+                  if (dotProps?.payload) {
                     const result = { ...dotProps.payload }
                     result.seriesKey = s.key
                     result.seriesName = s.name
@@ -157,7 +157,7 @@ export default function LineChart({
               dot={{ r: 3 }}
               activeDot={{ r: 5, onClick: onDataPointClick ? (dotProps: any, e: any) => {
                 console.log('[LineChart] Single activeDot onClick:', { dotProps, e })
-                if (dotProps && dotProps.payload) {
+                if (dotProps?.payload) {
                   onDataPointClick(dotProps.payload)
                 }
               } : undefined }}

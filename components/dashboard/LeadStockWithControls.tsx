@@ -17,11 +17,11 @@ export default function LeadStockWithControls({
   onDataPointClick,
 }: LeadStockWithControlsProps) {
   const chartConfig: ChartConfig = useMemo(() => {
-    // LeadStock usa números simples, não objetos
-    const contactListValue = typeof data.contactList === 'number' ? data.contactList : (data.contactList?.count || 0)
-    const firstContactValue = typeof data.firstContact === 'number' ? data.firstContact : (data.firstContact?.count || 0)
-    const inGroupValue = typeof data.inGroup === 'number' ? data.inGroup : (data.inGroup?.count || 0)
-    const postMeetValue = typeof data.postMeet === 'number' ? data.postMeet : (data.postMeet?.count || 0)
+    // LeadStock usa números simples
+    const contactListValue = data.contactList || 0
+    const firstContactValue = data.firstContact || 0
+    const inGroupValue = data.inGroup || 0
+    const postMeetValue = data.postMeet || 0
 
     return {
       type: 'bar',

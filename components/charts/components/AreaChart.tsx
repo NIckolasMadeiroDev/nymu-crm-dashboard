@@ -69,7 +69,7 @@ export default function AreaChart({
                     ? Number.parseInt(nextState.activeIndex, 10) 
                     : Number(nextState.activeIndex)
                   console.log('[RechartsAreaChart] Parsed activeIndex:', activeIndex, 'from', nextState.activeIndex)
-                  if (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < data.length) {
+                  if (!Number.isNaN(activeIndex) && activeIndex >= 0 && activeIndex < data.length) {
                     payload = data[activeIndex]
                     console.log('[RechartsAreaChart] Using activeIndex to get data:', payload)
                   } else {

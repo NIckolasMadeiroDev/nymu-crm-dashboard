@@ -2,11 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
-import type { HelenaCard } from '@/types/helena'
+import type { HelenaCard, HelenaContact } from '@/types/helena'
 import type { HelenaCardNote } from '@/services/helena/helena-cards-service'
-import type { HelenaContact } from '@/types/helena'
-import type { HelenaPanel } from '@/services/helena/helena-panels-service'
-import type { PanelStep } from '@/services/helena/helena-panels-service'
+import type { HelenaPanel, PanelStep } from '@/services/helena/helena-panels-service'
 
 interface CardDetailsModalProps {
   readonly cardId: string
@@ -53,7 +51,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
       setCard(data)
       
       // Sempre tentar obter o nome do responsável
-      if (data.responsibleUser && data.responsibleUser.name) {
+      if (data.responsibleUser?.name) {
         // Se já veio populado com nome, usar diretamente
         setCurrentResponsibleUser(data.responsibleUser)
         setIsLoadingResponsible(false)
@@ -62,13 +60,13 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
         try {
           const usersService = helenaServiceFactory.getUsersService()
           const user = await usersService.getUserById(data.responsibleUserId)
-          if (user && user.name) {
+          if (user?.name) {
             setCurrentResponsibleUser({ id: user.id, name: user.name })
           } else {
             // Se o usuário não tem nome, tentar buscar todos os usuários e encontrar pelo ID
             const allUsers = await usersService.getAllUsers()
             const foundUser = allUsers.find(u => u.id === data.responsibleUserId)
-            if (foundUser && foundUser.name) {
+            if (foundUser?.name) {
               setCurrentResponsibleUser({ id: foundUser.id, name: foundUser.name })
             } else {
               setCurrentResponsibleUser(null)
@@ -81,7 +79,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
             const usersService = helenaServiceFactory.getUsersService()
             const allUsers = await usersService.getAllUsers()
             const foundUser = allUsers.find(u => u.id === data.responsibleUserId)
-            if (foundUser && foundUser.name) {
+            if (foundUser?.name) {
               setCurrentResponsibleUser({ id: foundUser.id, name: foundUser.name })
             } else {
               setCurrentResponsibleUser(null)
@@ -128,7 +126,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
         contactsService.getContactById(id, ['tags']).catch(() => null)
       )
       const contactResults = await Promise.all(contactPromises)
-      setContacts(contactResults.filter(c => c !== null) as HelenaContact[])
+      setContacts(contactResults.filter((c): c is HelenaContact => c !== null))
     } catch (error) {
       console.error('Erro ao carregar contatos:', error)
     } finally {
@@ -244,11 +242,11 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
       setSelectedStepId(card.stepId || '')
       buildHistory()
     }
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card, notes, panel, isLoadingNotes])
 
   useEffect(() => {
-    if (card && card.contactIds && card.contactIds.length > 0) {
+    if (card?.contactIds?.length) {
       fetchContacts()
     } else {
       setContacts([])
@@ -276,7 +274,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
   const getInitials = (name: string) => {
     const parts = name.split(' ')
     if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+      return `${parts[0][0]}${parts.at(-1)?.[0] ?? ''}`.toUpperCase()
     }
     return name.substring(0, 2).toUpperCase()
   }
@@ -345,13 +343,14 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
         }
       }
 
-      else if (text.includes('título alterado') || text.includes('titulo alterado')) {
+      else if (text.includes('título alterado') || text.includes('titulo alterado') ||
+               text.includes('descrição alterada') || text.includes('descricao alterada')) {
         entry = {
           id: note.id,
           text: note.text,
           userName,
           date,
-          type: 'description_changed' // Usando description_changed como tipo genérico para mudanças
+          type: 'description_changed'
         }
       }
 
@@ -364,16 +363,6 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
           userName,
           date,
           type: 'value_changed'
-        }
-      }
-
-      else if (text.includes('descrição alterada') || text.includes('descricao alterada')) {
-        entry = {
-          id: note.id,
-          text: note.text,
-          userName,
-          date,
-          type: 'description_changed'
         }
       }
 
@@ -396,17 +385,30 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
 
     historyEntries.sort((a, b) => {
 
-      const dateA = a.type === 'created' && card.createdAt
-        ? new Date(card.createdAt).getTime()
-        : notes.find(n => n.id === a.id)?.createdAt
-          ? new Date(notes.find(n => n.id === a.id)!.createdAt).getTime()
-          : new Date(a.date).getTime()
+      const getDateA = () => {
+        if (a.type === 'created' && card?.createdAt) {
+          return new Date(card.createdAt).getTime()
+        }
+        const noteA = notes.find(n => n.id === a.id)
+        if (noteA?.createdAt) {
+          return new Date(noteA.createdAt).getTime()
+        }
+        return new Date(a.date).getTime()
+      }
 
-      const dateB = b.type === 'created' && card.createdAt
-        ? new Date(card.createdAt).getTime()
-        : notes.find(n => n.id === b.id)?.createdAt
-          ? new Date(notes.find(n => n.id === b.id)!.createdAt).getTime()
-          : new Date(b.date).getTime()
+      const getDateB = () => {
+        if (b.type === 'created' && card?.createdAt) {
+          return new Date(card.createdAt).getTime()
+        }
+        const noteB = notes.find(n => n.id === b.id)
+        if (noteB?.createdAt) {
+          return new Date(noteB.createdAt).getTime()
+        }
+        return new Date(b.date).getTime()
+      }
+
+      const dateA = getDateA()
+      const dateB = getDateB()
 
       return dateA - dateB
     })
