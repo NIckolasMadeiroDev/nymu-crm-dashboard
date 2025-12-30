@@ -40,6 +40,18 @@ export default function SalesConversion({ data, onDataPointClick }: Readonly<Sal
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
 
+  const allValues = useMemo(() => {
+    return data.salesByWeek.map((w) => Math.abs(w.value))
+  }, [data])
+
+  const maxValue = useMemo(() => Math.max(...allValues, 0), [allValues])
+  const useAdaptive = maxValue >= 1000
+  const adaptiveScale = useMemo(() => {
+    if (!useAdaptive) return { scale: 1, unit: '' }
+    const sample = formatAdaptiveNumber(maxValue)
+    return { scale: sample.scale, unit: sample.unit }
+  }, [useAdaptive, maxValue])
+
   const chartData = useMemo(() => {
 
     const scaleData = (value: number) => {
@@ -63,18 +75,6 @@ export default function SalesConversion({ data, onDataPointClick }: Readonly<Sal
     }
 
   }, [data, useAdaptive, adaptiveScale.scale])
-
-  const allValues = useMemo(() => {
-    return data.salesByWeek.map((w) => Math.abs(w.value))
-  }, [data])
-
-  const maxValue = useMemo(() => Math.max(...allValues, 0), [allValues])
-  const useAdaptive = maxValue >= 1000
-  const adaptiveScale = useMemo(() => {
-    if (!useAdaptive) return { scale: 1, unit: '' }
-    const sample = formatAdaptiveNumber(maxValue)
-    return { scale: sample.scale, unit: sample.unit }
-  }, [useAdaptive, maxValue])
 
   const yAxisDomain = useMemo(() => {
     if (maxValue === 0) {
