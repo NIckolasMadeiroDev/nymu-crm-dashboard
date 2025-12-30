@@ -358,7 +358,7 @@ export class DashboardAdapter {
       salesByConversionTime: this.buildSalesByConversionTime(filteredDeals),
       // buildLeadQuality usa cards diretamente, não precisa de leads/deals filtrados
       leadQuality: this.buildLeadQuality(leads, deals),
-      operational: this.buildOperationalMetrics(cards, panels, filters),
+      operational: await this.buildOperationalMetrics(cards, panels, filters),
     }
 
     if (Object.keys(errors).length > 0) {
@@ -929,11 +929,11 @@ export class DashboardAdapter {
     return weeks
   }
 
-  private buildOperationalMetrics(
+  private async buildOperationalMetrics(
     cards: HelenaCard[],
     panels: HelenaPanel[],
     filters: DashboardFilters
-  ): OperationalDashboardData {
+  ): Promise<OperationalDashboardData> {
     const stepMap = (this as any).stepMap as Map<string, any>
     const periodDate = new Date(filters.date)
     periodDate.setHours(0, 0, 0, 0)
@@ -1002,7 +1002,7 @@ export class DashboardAdapter {
 
     // Calculate channel metrics
     const contacts = (this as any).contacts || []
-    const channels = this.buildChannelMetrics(cards, contacts)
+    const channels = await this.buildChannelMetrics(cards, contacts)
 
     // Calculate tag metrics
     const topTags = this.buildTagMetrics(cards)
@@ -1099,28 +1099,95 @@ export class DashboardAdapter {
     }
   }
 
-  private buildChannelMetrics(cards: HelenaCard[], contacts?: HelenaContact[]): ChannelMetrics[] {
+  private async buildChannelMetrics(cards: HelenaCard[], contacts?: HelenaContact[]): Promise<ChannelMetrics[]> {
     const allContacts = contacts || (this as any).contacts || []
     const channelMap = new Map<string, number>()
 
-    cards.forEach(card => {
-      // Use tags as channel identifier, or contact source
-      if (card.tags && card.tags.length > 0) {
-        card.tags.forEach(tag => {
-          const count = channelMap.get(tag.name) || 0
-          channelMap.set(tag.name, count + 1)
+    // Buscar departments com canais
+    let departmentsWithChannels: any[] = []
+    try {
+      const departmentsService = helenaServiceFactory.getDepartmentsService()
+      const allDepartments = await departmentsService.listDepartments()
+      // Buscar detalhes de cada department para obter canais
+      departmentsWithChannels = await Promise.all(
+        allDepartments.map(async (dept) => {
+          try {
+            const details = await departmentsService.getDepartmentById(dept.id, 'All')
+            return details
+          } catch {
+            return dept
+          }
         })
-      } else if (card.contactIds && card.contactIds.length > 0) {
+      )
+    } catch (error) {
+      console.warn('[DashboardAdapter] Error fetching departments for channels:', error)
+    }
+
+    // Criar mapa de channelId -> channelName
+    const channelIdToName = new Map<string, string>()
+    departmentsWithChannels.forEach((dept) => {
+      if (dept.channels && Array.isArray(dept.channels)) {
+        dept.channels.forEach((channel: any) => {
+          if (channel.id) {
+            const channelName = channel.name || channel.number || `Canal ${channel.id.substring(0, 8)}`
+            channelIdToName.set(channel.id, channelName)
+          }
+        })
+      }
+    })
+
+    cards.forEach(card => {
+      let channelFound = false
+
+      // Tentar encontrar canal através de sessionId ou metadata
+      if (card.sessionId) {
+        // sessionId pode estar relacionado ao canal
+        // Verificar se há alguma relação no metadata
+        if (card.metadata && typeof card.metadata === 'object') {
+          const metadata = card.metadata as any
+          if (metadata.channelId && channelIdToName.has(metadata.channelId)) {
+            const channelName = channelIdToName.get(metadata.channelId)!
+            const count = channelMap.get(channelName) || 0
+            channelMap.set(channelName, count + 1)
+            channelFound = true
+          }
+        }
+      }
+
+      // Se não encontrou por sessionId, tentar por tags (canais podem estar como tags)
+      if (!channelFound && card.tags && card.tags.length > 0) {
+        card.tags.forEach(tag => {
+          // Verificar se o nome da tag corresponde a algum canal conhecido
+          const matchingChannel = Array.from(channelIdToName.values()).find(
+            name => name.toLowerCase().includes(tag.name.toLowerCase()) || 
+                   tag.name.toLowerCase().includes(name.toLowerCase())
+          )
+          if (matchingChannel) {
+            const count = channelMap.get(matchingChannel) || 0
+            channelMap.set(matchingChannel, count + 1)
+            channelFound = true
+          } else {
+            // Usar tag como canal se não encontrar correspondência
+            const count = channelMap.get(tag.name) || 0
+            channelMap.set(tag.name, count + 1)
+            channelFound = true
+          }
+        })
+      }
+
+      // Se ainda não encontrou, tentar por contact source
+      if (!channelFound && card.contactIds && card.contactIds.length > 0) {
         const contact = allContacts.find((c: { id: string }) => card.contactIds?.includes(c.id))
         if (contact?.customFields?.source) {
           const source = contact.customFields.source as string
           const count = channelMap.get(source) || 0
           channelMap.set(source, count + 1)
-        } else {
-          const count = channelMap.get('Sem canal') || 0
-          channelMap.set('Sem canal', count + 1)
+          channelFound = true
         }
-      } else {
+      }
+
+      // Se não encontrou nenhum canal, marcar como "Sem canal"
+      if (!channelFound) {
         const count = channelMap.get('Sem canal') || 0
         channelMap.set('Sem canal', count + 1)
       }

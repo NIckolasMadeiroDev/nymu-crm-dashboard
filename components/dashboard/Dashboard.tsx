@@ -11,6 +11,8 @@ import ConversionRatesWithControls from './ConversionRatesWithControls'
 import LeadStockWithControls from './LeadStockWithControls'
 import SalesByConversionTimeWithControls from './SalesByConversionTimeWithControls'
 import LeadQualityWithControls from './LeadQualityWithControls'
+import AttendancesByChannelWithControls from './AttendancesByChannelWithControls'
+import CapacityOfAttendanceWithControls from './CapacityOfAttendanceWithControls'
 import DraggableChart from './DraggableChart'
 import ExportButton from '@/components/export/ExportButton'
 import ShareButton from '@/components/sharing/ShareButton'
@@ -493,6 +495,35 @@ filtersToLoad ??= {
             )}
           </DraggableChart>
         )
+      case 'attendances-by-channel-chart':
+        return dashboardData.operational?.channels ? (
+          <DraggableChart key={chartId} id={chartId} span={dynamicSpan}>
+            {(dragHandleProps) => (
+              <AttendancesByChannelWithControls
+                data={dashboardData.operational.channels}
+                dragHandleProps={dragHandleProps}
+                onDataPointClick={(channel: string, label: string) =>
+                  handleChartDataPointClick('Atendimentos por Canal', {
+                    type: 'date',
+                    value: channel,
+                    label: `${label} - Atendimentos por Canal`,
+                  })
+                }
+              />
+            )}
+          </DraggableChart>
+        ) : null
+      case 'capacity-of-attendance-widget':
+        return dashboardData.operational?.capacity ? (
+          <DraggableChart key={chartId} id={chartId} span={dynamicSpan}>
+            {(dragHandleProps) => (
+              <CapacityOfAttendanceWithControls
+                data={dashboardData.operational.capacity}
+                dragHandleProps={dragHandleProps}
+              />
+            )}
+          </DraggableChart>
+        ) : null
       default:
         return null
     }
