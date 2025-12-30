@@ -128,20 +128,20 @@ export async function POST(request: NextRequest) {
         const stepInfo = stepMap.get(deal.stepId || '')
         if (!stepInfo) return false
         
-        const category = period.value.toLowerCase()
+        const category = period.value.toLowerCase().replace(/\s+/g, '')
         const stepTitle = stepInfo.title?.toLowerCase() || ''
         
-        // Mapear categorias para etapas
-        if (category === 'contactlist') {
+        // Mapear categorias para etapas (aceitar tanto camelCase quanto minúsculas)
+        if (category === 'contactlist' || category === 'contact_list') {
           // Lista de Contato - etapa inicial
           return !stepInfo.isFinal && stepInfo.position === 0
-        } else if (category === 'firstcontact') {
+        } else if (category === 'firstcontact' || category === 'first_contact') {
           // Primeiro Contato - primeira etapa após inicial
           return !stepInfo.isFinal && stepInfo.position > 0 && stepInfo.position <= 1
-        } else if (category === 'ingroup') {
+        } else if (category === 'ingroup' || category === 'in_group') {
           // No Grupo - etapas intermediárias
           return !stepInfo.isFinal && stepInfo.position > 1 && stepInfo.position <= 2
-        } else if (category === 'postmeet') {
+        } else if (category === 'postmeet' || category === 'post_meet') {
           // Pós-Meet - etapas próximas ao final
           return !stepInfo.isFinal && stepInfo.position > 2
         }

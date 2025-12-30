@@ -172,6 +172,7 @@ export default function ChartFactory({ config, onDataPointClick }: Readonly<Char
           config={config}
           data={config.data as any[]}
           height={config.height}
+          onDataPointClick={onDataPointClick}
         />
       )
 

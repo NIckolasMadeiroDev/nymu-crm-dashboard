@@ -58,6 +58,7 @@ export default function PieChart({
                   onDataPointClick(data)
                 }
               } : undefined}
+              style={{ cursor: onDataPointClick ? 'pointer' : 'default' }}
             >
             {data.map((entry) => {
               const index = data.indexOf(entry)

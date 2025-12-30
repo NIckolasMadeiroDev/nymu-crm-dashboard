@@ -62,26 +62,34 @@ export default function LeadStockWithControls({
     console.log('[LeadStockWithControls] handleDataPointClick called with:', clickData)
     if (onDataPointClick && clickData) {
       // O clickData pode vir do PieChart (com name e value) ou BarChart (com category)
-      const category = clickData.category || clickData.name?.toLowerCase().replace(/\s+/g, '') || ''
+      let category = clickData.category
       const label = clickData.categoryLabel || clickData.name || category
       
-      // Mapear labels para categorias
-      let mappedCategory = category
-      if (clickData.name) {
+      // Se não tem category, mapear pelo name
+      if (!category && clickData.name) {
         const nameLower = clickData.name.toLowerCase()
-        if (nameLower.includes('lista de contato')) {
-          mappedCategory = 'contactList'
-        } else if (nameLower.includes('primeiro contato')) {
-          mappedCategory = 'firstContact'
-        } else if (nameLower.includes('no grupo')) {
-          mappedCategory = 'inGroup'
-        } else if (nameLower.includes('pós-meet') || nameLower.includes('pos-meet')) {
-          mappedCategory = 'postMeet'
+        if (nameLower.includes('lista de contato') || nameLower.includes('lista')) {
+          category = 'contactList'
+        } else if (nameLower.includes('primeiro contato') || nameLower.includes('primeiro')) {
+          category = 'firstContact'
+        } else if (nameLower.includes('no grupo') || nameLower.includes('grupo')) {
+          category = 'inGroup'
+        } else if (nameLower.includes('pós-meet') || nameLower.includes('pos-meet') || nameLower.includes('pós meet') || nameLower.includes('pos meet')) {
+          category = 'postMeet'
+        } else {
+          // Fallback: usar o name como category
+          category = clickData.name
         }
       }
       
-      console.log('[LeadStockWithControls] Calling onDataPointClick with:', mappedCategory, label)
-      onDataPointClick(mappedCategory, label)
+      // Garantir que category existe
+      if (!category) {
+        console.warn('[LeadStockWithControls] No category found in clickData:', clickData)
+        return
+      }
+      
+      console.log('[LeadStockWithControls] Calling onDataPointClick with:', category, label)
+      onDataPointClick(category, label)
     }
   }
 
@@ -97,4 +105,5 @@ export default function LeadStockWithControls({
     />
   )
 }
+
 

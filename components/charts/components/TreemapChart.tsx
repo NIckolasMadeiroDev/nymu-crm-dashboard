@@ -8,7 +8,7 @@ import { useChartFormatters } from '../hooks/useChartFormatters'
 import { useThemeColors } from '../hooks/useThemeColors'
 import { useResponsiveHeight } from '../hooks/useResponsiveHeight'
 
-export default function TreemapChart({ config, data, height = 300 }: Readonly<TreemapChartProps>) {
+export default function TreemapChart({ config, data, height = 300, onDataPointClick }: Readonly<TreemapChartProps>) {
   const { xAxisKey, yAxisKey, formatValue } = useChartFormatters(config)
   const themeColors = useThemeColors()
   const responsiveHeight = useResponsiveHeight(height)
@@ -26,6 +26,16 @@ export default function TreemapChart({ config, data, height = 300 }: Readonly<Tr
             aspectRatio={4 / 3}
             stroke={themeColors.background}
             fill={themeColors.primary}
+            onClick={onDataPointClick ? (data: any, index: number, e: any) => {
+              console.log('[TreemapChart] Treemap onClick event:', { data, index, e })
+              // No Recharts, o onClick do Treemap recebe (data, index, e)
+              // onde data é o objeto do ponto de dados do array data
+              if (data && typeof data === 'object') {
+                console.log('[TreemapChart] Calling onDataPointClick with data:', data)
+                onDataPointClick(data)
+              }
+            } : undefined}
+            style={{ cursor: onDataPointClick ? 'pointer' : 'default' }}
           >
           <Tooltip
             contentStyle={{
