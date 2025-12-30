@@ -17,11 +17,32 @@ export default function SalesConversionWithControls({
   onDataPointClick,
 }: SalesConversionWithControlsProps) {
   const chartConfig: ChartConfig = useMemo(() => {
-    const chartData = data.salesByWeek.map((w) => ({
-      name: w.label,
-      value: w.value,
-      week: w.week, // Adicionar week para facilitar o lookup
-    }))
+    // Calcular estatísticas para tooltips
+    const totalSales = data.salesByWeek.reduce((sum, w) => sum + w.value, 0)
+    const averageSales = totalSales / data.salesByWeek.length
+    
+    const chartData = data.salesByWeek.map((w, index) => {
+      // No eixo X, mostrar apenas "Sem X" (sem datas)
+      const displayLabel = `Sem ${w.week}`
+      
+      // Calcular variação em relação à média
+      const variation = averageSales > 0 ? ((w.value - averageSales) / averageSales * 100).toFixed(1) : '0'
+      const isAboveAverage = w.value > averageSales
+      
+      return {
+        name: displayLabel, // Label resumido para eixo X
+        value: w.value,
+        week: w.week,
+        fullLabel: w.label, // Label completo para tooltip
+        // Informações extras para tooltip detalhado
+        weekNumber: w.week,
+        totalSales: w.value,
+        variation: variation,
+        isAboveAverage: isAboveAverage,
+        position: index + 1,
+        totalWeeks: data.salesByWeek.length,
+      }
+    })
 
     const allValues = chartData.map((d) => Math.abs(d.value))
     const maxValue = allValues.length > 0 ? Math.max(...allValues) : 0
@@ -33,8 +54,10 @@ export default function SalesConversionWithControls({
       data: chartData,
       xAxisKey: 'name',
       yAxisKey: 'value',
-      height: 160,
+      height: 200, // Aumentar altura para melhor visualização
       useAdaptive,
+      xAxisLabel: 'Semana',
+      yAxisLabel: 'Vendas',
     }
   }, [data])
 
@@ -49,8 +72,9 @@ export default function SalesConversionWithControls({
           console.log('[SalesConversionWithControls] Using week from clickData:', clickData.week, clickData.name)
           onDataPointClick(clickData.week, clickData.name)
         } else {
-          // Encontrar a semana correspondente pelo label
-          const weekData = data.salesByWeek.find((w) => w.label === clickData.name)
+          // Encontrar a semana correspondente pelo label ou usar fullLabel se disponível
+          const labelToFind = clickData.fullLabel || clickData.name
+          const weekData = data.salesByWeek.find((w) => w.label === labelToFind || w.label.includes(clickData.name))
           console.log('[SalesConversionWithControls] Found weekData:', weekData)
           if (weekData) {
             console.log('[SalesConversionWithControls] Calling onDataPointClick with:', weekData.week, weekData.label)

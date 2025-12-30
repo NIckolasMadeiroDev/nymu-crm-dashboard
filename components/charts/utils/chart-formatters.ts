@@ -160,8 +160,31 @@ export const formatXAxis = (tickItem: any, xAxisKey: string): string => {
 
 
   const str = String(tickItem)
-  if (typeof window !== 'undefined' && window.innerWidth < 640 && str.length > 8) {
-    return str.substring(0, 6) + '...'
+  
+  // Melhorar formatação de labels de semanas com datas
+  if (str.includes('Sem ') && str.includes(':')) {
+    // Formato: "Sem X: DD/MM/YYYY até DD/MM/YYYY"
+    const parts = str.split(':')
+    if (parts.length >= 2) {
+      const weekPart = parts[0].trim() // "Sem X"
+      const datePart = parts[1].trim().split(' até ')[0] // Primeira data
+      // Em telas pequenas, mostrar apenas semana e data inicial
+      if (typeof window !== 'undefined' && window.innerWidth < 640) {
+        return `${weekPart}\n${datePart}`
+      }
+      // Em telas maiores, mostrar semana e range completo
+      return `${weekPart}\n${parts[1].trim()}`
+    }
+  }
+  
+  // Melhorar formatação de tempo de conversão (ex: "7 dias" ao invés de "7d")
+  if (str.includes('dias')) {
+    return str
+  }
+  
+  // Truncar strings longas em telas pequenas
+  if (typeof window !== 'undefined' && window.innerWidth < 640 && str.length > 12) {
+    return str.substring(0, 10) + '...'
   }
 
   return str

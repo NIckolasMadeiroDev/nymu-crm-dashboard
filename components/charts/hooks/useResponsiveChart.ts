@@ -34,8 +34,8 @@ export function useResponsiveChart(): ResponsiveChartConfig {
         smallFontSize: isSmall ? '8px' : '9px',
         marginRight: isSmall ? 5 : 10,
         marginLeft: isSmall ? -5 : -10,
-        marginBottom: isSmall ? 40 : 5,
-        xAxisHeight: isSmall ? 50 : 60,
+        marginBottom: isSmall ? 50 : 20, // Aumentar para acomodar labels de múltiplas linhas
+        xAxisHeight: isSmall ? 60 : 80, // Aumentar altura para labels de múltiplas linhas
         yAxisWidth: isSmall ? 40 : 50,
         tickCount: isSmall ? 5 : undefined,
         xAxisAngle: -45,

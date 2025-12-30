@@ -75,27 +75,68 @@ export default function SalesByConversionTimeWithControls({
       if (seriesItem.data && seriesItem.data.length > 0) {
         seriesItem.data.forEach((point: TimeSeriesData) => {
           if (point && typeof point.days === 'number') {
-            allDates.add(`${point.days}d`)
+            // Formatar de forma mais legível
+            const days = point.days
+            let label = ''
+            if (days === 1) {
+              label = '1 dia'
+            } else if (days < 30) {
+              label = `${days} dias`
+            } else if (days === 30) {
+              label = '30 dias'
+            } else if (days < 90) {
+              label = `${days} dias`
+            } else if (days === 90) {
+              label = '90 dias'
+            } else {
+              label = `${days} dias`
+            }
+            allDates.add(`${days}d|${label}`)
           }
         })
       }
     })
 
-    const findPointValue = (seriesItem: typeof seriesConfig[0], dateStr: string): number => {
+    const findPointValue = (seriesItem: typeof seriesConfig[0], daysKey: string): number => {
       if (!seriesItem.data || seriesItem.data.length === 0) {
         return 0
       }
+      const days = Number.parseInt(daysKey.replace('d', ''), 10)
       const point = seriesItem.data.find(
-        (p: TimeSeriesData) => p && `${p.days}d` === dateStr
+        (p: TimeSeriesData) => p && p.days === days
       )
       return point && typeof point.value === 'number' ? point.value : 0
     }
 
     const transformedData = Array.from(allDates).map((dateStr) => {
-      const dateObj: Record<string, string | number> = { date: dateStr }
+      const [daysKey, label] = dateStr.split('|')
+      const days = Number.parseInt(daysKey.replace('d', ''), 10) || 0
+      
+      // Calcular total de todas as séries para este ponto
+      let totalValue = 0
+      seriesConfig.forEach((seriesItem) => {
+        totalValue += findPointValue(seriesItem, daysKey)
+      })
+      
+      // Calcular informações adicionais para tooltip
+      const activeSeries = seriesConfig.filter(s => findPointValue(s, daysKey) > 0)
+      const maxSeries = seriesConfig.reduce((max, s) => {
+        const val = findPointValue(s, daysKey)
+        return val > max.value ? { key: s.key, name: s.name, value: val } : max
+      }, { key: '', name: '', value: 0 })
+      
+      const dateObj: Record<string, string | number> = { 
+        date: daysKey, // Manter para ordenação
+        dateLabel: label || daysKey, // Label formatado para exibição (resumido)
+        days: days, // Dias numéricos para tooltip
+        totalValue: totalValue, // Total para tooltip
+        activeSeriesCount: activeSeries.length, // Quantas séries têm valor
+        maxSeriesName: maxSeries.name, // Série com maior valor
+        maxSeriesValue: maxSeries.value, // Valor da série maior
+      }
 
       seriesConfig.forEach((seriesItem) => {
-        dateObj[seriesItem.key] = findPointValue(seriesItem, dateStr)
+        dateObj[seriesItem.key] = findPointValue(seriesItem, daysKey)
       })
 
       return dateObj
@@ -125,10 +166,12 @@ export default function SalesByConversionTimeWithControls({
       title: 'Vendas por Tempo de Conversão',
       data: transformedData,
       series,
-      xAxisKey: 'date',
+      xAxisKey: 'dateLabel', // Usar label formatado para exibição
       yAxisKey: 'value',
-      height: 160,
+      height: 200, // Aumentar altura para melhor visualização
       useAdaptive,
+      xAxisLabel: 'Tempo de Conversão',
+      yAxisLabel: 'Quantidade de Vendas',
     }
   }, [data, currentChartType])
 
@@ -140,6 +183,7 @@ export default function SalesByConversionTimeWithControls({
 
   // Função auxiliar para extrair dias de uma string
   const extractDays = (dateStr: string): number | null => {
+    // Pode vir como "7d" ou "7d|7 dias" ou "dateLabel"
     const regex = /(\d+)d/
     const match = regex.exec(dateStr)
     return match ? Number.parseInt(match[1], 10) : null
@@ -181,8 +225,9 @@ export default function SalesByConversionTimeWithControls({
     if (!onDataPointClick || !clickData) return
 
     // Para gráficos de tempo de conversão, o clickData pode ter diferentes formatos
-    if (clickData.date) {
-      const days = extractDays(clickData.date as string)
+    if (clickData.date || clickData.dateLabel) {
+      const dateStr = (clickData.dateLabel || clickData.date) as string
+      const days = extractDays(dateStr)
       if (days !== null) {
         if (clickData.seriesKey) {
           // Formato alternativo com seriesKey explícito

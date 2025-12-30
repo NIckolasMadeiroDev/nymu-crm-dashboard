@@ -16,6 +16,7 @@ import { useChartFormatters } from '../hooks/useChartFormatters'
 import { useThemeColors } from '../hooks/useThemeColors'
 import { useResponsiveHeight } from '../hooks/useResponsiveHeight'
 import { useResponsiveChart } from '../hooks/useResponsiveChart'
+import { EnhancedTooltip } from './EnhancedTooltip'
 
 export default function AreaChart({
   config,
@@ -106,6 +107,7 @@ export default function AreaChart({
               textAnchor="end"
               height={responsiveChart.xAxisHeight}
               interval="preserveStartEnd"
+              tick={{ style: { fontSize: responsiveChart.fontSize } }}
             />
             <YAxis
               tickFormatter={formatY}
@@ -117,14 +119,8 @@ export default function AreaChart({
               label={adaptiveDomain?.unit ? { value: `(${adaptiveDomain.unit})`, angle: -90, position: 'insideLeft', style: { fontSize: '9px' } } : undefined}
             />
           <Tooltip
-            contentStyle={{
-              backgroundColor: themeColors.tooltipBackground,
-              border: `1px solid ${themeColors.tooltipBorder}`,
-              borderRadius: '8px',
-              color: themeColors.tooltipText,
-            }}
-            formatter={formatTooltip}
-            labelFormatter={formatX}
+            content={<EnhancedTooltip showFullDetails={true} />}
+            wrapperStyle={{ zIndex: 1000 }}
           />
           {showLegend && <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />}
           {series.length > 0 ? (

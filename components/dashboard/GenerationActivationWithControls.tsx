@@ -17,17 +17,43 @@ export default function GenerationActivationWithControls({
   onDataPointClick,
 }: GenerationActivationWithControlsProps) {
   const chartConfig: ChartConfig = useMemo(() => {
+    // Calcular estatísticas para tooltips
+    const totalLeads = data.leadsCreatedByWeek.reduce((sum, w) => sum + w.value, 0)
+    const averageLeads = totalLeads / data.leadsCreatedByWeek.length
+    
+    // Formatar labels de forma mais compacta mas legível
+    const formattedData = data.leadsCreatedByWeek.map((w, index) => {
+      // No eixo X, mostrar apenas "Sem X" (sem datas)
+      const displayLabel = `Sem ${w.week}`
+      
+      // Calcular variação em relação à média
+      const variation = averageLeads > 0 ? ((w.value - averageLeads) / averageLeads * 100).toFixed(1) : '0'
+      const isAboveAverage = w.value > averageLeads
+      
+      return {
+        name: displayLabel, // Label resumido para eixo X
+        value: w.value,
+        week: w.week,
+        fullLabel: w.label, // Label completo para tooltip
+        // Informações extras para tooltip detalhado
+        weekNumber: w.week,
+        totalLeads: w.value,
+        variation: variation,
+        isAboveAverage: isAboveAverage,
+        position: index + 1,
+        totalWeeks: data.leadsCreatedByWeek.length,
+      }
+    })
+    
     return {
       type: 'area',
       title: 'Geração e Ativação',
-      data: data.leadsCreatedByWeek.map((w) => ({
-        name: w.label,
-        value: w.value,
-        week: w.week, // Adicionar week para facilitar o lookup
-      })),
+      data: formattedData,
       xAxisKey: 'name',
       yAxisKey: 'value',
-      height: 160,
+      height: 200, // Aumentar altura para melhor visualização
+      xAxisLabel: 'Semana',
+      yAxisLabel: 'Leads Criados',
     }
   }, [data])
 
@@ -41,8 +67,9 @@ export default function GenerationActivationWithControls({
           console.log('[GenerationActivationWithControls] Using week from clickData:', clickData.week, clickData.name)
           onDataPointClick(clickData.week, clickData.name)
         } else {
-          // Encontrar a semana correspondente pelo label
-          const weekData = data.leadsCreatedByWeek.find((w) => w.label === clickData.name)
+          // Encontrar a semana correspondente pelo label ou usar fullLabel se disponível
+          const labelToFind = clickData.fullLabel || clickData.name
+          const weekData = data.leadsCreatedByWeek.find((w) => w.label === labelToFind || w.label.includes(clickData.name))
           console.log('[GenerationActivationWithControls] Found weekData:', weekData)
           if (weekData) {
             console.log('[GenerationActivationWithControls] Calling onDataPointClick with:', weekData.week, weekData.label)

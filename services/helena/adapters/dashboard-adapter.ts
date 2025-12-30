@@ -351,8 +351,8 @@ export class DashboardAdapter {
 
     const dashboardData: DashboardData = {
       filters,
-      generationActivation: this.buildGenerationActivation(filteredLeads, filteredContacts),
-      salesConversion: this.buildSalesConversion(filteredDeals),
+      generationActivation: await this.buildGenerationActivation(filteredLeads, filteredContacts),
+      salesConversion: await this.buildSalesConversion(filteredDeals),
       conversionRates: this.buildConversionRates(filteredLeads, filteredDeals),
       leadStock: this.buildLeadStock(filteredLeads, filteredContacts),
       salesByConversionTime: this.buildSalesByConversionTime(filteredDeals),
@@ -396,10 +396,10 @@ export class DashboardAdapter {
     return contacts
   }
 
-  private buildGenerationActivation(
+  private async buildGenerationActivation(
     leads: LeadLike[],
     contacts: HelenaContact[]
-  ): GenerationActivationMetrics {
+  ): Promise<GenerationActivationMetrics> {
     // Use real card data for more accurate metrics
     const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
@@ -437,11 +437,19 @@ export class DashboardAdapter {
       ? this.groupCardsByWeek(activeCards)
       : this.groupLeadsByWeek(leads)
       
-    const leadsCreatedByWeek: WeeklyData[] = leadsByWeek.map((count, index) => ({
-      week: index + 1,
-      value: count,
-      label: `Sem ${index + 1}`,
-    }))
+    // Importar funções de formatação de data
+    const { getWeekDateRange, formatDateRange } = await import('@/utils/date-ranges')
+    
+    const leadsCreatedByWeek: WeeklyData[] = leadsByWeek.map((count, index) => {
+      const weekNumber = index + 1
+      const { startDate, endDate } = getWeekDateRange(weekNumber)
+      const dateRange = formatDateRange(startDate, endDate)
+      return {
+        week: weekNumber,
+        value: count,
+        label: `Sem ${weekNumber}: ${dateRange}`,
+      }
+    })
 
     return {
       leadsCreated,
@@ -451,7 +459,7 @@ export class DashboardAdapter {
     }
   }
 
-  private buildSalesConversion(deals: CrmDeal[]): SalesConversionMetrics {
+  private async buildSalesConversion(deals: CrmDeal[]): Promise<SalesConversionMetrics> {
     const closedSales = deals.length
     const revenueGenerated = deals.reduce((sum, deal) => sum + (deal.value || 0), 0)
     
@@ -464,11 +472,19 @@ export class DashboardAdapter {
     const targetRate = 75
 
     const salesByWeek = this.groupDealsByWeek(deals)
-    const salesByWeekData: WeeklyData[] = salesByWeek.map((count, index) => ({
-      week: index + 1,
-      value: count,
-      label: `Sem ${index + 1}`,
-    }))
+    // Importar funções de formatação de data
+    const { getWeekDateRange, formatDateRange } = await import('@/utils/date-ranges')
+    
+    const salesByWeekData: WeeklyData[] = salesByWeek.map((count, index) => {
+      const weekNumber = index + 1
+      const { startDate, endDate } = getWeekDateRange(weekNumber)
+      const dateRange = formatDateRange(startDate, endDate)
+      return {
+        week: weekNumber,
+        value: count,
+        label: `Sem ${weekNumber}: ${dateRange}`,
+      }
+    })
 
     return {
       closedSales,
