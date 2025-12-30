@@ -171,11 +171,53 @@ export function generateMockLeadStock(filters?: DashboardFilters): LeadStock {
   const activation = generateMockGenerationActivation(filters)
   const sales = generateMockSalesConversion(filters)
 
+  // Valor médio por lead em cada etapa (em reais)
+  const contactListValue = activation.leadsCreated * 50 // R$ 50 por lead na lista
+  const firstContactValue = activation.leadsInGroup * 100 // R$ 100 por lead com primeiro contato
+  const inGroupValue = activation.meetParticipants * 200 // R$ 200 por lead no grupo
+  const postMeetValue = sales.closedSales * 2000 // R$ 2000 por venda fechada
+  const totalValue = contactListValue + firstContactValue + inGroupValue + postMeetValue
+
   return {
     contactList: activation.leadsCreated,
     firstContact: activation.leadsInGroup,
     inGroup: activation.meetParticipants,
     postMeet: sales.closedSales,
+    contactListValue,
+    firstContactValue,
+    inGroupValue,
+    postMeetValue,
+    totalValue,
+    byStep: [
+      {
+        stepId: 'contact-list',
+        stepTitle: 'Lista de Contatos',
+        count: activation.leadsCreated,
+        value: contactListValue,
+        category: 'contactList',
+      },
+      {
+        stepId: 'first-contact',
+        stepTitle: 'Primeiro Contato',
+        count: activation.leadsInGroup,
+        value: firstContactValue,
+        category: 'firstContact',
+      },
+      {
+        stepId: 'in-group',
+        stepTitle: 'No Grupo',
+        count: activation.meetParticipants,
+        value: inGroupValue,
+        category: 'inGroup',
+      },
+      {
+        stepId: 'post-meet',
+        stepTitle: 'Pós-Reunião',
+        count: sales.closedSales,
+        value: postMeetValue,
+        category: 'postMeet',
+      },
+    ],
   }
 }
 
