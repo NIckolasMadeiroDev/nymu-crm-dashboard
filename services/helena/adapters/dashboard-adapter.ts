@@ -108,9 +108,9 @@ export class DashboardAdapter {
       }
     })
     
-    // Get cards from all panels with contactIds and tags included
+    // Get cards from all panels (sem IncludeDetails pois o endpoint não aceita)
     const cardsPromises = allPanels.map((panel: any) => 
-      cardsService.getAllCardsByPanel(panel.id, ['contactIds', 'tags', 'responsibleUser']).catch((error) => {
+      cardsService.getAllCardsByPanel(panel.id).catch((error) => {
         if (process.env.NODE_ENV === 'development') {
           console.warn(`[DashboardAdapter] Error fetching cards for panel ${panel.id}:`, error)
         }
@@ -159,13 +159,20 @@ export class DashboardAdapter {
     ;(this as any).stepMap = stepMap
     ;(this as any).panelsWithSteps = panelsWithSteps
     ;(this as any).allCards = cards
+    ;(this as any).stepMap = stepMap
+    ;(this as any).contacts = contacts
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] Fetched:', {
         cards: cards.length,
+        cardsArchived: cards.filter((c: any) => c.archived).length,
+        cardsActive: cards.filter((c: any) => !c.archived).length,
         contacts: contacts.length,
         panels: panels.length,
+        panelsArchived: panels.filter((p: any) => p.archived).length,
+        panelsActive: panels.filter((p: any) => !p.archived).length,
         wallets: wallets.length,
+        stepMapSize: stepMap.size,
         errors: Object.keys(errors).length > 0 ? errors : undefined,
       })
     }
@@ -253,11 +260,20 @@ export class DashboardAdapter {
     })
 
     // Convert HelenaCard to CrmDeal format with real data
+    // Include cards in final steps that represent closed/won deals
     const deals: CrmDeal[] = cards
       .filter((card: any) => {
-        // Only include cards in final steps (won deals)
+        if (card.archived) return false // Exclude archived cards
         const stepInfo = stepMap.get(card.stepId || '')
-        return stepInfo?.isFinal && stepInfo.title.toLowerCase().includes('ganho')
+        if (!stepInfo || !stepInfo.isFinal) return false
+        
+        // Check if step title indicates a won/completed deal
+        const stepTitle = stepInfo.title?.toLowerCase() || ''
+        return stepTitle.includes('ganho') || 
+               stepTitle.includes('fechado') || 
+               stepTitle.includes('concluído') ||
+               stepTitle.includes('vendido') ||
+               stepTitle.includes('cliente ganho')
       })
       .map((card: any) => ({
         id: card.id,
@@ -327,7 +343,8 @@ export class DashboardAdapter {
       conversionRates: this.buildConversionRates(filteredLeads, filteredDeals),
       leadStock: this.buildLeadStock(filteredLeads, filteredContacts),
       salesByConversionTime: this.buildSalesByConversionTime(filteredDeals),
-      leadQuality: this.buildLeadQuality(filteredLeads, filteredDeals),
+      // buildLeadQuality usa cards diretamente, não precisa de leads/deals filtrados
+      leadQuality: this.buildLeadQuality(leads, deals),
       operational: this.buildOperationalMetrics(cards, panels, filters),
     }
 
@@ -374,12 +391,15 @@ export class DashboardAdapter {
     const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
     
+    // Filter only active (non-archived) cards
+    const activeCards = allCards.filter((card: any) => !card.archived)
+    
     // Count cards by step type
-    let leadsCreated = allCards.length
+    let leadsCreated = activeCards.length
     let leadsInGroup = 0
     let meetParticipants = 0
     
-    allCards.forEach((card: any) => {
+    activeCards.forEach((card: any) => {
       const stepInfo = stepMap.get(card.stepId || '')
       if (stepInfo) {
         const stepTitle = stepInfo.title.toLowerCase()
@@ -400,8 +420,8 @@ export class DashboardAdapter {
     }
 
     // Use cards for weekly grouping if available, otherwise use leads
-    const leadsByWeek = allCards.length > 0 
-      ? this.groupCardsByWeek(allCards)
+    const leadsByWeek = activeCards.length > 0 
+      ? this.groupCardsByWeek(activeCards)
       : this.groupLeadsByWeek(leads)
       
     const leadsCreatedByWeek: WeeklyData[] = leadsByWeek.map((count, index) => ({
@@ -422,10 +442,11 @@ export class DashboardAdapter {
     const closedSales = deals.length
     const revenueGenerated = deals.reduce((sum, deal) => sum + (deal.value || 0), 0)
     
-    // Calculate closing rate based on total cards vs won cards
+    // Calculate closing rate based on total active cards vs won cards
     const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
-    const totalCards = allCards.length
+    const activeCards = allCards.filter((card: any) => !card.archived)
+    const totalCards = activeCards.length
     const closingRate = totalCards > 0 ? (closedSales / totalCards) * 100 : 0
     const targetRate = 75
 
@@ -453,12 +474,15 @@ export class DashboardAdapter {
     const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
     
+    // Filter only active (non-archived) cards
+    const activeCards = allCards.filter((card: any) => !card.archived)
+    
     // Count cards by step type
     let leadsCreated = 0
     let leadsInGroup = 0
     let meetParticipants = 0
     
-    allCards.forEach((card: any) => {
+    activeCards.forEach((card: any) => {
       const stepInfo = stepMap.get(card.stepId || '')
       if (stepInfo) {
         const stepTitle = stepInfo.title.toLowerCase()
@@ -514,9 +538,12 @@ export class DashboardAdapter {
     const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
     
+    // Filter only active (non-archived) cards
+    const activeCards = allCards.filter((card: any) => !card.archived)
+    
     // Count cards by step
     const cardsByStep = new Map<string, number>()
-    allCards.forEach((card: any) => {
+    activeCards.forEach((card: any) => {
       const stepId = card.stepId
       if (stepId) {
         cardsByStep.set(stepId, (cardsByStep.get(stepId) || 0) + 1)
@@ -629,68 +656,97 @@ export class DashboardAdapter {
   }
 
   private buildLeadQuality(leads: LeadLike[], deals: CrmDeal[]): LeadQuality[] {
+    // Usar cards diretamente para análise de qualidade dos leads
+    const allCards = (this as any).allCards || [] as HelenaCard[]
+    const stepMap = (this as any).stepMap || new Map()
+    const contacts = (this as any).contacts || []
+    
     if (process.env.NODE_ENV === 'development') {
-      console.log('[DashboardAdapter] buildLeadQuality - Input:', {
-        totalLeads: leads.length,
+      console.log('[DashboardAdapter] buildLeadQuality - Using cards directly:', {
+        totalCards: allCards.length,
         totalDeals: deals.length,
-        sampleLead: leads[0] ? {
-          id: leads[0].id,
-          name: leads[0].name,
-          tags: leads[0].tags,
-          college: leads[0].college,
-          source: leads[0].source,
-          customFields: leads[0].customFields,
+        sampleCard: allCards[0] ? {
+          id: allCards[0].id,
+          title: allCards[0].title,
+          tags: allCards[0].tags,
+          monetaryAmount: allCards[0].monetaryAmount,
+          stepId: allCards[0].stepId,
         } : null,
       })
     }
 
-    // Criar um mapa de grupos de leads
-    const groupsMap = new Map<string, LeadLike[]>()
+    // Função auxiliar para categorizar valor monetário
+    const getValueCategory = (value: number | null | undefined): string => {
+      if (!value || value === 0) return 'Sem valor'
+      if (value >= 500) return 'Alto valor (≥R$500)'
+      if (value >= 100) return 'Médio valor (R$100-499)'
+      return 'Baixo valor (<R$100)'
+    }
+
+    // Função auxiliar para categorizar etapa do funil
+    const getFunnelStage = (stepId: string | null | undefined): string => {
+      if (!stepId) return 'Sem etapa'
+      const stepInfo = stepMap.get(stepId)
+      if (!stepInfo) return 'Etapa desconhecida'
+      
+      if (stepInfo.isFinal) return 'Final (Fechado)'
+      if (stepInfo.isInitial) return 'Inicial (Novo)'
+      return 'Meio (Em andamento)'
+    }
+
+    // Criar um mapa de grupos de cards (leads)
+    const groupsMap = new Map<string, HelenaCard[]>()
     
-    leads.forEach((lead) => {
+    // Filtrar apenas cards não arquivados
+    const activeCards = allCards.filter((card: HelenaCard) => !card.archived)
+    
+    activeCards.forEach((card: HelenaCard) => {
+      let groupKey = 'Sem categoria'
+      
       // Prioridade de agrupamento:
-      // 1. Tags (primeira tag)
-      // 2. Faculdade/College
-      // 3. Source/Origem
-      // 4. CustomFields com informações relevantes
-      
-      let groupKey = 'Unknown'
-      
-      // Tentar agrupar por tag primeiro
-      if (lead.tags && lead.tags.length > 0 && lead.tags[0].name) {
-        groupKey = `Tag: ${lead.tags[0].name}`
+      // 1. Tags do card (primeira tag) - maior prioridade
+      if (card.tags && card.tags.length > 0 && card.tags[0].name) {
+        groupKey = `Tag: ${card.tags[0].name}`
       }
-      // Se não tem tag, tentar por faculdade
-      else if (lead.college) {
-        groupKey = `Faculdade: ${lead.college}`
-      }
-      // Se não tem faculdade, usar source
-      else if (lead.source && lead.source !== 'Unknown') {
-        groupKey = `Origem: ${lead.source}`
-      }
-      // Tentar outros customFields
-      else if (lead.customFields) {
-        const customSource = lead.customFields.source || 
-                            lead.customFields.origem ||
-                            lead.customFields.channel ||
-                            lead.customFields.canal
-        if (customSource) {
-          groupKey = `Origem: ${String(customSource)}`
+      // 2. Tentar obter informações do contato associado
+      else if (card.contactIds && card.contactIds.length > 0) {
+        const contact = contacts.find((c: any) => card.contactIds?.includes(c.id))
+        if (contact) {
+          // Tentar por tag do contato
+          if (contact.tags && contact.tags.length > 0 && contact.tags[0].name) {
+            groupKey = `Tag: ${contact.tags[0].name}`
+          }
+          // Tentar por faculdade
+          else if (contact.customFields?.college || contact.customFields?.faculdade) {
+            groupKey = `Faculdade: ${contact.customFields.college || contact.customFields.faculdade}`
+          }
+          // Tentar por origem
+          else if (contact.customFields?.source || contact.customFields?.origem) {
+            groupKey = `Origem: ${contact.customFields.source || contact.customFields.origem}`
+          }
         }
+      }
+      // 3. Valor monetário (se não tem tag ou contato)
+      if (groupKey === 'Sem categoria' && card.monetaryAmount && card.monetaryAmount > 0) {
+        groupKey = getValueCategory(card.monetaryAmount)
+      }
+      // 4. Etapa do funil (última opção)
+      if (groupKey === 'Sem categoria' && card.stepId) {
+        groupKey = getFunnelStage(card.stepId)
       }
       
       if (!groupsMap.has(groupKey)) {
         groupsMap.set(groupKey, [])
       }
-      groupsMap.get(groupKey)!.push(lead)
+      groupsMap.get(groupKey)!.push(card)
     })
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] buildLeadQuality - Groups:', {
         totalGroups: groupsMap.size,
-        groups: Array.from(groupsMap.entries()).map(([key, leads]) => ({
+        groups: Array.from(groupsMap.entries()).map(([key, cards]) => ({
           key,
-          count: leads.length,
+          count: cards.length,
         })),
       })
     }
@@ -698,35 +754,44 @@ export class DashboardAdapter {
     // Calcular métricas para cada grupo
     const qualityData: LeadQuality[] = []
     
-    groupsMap.forEach((groupLeads, groupKey) => {
-      const meetParticipants = groupLeads.filter((lead) => lead.status === 'meet_participant').length
+    groupsMap.forEach((groupCards, groupKey) => {
+      // Cards que participaram de meet (baseado na etapa)
+      const meetParticipants = groupCards.filter((card: HelenaCard) => {
+        const stepInfo = stepMap.get(card.stepId || '')
+        if (!stepInfo) return false
+        const stepTitle = stepInfo.title?.toLowerCase() || ''
+        return stepTitle.includes('meet') || 
+               stepTitle.includes('participou') || 
+               stepTitle.includes('participante') ||
+               stepInfo.isFinal // Etapas finais também contam como participantes
+      }).length
       
-      // Encontrar deals associados a este grupo
-      // Match deals pelos contactIds dos cards
-      const groupLeadIds = new Set(groupLeads.map(l => l.id))
-      const groupDeals = deals.filter((deal) => {
-        // Encontrar o card associado ao deal
-        const allCards = (this as any).allCards || []
-        const dealCard = allCards.find((card: any) => card.id === deal.id)
-        
-        if (dealCard && dealCard.contactIds) {
-          // Verificar se algum contato do card está neste grupo
-          return dealCard.contactIds.some((contactId: string) => groupLeadIds.has(contactId))
-        }
-        
-        return false
+      // Encontrar deals (cards fechados) neste grupo
+      const groupDeals = groupCards.filter((card: HelenaCard) => {
+        const stepInfo = stepMap.get(card.stepId || '')
+        if (!stepInfo) return false
+        return stepInfo.isFinal && (
+          stepInfo.title?.toLowerCase().includes('ganho') ||
+          stepInfo.title?.toLowerCase().includes('fechado') ||
+          stepInfo.title?.toLowerCase().includes('concluído')
+        )
       })
       
       const purchases = groupDeals.length
-      const meetParticipationRate = groupLeads.length > 0 
-        ? (meetParticipants / groupLeads.length) * 100 
+      const totalLeads = groupCards.length
+      
+      // Taxa de participação em meet (baseado em progresso no funil)
+      const meetParticipationRate = totalLeads > 0 
+        ? (meetParticipants / totalLeads) * 100 
         : 0
+      
+      // Taxa de compra (de participantes para compradores)
       const purchaseRate = meetParticipants > 0 
         ? (purchases / meetParticipants) * 100 
         : 0
 
-      // Só adicionar grupos com pelo menos alguns leads
-      if (groupLeads.length > 0) {
+      // Só adicionar grupos com pelo menos alguns cards
+      if (totalLeads > 0) {
         // Criar displayOrigin removendo prefixos para exibição mais limpa
         let displayOrigin = groupKey
         if (groupKey.startsWith('Tag: ')) {
@@ -738,12 +803,11 @@ export class DashboardAdapter {
         }
         
         qualityData.push({
-          origin: groupKey,
-          meetParticipationRate,
-          purchaseRate,
+          origin: displayOrigin,
+          meetParticipationRate: Math.round(meetParticipationRate * 100) / 100,
+          purchaseRate: Math.round(purchaseRate * 100) / 100,
         })
       }
-
     })
 
     // Ordenar por número de leads (maior primeiro), depois por taxa de conversão

@@ -168,13 +168,34 @@ export class HelenaPanelsService {
 
   /**
    * Obtém painéis com detalhes completos (incluindo steps)
+   * Busca todas as páginas para garantir dados completos
    */
   async getPanelsWithDetails(): Promise<HelenaPanel[]> {
-    const response = await this.listPanels({ 
-      IncludeDetails: ['steps', 'tags'],
-      PageSize: 100 
-    })
-    return response.items
+    const allPanels: HelenaPanel[] = []
+    let pageNumber = 1
+    const pageSize = 100
+    let hasMorePages = true
+
+    while (hasMorePages) {
+      const response = await this.listPanels({ 
+        IncludeDetails: ['steps', 'tags'],
+        PageSize: pageSize,
+        PageNumber: pageNumber
+      })
+
+      if (response.items && response.items.length > 0) {
+        allPanels.push(...response.items)
+      }
+
+      hasMorePages = response.hasMorePages || false
+      pageNumber++
+
+      if (pageNumber > response.totalPages) {
+        break
+      }
+    }
+
+    return allPanels
   }
 
   /**

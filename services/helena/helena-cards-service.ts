@@ -225,20 +225,24 @@ export class HelenaCardsService {
    * Obtém todos os cards de um painel (até 100)
    */
   async getAllCardsByPanel(panelId: string, includeDetails?: string[]): Promise<HelenaCard[]> {
-    const detailsToInclude = includeDetails || ['contactIds', 'tags']
     const allCards: HelenaCard[] = []
     let pageNumber = 1
     const pageSize = 100
     let hasMorePages = true
 
     while (hasMorePages) {
-      const response = await this.listCards({
-        IncludeDetails: detailsToInclude,
+      const filters: HelenaCardsListFilters = {
         PanelId: panelId,
         PageSize: pageSize,
         PageNumber: pageNumber,
         IncludeArchived: false
-      })
+      }
+
+      if (includeDetails && includeDetails.length > 0) {
+        filters.IncludeDetails = includeDetails
+      }
+
+      const response = await this.listCards(filters)
 
       if (response.items && response.items.length > 0) {
         allCards.push(...response.items)
