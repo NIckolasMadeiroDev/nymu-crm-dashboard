@@ -49,6 +49,15 @@ export default function PieChart({
               fill="#8884d8"
               dataKey={valueKey}
               nameKey={nameKey}
+              onClick={onDataPointClick ? (data: any, index: number, e: any) => {
+                console.log('[PieChart] Pie onClick event:', { data, index, e })
+                // No Recharts, o onClick do Pie recebe (data, index, e)
+                // onde data é o objeto do ponto de dados do array data
+                if (data && typeof data === 'object') {
+                  console.log('[PieChart] Calling onDataPointClick with data:', data)
+                  onDataPointClick(data)
+                }
+              } : undefined}
             >
             {data.map((entry) => {
               const index = data.indexOf(entry)

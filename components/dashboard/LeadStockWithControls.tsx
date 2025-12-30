@@ -59,10 +59,29 @@ export default function LeadStockWithControls({
   }, [data])
 
   const handleDataPointClick = (clickData: any) => {
+    console.log('[LeadStockWithControls] handleDataPointClick called with:', clickData)
     if (onDataPointClick && clickData) {
-      const category = clickData.category || clickData.name
+      // O clickData pode vir do PieChart (com name e value) ou BarChart (com category)
+      const category = clickData.category || clickData.name?.toLowerCase().replace(/\s+/g, '') || ''
       const label = clickData.categoryLabel || clickData.name || category
-      onDataPointClick(category, label)
+      
+      // Mapear labels para categorias
+      let mappedCategory = category
+      if (clickData.name) {
+        const nameLower = clickData.name.toLowerCase()
+        if (nameLower.includes('lista de contato')) {
+          mappedCategory = 'contactList'
+        } else if (nameLower.includes('primeiro contato')) {
+          mappedCategory = 'firstContact'
+        } else if (nameLower.includes('no grupo')) {
+          mappedCategory = 'inGroup'
+        } else if (nameLower.includes('pós-meet') || nameLower.includes('pos-meet')) {
+          mappedCategory = 'postMeet'
+        }
+      }
+      
+      console.log('[LeadStockWithControls] Calling onDataPointClick with:', mappedCategory, label)
+      onDataPointClick(mappedCategory, label)
     }
   }
 
