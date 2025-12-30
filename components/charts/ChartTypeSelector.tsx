@@ -73,7 +73,7 @@ export default function ChartTypeSelector({
 
   const getChartTypeInfo = useCallback((type: ChartType) => {
     const typeKey = type as keyof typeof t.charts.types
-    
+
     let categoryKey: 'quantitative' | 'proportion' | 'relation' | 'status' | 'geographic'
     if (['pie', 'donut', 'treemap', 'sunburst'].includes(type)) {
       categoryKey = 'proportion'
@@ -86,7 +86,7 @@ export default function ChartTypeSelector({
     } else {
       categoryKey = 'quantitative'
     }
-    
+
     return {
       label: t.charts.types[typeKey] || type,
       category: t.charts.categories[categoryKey] || categoryKey,
@@ -105,7 +105,7 @@ export default function ChartTypeSelector({
 
   const filteredTypes = useMemo(() => {
     if (!searchQuery.trim()) return types
-    
+
     const query = searchQuery.toLowerCase().trim()
     return types.filter((type) => {
       const info = getChartTypeInfo(type)
@@ -146,14 +146,14 @@ export default function ChartTypeSelector({
 
     const dropdownWidth = 320
     let left = buttonRect.left
-    
+
     if (left + dropdownWidth > viewportWidth - 8) {
       left = viewportWidth - dropdownWidth - 8
     }
     if (left < 8) {
       left = 8
     }
-    
+
     let top = 0
     let position: 'bottom' | 'top' = 'bottom' // default bottom; will be set below
 
@@ -178,10 +178,10 @@ export default function ChartTypeSelector({
       calculatePosition()
       const handleResize = () => calculatePosition()
       const handleScroll = () => calculatePosition()
-      
+
       window.addEventListener('resize', handleResize)
       window.addEventListener('scroll', handleScroll, true)
-      
+
       return () => {
         window.removeEventListener('resize', handleResize)
         window.removeEventListener('scroll', handleScroll, true)
@@ -194,7 +194,7 @@ export default function ChartTypeSelector({
       const selectedButton = dropdownRef.current.querySelector(
         `button[data-chart-type="${currentType}"]`
       ) as HTMLElement
-      
+
       if (selectedButton) {
         selectedButton.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
       }
@@ -254,10 +254,10 @@ export default function ChartTypeSelector({
         <span className="text-white truncate max-w-[40px] sm:max-w-[60px] md:max-w-[100px] lg:max-w-[120px] xl:max-w-none">
           {getChartTypeInfo(currentType).label || t.charts.selectType}
         </span>
-        <svg 
-          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
@@ -266,18 +266,18 @@ export default function ChartTypeSelector({
 
       {isOpen && (
         <>
-          <div 
-            className="fixed inset-0 z-[9998]" 
+          <div
+            className="fixed inset-0 z-[9998]"
             onClick={() => {
               setIsOpen(false)
               setSearchQuery('')
-            }} 
-            aria-hidden="true" 
+            }}
+            aria-hidden="true"
           />
-          <div 
+          <div
             ref={dropdownRef}
             className="fixed z-[9999] bg-white rounded-lg shadow-xl border border-gray-200 min-w-[240px] max-w-[320px]"
-            style={{ 
+            style={{
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
               maxHeight: hasManyItems ? maxHeight : 'none',
@@ -295,10 +295,10 @@ export default function ChartTypeSelector({
                   autoFocus
                   aria-label="Buscar tipo de gráfico"
                 />
-                <svg 
-                  className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -331,15 +331,15 @@ export default function ChartTypeSelector({
                     {categoryTypes.map((type) => {
                       const chartTypeInfo = getChartTypeInfo(type)
                       const isSelected = currentType === type
-                      
+
                       return (
                         <button
                           key={type}
                           data-chart-type={type}
                           onClick={() => handleTypeSelect(type)}
                           className={`w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-100 font-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
-                            isSelected 
-                              ? 'bg-blue-50 text-blue-700 font-medium' 
+                            isSelected
+                              ? 'bg-blue-50 text-blue-700 font-medium'
                               : 'text-gray-700'
                           }`}
                         >

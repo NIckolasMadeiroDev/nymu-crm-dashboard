@@ -48,7 +48,7 @@ export default function NymuLogo({
       }
     }
   }
-  
+
   return (
     <div className={`inline-flex items-center justify-center ${className}`} style={{ ...style }}>
       <Image

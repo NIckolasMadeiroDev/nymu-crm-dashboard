@@ -40,7 +40,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
     setIsLoading(true)
     try {
       const cardsService = helenaServiceFactory.getCardsService()
-      // Buscar card com detalhes do responsável
+
       const data = await cardsService.getCardById(cardId, ['responsibleUser'])
       setCard(data)
     } catch (error) {
@@ -65,11 +65,11 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
       setContacts([])
       return
     }
-    
+
     setIsLoadingContacts(true)
     try {
       const contactsService = helenaServiceFactory.getContactsService()
-      const contactPromises = card.contactIds.map(id => 
+      const contactPromises = card.contactIds.map(id =>
         contactsService.getContactById(id, ['tags']).catch(() => null)
       )
       const contactResults = await Promise.all(contactPromises)
@@ -87,34 +87,34 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
     setIsMoving(true)
     try {
       const cardsService = helenaServiceFactory.getCardsService()
-      
-      // Obter nomes das fases
+
+
       const steps = (panel.steps as PanelStep[]) || []
       const currentStep = steps.find(s => s.id === card.stepId)
       const newStep = steps.find(s => s.id === newStepId)
-      
-      // Mover o card
+
+
       await cardsService.moveCardToStep(cardId, newStepId)
-      
-      // Adicionar nota sobre a movimentação
+
+
       try {
         await cardsService.addCardNote(cardId, {
           text: `Item movido de ${currentStep?.title || 'uma fase'} para ${newStep?.title || 'outra fase'}`
         })
       } catch (noteError) {
         console.warn('Erro ao adicionar nota de movimentação:', noteError)
-        // Não falhar a operação se a nota não puder ser adicionada
+
       }
-      
-      // Atualizar card localmente
+
+
       const updatedCard = await cardsService.getCardById(cardId)
       setCard(updatedCard)
       setSelectedStepId(newStepId)
-      
-      // Recarregar histórico para incluir a movimentação
+
+
       await fetchNotes()
-      
-      // Notificar componente pai para atualizar o Kanban
+
+
       onUpdate()
     } catch (error) {
       console.error('Erro ao mover card:', error)
@@ -128,13 +128,13 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
     setIsLoadingNotes(true)
     try {
       const cardsService = helenaServiceFactory.getCardsService()
-      // Buscar todas as notas ordenadas por data de criação (mais antigas primeiro)
+
       const response = await cardsService.listCardNotes(cardId, {
         PageSize: 100,
         OrderBy: 'CreatedAt',
         OrderDirection: 'ASCENDING' // Mudado para ASCENDING para facilitar ordenação
       })
-      // Garantir que estamos salvando todas as notas retornadas
+
       const allNotes = response.items || []
       setNotes(allNotes)
     } catch (error) {
@@ -154,13 +154,13 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
   }, [open, cardId, panelId, fetchCardDetails, fetchNotes, fetchPanel])
 
   useEffect(() => {
-    // Só construir histórico quando card, panel E notas estiverem disponíveis
-    // E não estiver mais carregando notas
+
+
     if (card && panel && !isLoadingNotes) {
       setSelectedStepId(card.stepId || '')
       buildHistory()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [card, notes, panel, isLoadingNotes])
 
   useEffect(() => {
@@ -202,16 +202,16 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
 
     const historyEntries: HistoryEntry[] = []
 
-    // Adicionar criação do card
+
     if (card.createdAt) {
-      // Buscar o nome da fase inicial - tentar encontrar pela primeira fase não arquivada ordenada por position
+
       let initialStepTitle = 'uma fase'
       if (panel.steps && Array.isArray(panel.steps)) {
         const steps = (panel.steps as PanelStep[])
           .filter(s => s && !s.archived)
           .sort((a, b) => (a.position || 0) - (b.position || 0))
-        
-        // Tentar encontrar a fase inicial (isInitial) ou a primeira fase
+
+
         const initialStep = steps.find(s => s.isInitial) || steps[0]
         if (initialStep) {
           initialStepTitle = initialStep.title
@@ -228,12 +228,12 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
       })
     }
 
-    // Processar anotações como histórico
-    // Garantir que processamos TODAS as notas, mesmo que não tenham texto
+
+
     notes.forEach((note) => {
-      // Se não tem texto, ainda assim criar uma entrada genérica
+
       if (!note.text || note.text.trim() === '') {
-        // Criar entrada para notas sem texto (pode ser uma ação do sistema)
+
         historyEntries.push({
           id: note.id,
           text: 'Ação registrada',
@@ -250,7 +250,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
 
       let entry: HistoryEntry | null = null
 
-      // Detectar movimentação entre fases
+
       if (text.includes('movido de') && text.includes('para')) {
         entry = {
           id: note.id,
@@ -260,7 +260,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
           type: 'moved'
         }
       }
-      // Detectar alteração de título
+
       else if (text.includes('título alterado') || text.includes('titulo alterado')) {
         entry = {
           id: note.id,
@@ -270,8 +270,8 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
           type: 'description_changed' // Usando description_changed como tipo genérico para mudanças
         }
       }
-      // Detectar alteração de valor
-      else if (text.includes('valor atribuído alterado') || 
+
+      else if (text.includes('valor atribuído alterado') ||
                text.includes('valor alterado') ||
                text.includes('valor atribuido alterado')) {
         entry = {
@@ -282,7 +282,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
           type: 'value_changed'
         }
       }
-      // Detectar alteração de descrição
+
       else if (text.includes('descrição alterada') || text.includes('descricao alterada')) {
         entry = {
           id: note.id,
@@ -292,7 +292,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
           type: 'description_changed'
         }
       }
-      // Outras notas - SEMPRE criar entrada, mesmo que não seja um tipo específico
+
       else {
         entry = {
           id: note.id,
@@ -303,27 +303,27 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
         }
       }
 
-      // Sempre adicionar a entrada se ela existir
+
       if (entry) {
         historyEntries.push(entry)
       }
     })
 
-    // Ordenar por data/hora (mais antigo primeiro para mostrar cronologicamente)
+
     historyEntries.sort((a, b) => {
-      // Usar a data ISO original para comparação mais precisa
-      const dateA = a.type === 'created' && card.createdAt 
+
+      const dateA = a.type === 'created' && card.createdAt
         ? new Date(card.createdAt).getTime()
-        : notes.find(n => n.id === a.id)?.createdAt 
+        : notes.find(n => n.id === a.id)?.createdAt
           ? new Date(notes.find(n => n.id === a.id)!.createdAt).getTime()
           : new Date(a.date).getTime()
-      
+
       const dateB = b.type === 'created' && card.createdAt
         ? new Date(card.createdAt).getTime()
         : notes.find(n => n.id === b.id)?.createdAt
           ? new Date(notes.find(n => n.id === b.id)!.createdAt).getTime()
           : new Date(b.date).getTime()
-      
+
       return dateA - dateB
     })
 
@@ -334,15 +334,15 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
 
   return (
     <>
-      <button 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] cursor-default" 
+      <button
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] cursor-default"
         onClick={onClose}
         aria-label="Fechar modal"
         type="button"
       ></button>
-      
+
       <div className="fixed inset-4 md:inset-8 lg:inset-12 max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-xl shadow-2xl z-[70] flex flex-col overflow-hidden">
-        {/* Header */}
+
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-primary">
             {card?.title || 'Carregando...'}
@@ -358,7 +358,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
           </button>
         </div>
 
-        {/* Content */}
+
         <div className="flex-1 overflow-y-auto p-6">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
@@ -366,7 +366,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Descrição */}
+
               {card?.description && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
@@ -378,7 +378,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
                 </div>
               )}
 
-              {/* Contatos */}
+
               {card?.contactIds && card.contactIds.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 font-secondary">
@@ -406,7 +406,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
                               </p>
                             )}
                           </div>
-                          {/* Tipo do contato - tags */}
+
                           {contact.tags && contact.tags.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {contact.tags.map((tag, idx) => (
@@ -436,7 +436,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
                 </div>
               )}
 
-              {/* Valor Atribuído */}
+
               {card?.monetaryAmount !== null && card?.monetaryAmount !== undefined && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
@@ -448,7 +448,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
                 </div>
               )}
 
-              {/* Mover para Fase */}
+
               {panel?.steps && panel.steps.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
@@ -478,7 +478,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
                 </div>
               )}
 
-              {/* Histórico */}
+
               <div>
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 font-secondary">
                   Histórico

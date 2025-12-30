@@ -80,7 +80,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 <div>
                   <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Como Usar:</h4>
                   <p>
-                    Clique no botão <strong>&quot;Filtros&quot;</strong> para abrir o painel de filtros. Configure os critérios desejados e clique em <strong>&quot;Aplicar&quot;</strong>. 
+                    Clique no botão <strong>&quot;Filtros&quot;</strong> para abrir o painel de filtros. Configure os critérios desejados e clique em <strong>&quot;Aplicar&quot;</strong>.
                     O dashboard será atualizado automaticamente com os dados filtrados. Um badge vermelho no botão indica quantos filtros estão ativos.
                   </p>
                 </div>
@@ -96,7 +96,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 <div className="bg-blue-50 dark:bg-blue-900/20 nymu-dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 nymu-dark:border-blue-800 rounded-lg p-4">
                   <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-200 nymu-dark:text-blue-200">💡 Por que essas configurações existem?</h4>
                   <p className="text-sm text-blue-800 dark:text-blue-300 nymu-dark:text-blue-300">
-                    Cada configuração foi pensada para atender diferentes necessidades de uso: desde análises detalhadas até apresentações executivas, 
+                    Cada configuração foi pensada para atender diferentes necessidades de uso: desde análises detalhadas até apresentações executivas,
                     passando por acessibilidade e internacionalização. O objetivo é tornar o dashboard verdadeiramente personalizável e eficiente para cada usuário.
                   </p>
                 </div>
@@ -107,14 +107,14 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                     <div>
                       <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Para que serve:</h5>
                       <p className="text-sm">
-                        Permite alterar o idioma da interface do dashboard entre <strong>Português 🇧🇷</strong>, <strong>Inglês 🇺🇸</strong> e <strong>Espanhol 🇪🇸</strong>. 
+                        Permite alterar o idioma da interface do dashboard entre <strong>Português 🇧🇷</strong>, <strong>Inglês 🇺🇸</strong> e <strong>Espanhol 🇪🇸</strong>.
                         Todos os textos, botões, menus e mensagens são traduzidos automaticamente.
                       </p>
                     </div>
                     <div>
                       <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Por que foi pensado dessa forma:</h5>
                       <p className="text-sm">
-                        Em um ambiente corporativo global, equipes multinacionais precisam acessar o mesmo dashboard em seus idiomas nativos. 
+                        Em um ambiente corporativo global, equipes multinacionais precisam acessar o mesmo dashboard em seus idiomas nativos.
                         Isso reduz barreiras de comunicação, melhora a compreensão dos dados e aumenta a produtividade de equipes internacionais.
                       </p>
                     </div>
@@ -136,16 +136,16 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                     <div>
                       <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Para que serve:</h5>
                       <p className="text-sm">
-                        Permite escolher entre diferentes esquemas de cores: <strong>🌞 Nymu Claro</strong>, <strong>🌙 Nymu Escuro</strong>, 
+                        Permite escolher entre diferentes esquemas de cores: <strong>🌞 Nymu Claro</strong>, <strong>🌙 Nymu Escuro</strong>,
                         <strong>🌞 Claro Alternativo</strong>, <strong>🌙 Escuro Alternativo</strong> e <strong>🎨 Temas Personalizados</strong>.
                       </p>
                     </div>
                     <div>
                       <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Por que foi pensado dessa forma:</h5>
                       <p className="text-sm">
-                        Diferentes ambientes de trabalho e preferências pessoais exigem diferentes esquemas de cores. 
-                        <strong>Temas claros</strong> são ideais para ambientes bem iluminados e apresentações, enquanto <strong>temas escuros</strong> 
-                        reduzem fadiga visual em uso prolongado e são preferidos por muitos desenvolvedores e analistas. 
+                        Diferentes ambientes de trabalho e preferências pessoais exigem diferentes esquemas de cores.
+                        <strong>Temas claros</strong> são ideais para ambientes bem iluminados e apresentações, enquanto <strong>temas escuros</strong>
+                        reduzem fadiga visual em uso prolongado e são preferidos por muitos desenvolvedores e analistas.
                         Os <strong>temas Nymu</strong> mantêm a identidade visual da marca, enquanto os alternativos oferecem opções mais neutras.
                       </p>
                     </div>
@@ -175,8 +175,8 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                     <div>
                       <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Por que foi pensado dessa forma:</h5>
                       <p className="text-sm">
-                        Diferentes tipos de análise requerem diferentes níveis de detalhe visual. Gráficos mais altos permitem ver mais nuances nos dados, 
-                        identificar tendências sutis e fazer comparações mais precisas. Gráficos menores economizam espaço e permitem ver mais informações 
+                        Diferentes tipos de análise requerem diferentes níveis de detalhe visual. Gráficos mais altos permitem ver mais nuances nos dados,
+                        identificar tendências sutis e fazer comparações mais precisas. Gráficos menores economizam espaço e permitem ver mais informações
                         simultaneamente. Esta configuração oferece flexibilidade para adaptar o dashboard ao tipo de análise sendo realizada.
                       </p>
                     </div>
@@ -200,16 +200,16 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                     <div>
                       <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Para que serve:</h5>
                       <p className="text-sm">
-                        Define quantos gráficos aparecem por linha: <strong>1 por linha</strong> (tela cheia), <strong>2 por linha</strong> (grid balanceado) 
+                        Define quantos gráficos aparecem por linha: <strong>1 por linha</strong> (tela cheia), <strong>2 por linha</strong> (grid balanceado)
                         ou <strong>3 por linha</strong> (visão compacta).
                       </p>
                     </div>
                     <div>
                       <h5 className="font-medium mb-1 text-gray-800 dark:text-gray-200 nymu-dark:text-gray-200">Por que foi pensado dessa forma:</h5>
                       <p className="text-sm">
-                        O layout ideal depende do objetivo da análise. <strong>1 coluna</strong> é perfeito para análises profundas e apresentações, 
-                        onde cada gráfico precisa de destaque. <strong>2 colunas</strong> oferecem um equilíbrio entre detalhe e visão geral, 
-                        ideal para comparações lado a lado. <strong>3 colunas</strong> maximizam a quantidade de informação visível simultaneamente, 
+                        O layout ideal depende do objetivo da análise. <strong>1 coluna</strong> é perfeito para análises profundas e apresentações,
+                        onde cada gráfico precisa de destaque. <strong>2 colunas</strong> oferecem um equilíbrio entre detalhe e visão geral,
+                        ideal para comparações lado a lado. <strong>3 colunas</strong> maximizam a quantidade de informação visível simultaneamente,
                         perfeito para dashboards de monitoramento contínuo. Esta flexibilidade permite que o mesmo dashboard sirva diferentes propósitos.
                       </p>
                     </div>
@@ -248,8 +248,8 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 <div className="bg-green-50 dark:bg-green-900/20 nymu-dark:bg-green-900/20 border border-green-200 dark:border-green-800 nymu-dark:border-green-800 rounded-lg p-4">
                   <h4 className="font-semibold mb-2 text-green-900 dark:text-green-200 nymu-dark:text-green-200">✨ Dica de Uso:</h4>
                   <p className="text-sm text-green-800 dark:text-green-300 nymu-dark:text-green-300">
-                    Combine essas configurações para criar a experiência ideal: use <strong>Layout 1 coluna + Altura Grande</strong> para apresentações, 
-                    <strong>Layout 3 colunas + Altura Normal</strong> para monitoramento diário, e <strong>Tema Escuro</strong> para sessões de análise prolongadas. 
+                    Combine essas configurações para criar a experiência ideal: use <strong>Layout 1 coluna + Altura Grande</strong> para apresentações,
+                    <strong>Layout 3 colunas + Altura Normal</strong> para monitoramento diário, e <strong>Tema Escuro</strong> para sessões de análise prolongadas.
                     Você pode reorganizar os gráficos arrastando e soltando, e todas as preferências são salvas automaticamente para sua próxima sessão.
                   </p>
                 </div>

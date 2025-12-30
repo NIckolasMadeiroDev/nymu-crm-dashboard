@@ -28,7 +28,7 @@ export default function BubbleChart({
   height = 300,
 }: Readonly<BubbleChartProps>) {
   const themeColors = useThemeColors()
-  
+
   return (
     <ChartContainer title={config.title} subtitle={config.subtitle}>
       <ResponsiveContainer width="100%" height={height}>

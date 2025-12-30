@@ -338,23 +338,23 @@ export default function FiltersModal({
 export function countActiveFilters(filters: DashboardFilters): number {
   let count = 0
 
-  // SDR está ativo se não for "Todos"
+
   if (filters.sdr && filters.sdr !== 'Todos') {
     count++
   }
 
-  // Faculdade está ativa se não for "Todas"
+
   if (filters.college && filters.college !== 'Todas') {
     count++
   }
 
-  // Origem está ativa se não for vazia
+
   if (filters.origin && filters.origin !== '') {
     count++
   }
 
-  // Data e Temporada sempre têm valores, então não contamos como "ativos"
-  // Mas podemos considerar se quiser mostrar que há filtros aplicados
+
+
 
   return count
 }

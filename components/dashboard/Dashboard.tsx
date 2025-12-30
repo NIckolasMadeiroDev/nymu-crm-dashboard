@@ -51,7 +51,7 @@ export default function Dashboard() {
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   type LogoVariant = 'twocolor' | 'white'
   type ChartLayout = 'one' | 'two' | 'three'
-  
+
   const [logoVariant, setLogoVariant] = useState<LogoVariant>('twocolor')
   const [chartLayout, setChartLayout] = useState<ChartLayout>('three')
   const [showSettingsModal, setShowSettingsModal] = useState(false)
@@ -81,9 +81,9 @@ export default function Dashboard() {
         setChartOrder([...savedOrder, ...missingCharts])
       }
     }
-    
+
     let filtersToLoad: DashboardData['filters'] | undefined
-    
+
     if (preferences.selectedPresetId !== null) {
       setSelectedPresetId(preferences.selectedPresetId)
       const preset = filterPresetsService.getPreset(preferences.selectedPresetId)
@@ -91,11 +91,11 @@ export default function Dashboard() {
         filtersToLoad = preset.filters
       }
     }
-    
+
     if (!filtersToLoad && preferences.filters) {
       filtersToLoad = preferences.filters
     }
-    
+
 filtersToLoad ??= {
   date: '2025-12-17',
   season: '2025.1',
@@ -103,10 +103,9 @@ filtersToLoad ??= {
   college: 'Todas',
   origin: '',
 }
-    
-    // Primeira carga sempre mostra loading
+
     loadDashboardData(filtersToLoad, false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [])
 
   const handlePresetSelected = (presetId: string | null) => {
@@ -129,7 +128,7 @@ filtersToLoad ??= {
       'Unauthorized',
       '401',
     ]
-    return permanentErrorPatterns.some((pattern) => 
+    return permanentErrorPatterns.some((pattern) =>
       errorMessage.toLowerCase().includes(pattern.toLowerCase())
     )
   }
@@ -156,10 +155,10 @@ filtersToLoad ??= {
       return
     }
 
-    const hasPermanent = Object.values(data.errors).some((err) => 
+    const hasPermanent = Object.values(data.errors).some((err) =>
       err && isPermanentError(err as string)
     )
-    
+
     if (hasPermanent) {
       handlePermanentError('Errors in data.errors')
     } else {
@@ -171,7 +170,7 @@ filtersToLoad ??= {
     if (isPermanentError(errorMessage)) {
       handlePermanentError(errorMessage)
     }
-    
+
     if (!silent || !hasExistingData) {
       setError(errorMessage)
     }
@@ -212,7 +211,7 @@ filtersToLoad ??= {
         const errorData = await response.json()
         const errorMessage = errorData.error || 'Failed to load dashboard data'
         handleLoadError(errorMessage, silent, hasExistingData)
-        
+
         if (!silent || !hasExistingData) {
           throw new Error(errorMessage)
         }
@@ -282,7 +281,6 @@ filtersToLoad ??= {
     }
   }, [])
 
-
   const handleRetry = () => {
     setError(null)
     hasPermanentErrorsRef.current = false
@@ -293,7 +291,7 @@ filtersToLoad ??= {
 
   const handleFilterChange = (filters: DashboardData['filters']) => {
     dashboardPreferencesService.saveFilters(filters)
-    // Atualizar em background sem recarregar a tela quando já há dados
+
     loadDashboardData(filters, true)
   }
 
@@ -622,7 +620,7 @@ filtersToLoad ??= {
               selectedPresetId={selectedPresetId}
               onPresetUpdated={() => {
                 if (dashboardData) {
-                  // Atualizar em background sem recarregar a tela
+
                   loadDashboardData(dashboardData.filters, true)
                 }
               }}
@@ -633,7 +631,7 @@ filtersToLoad ??= {
               onContextChange={(context) => {
                 setDrillContext(context)
                 if (context) {
-                  // Atualizar em background sem recarregar a tela
+
                   loadDashboardData({ ...dashboardData.filters, ...context.filters } as DashboardData['filters'], true)
                 }
               }}
@@ -661,15 +659,15 @@ filtersToLoad ??= {
             return <ErrorMessage message={error || t.dashboard.error} onRetry={() => loadDashboardData()} />
           }
           return (
-             <div 
-               id="dashboard-export-container" 
+             <div
+               id="dashboard-export-container"
                className="transition-all duration-300 space-y-4 sm:space-y-4 md:space-y-5"
              >
             <div
   className="flex flex-row gap-2 items-stretch overflow-x-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 sm:grid sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 sm:overflow-visible min-w-0"
   style={{ WebkitOverflowScrolling: 'touch' }}
 >
-  {/* No mobile, flex horizontal com rolagem; nas telas ≥sm, vira grid como antes */}
+
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
                 <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Leads Criados</h3>
                 <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatNumber(dashboardData.generationActivation.leadsCreated)}</p>
@@ -711,5 +709,4 @@ filtersToLoad ??= {
     </div>
   )
 }
-
 

@@ -23,7 +23,7 @@ interface BoxplotChartProps {
 
 export default function BoxplotChart({ config, data, height = 300 }: Readonly<BoxplotChartProps>) {
   const themeColors = useThemeColors()
-  
+
   const formatBoxplotData = () => {
     return data.map((item) => ({
       name: item.name,

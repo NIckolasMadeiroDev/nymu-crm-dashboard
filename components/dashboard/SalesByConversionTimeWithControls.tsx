@@ -19,7 +19,7 @@ export default function SalesByConversionTimeWithControls({
 
   const chartConfig: ChartConfig = useMemo(() => {
     const series: Array<{ key: string; name: string; color: string }> = []
-    
+
     const seriesConfig = [
       { key: 'sevenDays', name: '7 Dias', color: '#3b82f6', data: data.sevenDays || [] },
       { key: 'thirtyDays', name: '30 Dias', color: '#10b981', data: data.thirtyDays || [] },
@@ -27,7 +27,6 @@ export default function SalesByConversionTimeWithControls({
       { key: 'oneEightyDays', name: '180 Dias', color: '#f59e0b', data: data.oneEightyDays || [] },
     ]
 
-    // Adicionar séries que têm dados
     seriesConfig.forEach((seriesItem) => {
       if (seriesItem.data && seriesItem.data.length > 0) {
         series.push({
@@ -38,10 +37,9 @@ export default function SalesByConversionTimeWithControls({
       }
     })
 
-    // Para gráficos de scatter e bubble, transformar dados para formato { x, y, z, category }
     if (currentChartType === 'scatter' || currentChartType === 'bubble') {
       const scatterData: Array<{ x: number; y: number; z?: number; category: string }> = []
-      
+
       seriesConfig.forEach((seriesItem) => {
         if (seriesItem.data && seriesItem.data.length > 0) {
           seriesItem.data.forEach((point: TimeSeriesData) => {
@@ -70,7 +68,6 @@ export default function SalesByConversionTimeWithControls({
       }
     }
 
-    // Para gráficos de linha/área, usar formato de séries temporais
     const allDates = new Set<string>()
     seriesConfig.forEach((seriesItem) => {
       if (seriesItem.data && seriesItem.data.length > 0) {
@@ -94,11 +91,11 @@ export default function SalesByConversionTimeWithControls({
 
     const transformedData = Array.from(allDates).map((dateStr) => {
       const dateObj: Record<string, string | number> = { date: dateStr }
-      
+
       seriesConfig.forEach((seriesItem) => {
         dateObj[seriesItem.key] = findPointValue(seriesItem, dateStr)
       })
-      
+
       return dateObj
     })
 
@@ -108,7 +105,6 @@ export default function SalesByConversionTimeWithControls({
       return aDays - bDays
     })
 
-    // Detectar se precisa usar formatação adaptativa
     const allValues: number[] = []
     seriesConfig.forEach((seriesItem) => {
       if (seriesItem.data && seriesItem.data.length > 0) {

@@ -133,7 +133,7 @@ export default function SettingsModal({
           </div>
 
           <div className="space-y-4 sm:space-y-6">
-            {/* Seletor de Linguagem */}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Idioma
@@ -141,7 +141,6 @@ export default function SettingsModal({
               <LanguageSelector />
             </div>
 
-            {/* Seletor de Tema */}
             <div>
               <label
                 htmlFor="theme-select"
@@ -170,7 +169,6 @@ export default function SettingsModal({
               </select>
             </div>
 
-            {/* Seletor de Altura dos Widgets */}
             <div>
               <label
                 htmlFor="height-select"
@@ -194,7 +192,6 @@ export default function SettingsModal({
               </select>
             </div>
 
-            {/* Toggle de Fonte de Dados */}
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -240,7 +237,6 @@ export default function SettingsModal({
               </div>
             </div>
 
-            {/* Personalização de Cores - Tema Claro Alternativo */}
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
               <button
                 type="button"
@@ -310,7 +306,6 @@ export default function SettingsModal({
               )}
             </div>
 
-            {/* Personalização de Cores - Tema Escuro Alternativo */}
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
               <button
                 type="button"
@@ -380,7 +375,6 @@ export default function SettingsModal({
               )}
             </div>
 
-            {/* Seletor de Layout */}
             <div>
               <label
                 htmlFor="layout-select"

@@ -7,7 +7,7 @@ import { useThemeColors } from '../hooks/useThemeColors'
 
 export default function BulletChart({ config, data, height = 300 }: Readonly<BulletChartProps>) {
   const themeColors = useThemeColors()
-  
+
   return (
     <ChartContainer title={config.title} subtitle={config.subtitle}>
       <div className="space-y-6" style={{ minHeight: `${height}px` }}>

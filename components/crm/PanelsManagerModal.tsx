@@ -104,7 +104,7 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
 
   const getDepartmentBadges = (departmentIds: string[] | null) => {
     if (!departmentIds || departmentIds.length === 0) return null
-    
+
     const departmentNames: Record<string, string> = {
       '3201bc59-5485-4329-b6ed-be82ce80b300': 'Prospecção',
       '1f8600af-a81f-4b60-a20d-c4da46f40bbb': 'Fechamento',
@@ -119,15 +119,15 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
 
   return (
     <>
-      <button 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 cursor-default" 
+      <button
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 cursor-default"
         onClick={onClose}
         aria-label="Fechar modal"
         type="button"
       ></button>
-      
+
       <div className="fixed inset-4 md:inset-8 lg:inset-16 bg-white dark:bg-gray-900 rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden">
-        {/* Header */}
+
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-primary">
@@ -148,7 +148,6 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
           </button>
         </div>
 
-        {/* Search and Actions */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
@@ -175,7 +174,6 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
           </div>
         </div>
 
-        {/* Panels Grid */}
         <div className="flex-1 overflow-y-auto p-6">
           {isLoading && (
             <div className="flex items-center justify-center h-64">
@@ -260,7 +258,7 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
                       )}
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      panel.scope === 'DEPARTMENT' 
+                      panel.scope === 'DEPARTMENT'
                         ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                         : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
                     }`}>
@@ -273,7 +271,6 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
           )}
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
             <span>{filteredPanels.length} painel{filteredPanels.length === 1 ? '' : 'éis'} encontrado{filteredPanels.length === 1 ? '' : 's'}</span>
@@ -281,7 +278,6 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
         </div>
       </div>
 
-      {/* Panel View Modal */}
       {showPanelView && selectedPanel && (
         <PanelViewModal
           panel={{
@@ -298,7 +294,6 @@ export default function PanelsManagerModal({ open, onClose }: PanelsManagerModal
         />
       )}
 
-      {/* Panel Edit Modal */}
       {showPanelEdit && (
         <PanelEditModal
           panel={editingPanel}

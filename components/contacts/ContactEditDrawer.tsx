@@ -51,21 +51,21 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
 
   return (
     <>
-      <button 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 cursor-default" 
+      <button
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 cursor-default"
         onClick={handleClose}
         aria-label="Fechar modal"
         type="button"
       ></button>
-      
-      <form 
-        onSubmit={handleSubmit} 
+
+      <form
+        onSubmit={handleSubmit}
         className={`fixed right-0 top-0 bottom-0 bg-white dark:bg-gray-900 shadow-2xl w-full max-w-md flex flex-col overflow-hidden z-50 ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="contact-edit-title"
       >
-        {/* Header */}
+
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={handleClose}
@@ -83,9 +83,9 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
           <div className="w-8"></div>
         </div>
 
-        {/* Content */}
+
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
-          {/* Nome */}
+
           <div>
             <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
               Nome completo <span className="text-red-500">*</span>
@@ -108,7 +108,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
             </div>
           </div>
 
-          {/* Telefone */}
+
           <div>
             <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
               Telefone <span className="text-red-500">*</span>
@@ -135,7 +135,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
             </p>
           </div>
 
-          {/* E-mail */}
+
           <div>
             <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
               E-mail
@@ -157,7 +157,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
             </div>
           </div>
 
-          {/* Status */}
+
           <div>
             <label htmlFor="contact-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
               Status
@@ -175,7 +175,7 @@ export default function ContactEditDrawer({ open, loading, contact, mode, onSubm
           </div>
         </div>
 
-        {/* Footer */}
+
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-3">
           <div className="flex gap-3">
             <button

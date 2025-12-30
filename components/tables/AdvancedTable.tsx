@@ -55,7 +55,6 @@ export default function AdvancedTable({
       }
     })
 
-    // Ordenação multi-coluna
     if (multiSort.length > 0) {
       const sortedMultiSort = [...multiSort].sort((s1, s2) => s1.priority - s2.priority)
       result.sort((a, b) => {
@@ -99,7 +98,7 @@ export default function AdvancedTable({
     const isMultiKey = event.ctrlKey || event.metaKey
 
     if (isMultiKey) {
-      // Adicionar/remover da ordenação multi-coluna
+
       if (existingSort) {
         if (existingSort.direction === 'asc') {
           setMultiSort(multiSort.map((s) => (s.column === columnKey ? { ...s, direction: 'desc' } : s)))
@@ -110,7 +109,7 @@ export default function AdvancedTable({
         setMultiSort([...multiSort, { column: columnKey, direction: 'asc', priority: multiSort.length + 1 }])
       }
     } else {
-      // Ordenação single (substitui todas)
+
       const newDirection = existingSort?.direction === 'asc' ? 'desc' : 'asc'
       setMultiSort([{ column: columnKey, direction: newDirection, priority: 1 }])
     }
@@ -119,7 +118,6 @@ export default function AdvancedTable({
   const getCellStyle = (column: TableColumn, value: any): React.CSSProperties => {
     const style: React.CSSProperties = {}
 
-    // Destaque condicional
     if (column.conditionalFormatting) {
       const format = column.conditionalFormatting
       if (format.minValue !== undefined && typeof value === 'number' && value < format.minValue) {
@@ -205,7 +203,6 @@ export default function AdvancedTable({
           )}
         </div>
 
-        {/* Controle de colunas visíveis */}
         {config.columns.length > 5 && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-medium text-gray-700 font-secondary">
@@ -236,7 +233,6 @@ export default function AdvancedTable({
           </div>
         )}
 
-        {/* Indicador de ordenação multi-coluna */}
         {multiSort.length > 1 && (
           <div className="flex items-center gap-2 text-xs text-gray-600 font-secondary">
             <span>{t.common.select || 'Ordenado por:'}</span>
@@ -295,7 +291,7 @@ export default function AdvancedTable({
                     } else if (sortConfig?.direction === 'desc') {
                       sortDirection = 'descending'
                     }
-                    
+
                     return (
                       <div className="inline-flex items-center">
                         <button
@@ -385,7 +381,7 @@ export default function AdvancedTable({
                         } else if (column.align === 'center') {
                           alignClass = 'text-center'
                         }
-                        
+
                         return (
                           <td
                             key={column.key}

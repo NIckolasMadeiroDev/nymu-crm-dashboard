@@ -66,14 +66,14 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
   useEffect(() => {
     if (open) {
       loadDepartments()
-      
+
       if (panel) {
         setTitle(panel.title)
         setKey(panel.key || '')
         setDescription(panel.description || '')
         setScope(panel.scope as 'PERSONAL' | 'DEPARTMENT')
         setDepartmentIds(panel.departmentIds || [])
-        // Filtrar apenas steps não arquivados e ordenar por position
+
         const activeSteps = (panel.steps || [])
           .filter(s => !s.archived)
           .sort((a, b) => a.position - b.position)
@@ -125,23 +125,23 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
 
   const handleUpdateStep = (index: number, field: keyof PanelStep, value: any) => {
     const updatedSteps = [...steps]
-    
+
     if (field === 'isInitial' && value === true) {
-      // Apenas uma fase pode ser inicial
+
       updatedSteps.forEach((s, i) => {
         if (i !== index) s.isInitial = false
       })
     }
-    
+
     updatedSteps[index] = { ...updatedSteps[index], [field]: value }
     setSteps(updatedSteps)
   }
 
   const handleRemoveStep = async (index: number) => {
     const step = steps[index]
-    
+
     if (isEditMode && step.id && panel) {
-      // Se está editando e a fase tem ID, arquivar via API
+
       try {
         const panelsService = helenaServiceFactory.getPanelsService()
         await panelsService.deletePanelStep(panel.id, step.id)
@@ -151,10 +151,10 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
         return
       }
     }
-    
-    // Remover do array local
+
+
     const updatedSteps = steps.filter((_, i) => i !== index)
-    // Reordenar positions
+
     updatedSteps.forEach((s, i) => {
       s.position = i + 1
     })
@@ -171,15 +171,15 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
 
     const updatedSteps = [...steps]
     const targetIndex = direction === 'up' ? index - 1 : index + 1
-    
-    // Trocar posições
+
+
     ;[updatedSteps[index], updatedSteps[targetIndex]] = [updatedSteps[targetIndex], updatedSteps[index]]
-    
-    // Atualizar positions
+
+
     updatedSteps.forEach((s, i) => {
       s.position = i + 1
     })
-    
+
     setSteps(updatedSteps)
   }
 
@@ -187,7 +187,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
     e.preventDefault()
     setError(null)
 
-    // Validações
+
     if (!title.trim()) {
       setError('O título é obrigatório')
       return
@@ -198,7 +198,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
       return
     }
 
-    // Validar steps
+
     for (let i = 0; i < steps.length; i++) {
       if (!steps[i].title.trim()) {
         setError(`A fase ${i + 1} precisa ter um título`)
@@ -210,7 +210,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
 
     try {
       const panelsService = helenaServiceFactory.getPanelsService()
-      
+
       const payload = {
         title,
         key: key || undefined,
@@ -222,10 +222,10 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
       }
 
       if (isEditMode && panel) {
-        // Atualizar painel
+
         await panelsService.updatePanel(panel.id, payload)
-        
-        // Atualizar ou criar steps
+
+
         for (const step of steps) {
           const stepPayload = {
             title: step.title,
@@ -234,20 +234,20 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
             isFinal: step.isFinal,
             color: step.color
           }
-          
+
           if (step.id) {
-            // Atualizar step existente
+
             await panelsService.updatePanelStep(panel.id, step.id, stepPayload)
           } else {
-            // Criar novo step
+
             await panelsService.createPanelStep(panel.id, stepPayload)
           }
         }
       } else {
-        // Criar novo painel
+
         const newPanel = await panelsService.createPanel(payload)
-        
-        // Criar steps
+
+
         for (const step of steps) {
           await panelsService.createPanelStep(newPanel.id, {
             title: step.title,
@@ -273,15 +273,15 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
 
   return (
     <>
-      <button 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] cursor-default" 
+      <button
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] cursor-default"
         onClick={onClose}
         aria-label="Fechar modal"
         type="button"
       ></button>
-      
+
       <div className="fixed inset-4 md:inset-8 lg:inset-12 bg-white dark:bg-gray-900 rounded-xl shadow-2xl z-[70] flex flex-col overflow-hidden max-w-6xl mx-auto">
-        {/* Header */}
+
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-primary">
             {isEditMode ? 'Editar Painel' : 'Novo Painel'}
@@ -297,7 +297,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
           </button>
         </div>
 
-        {/* Form */}
+
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
           {error && (
             <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -306,7 +306,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
           )}
 
           <div className="space-y-6">
-            {/* Título e Chave */}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
@@ -339,7 +339,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
               </div>
             </div>
 
-            {/* Descrição */}
+
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
                 Descrição
@@ -358,7 +358,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
               </p>
             </div>
 
-            {/* Quem pode administrar (Departamentos) */}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
                 Quem pode administrar
@@ -393,7 +393,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
               )}
             </div>
 
-            {/* Toggle: Atendimento Restrito */}
+
             <div>
               <label className="flex items-center justify-between p-4 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                 <div>
@@ -416,7 +416,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
               </label>
             </div>
 
-            {/* Quem pode acessar (Tipo de visualização) */}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
                 Quem pode acessar *
@@ -453,7 +453,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
               </div>
             </div>
 
-            {/* Fases */}
+
             <div>
               <div className="flex items-center justify-between mb-3">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary">
@@ -484,7 +484,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
                   {steps.map((step, index) => (
                     <div key={step.id || index} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <div className="flex items-start gap-3">
-                        {/* Controles de ordem */}
+
                         <div className="flex flex-col gap-1">
                           <button
                             type="button"
@@ -510,9 +510,9 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
                           </button>
                         </div>
 
-                        {/* Campos da fase */}
+
                         <div className="flex-1 space-y-3">
-                          {/* Título e Cor */}
+
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400 min-w-[30px]">
                               {index})
@@ -538,7 +538,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
                             </select>
                           </div>
 
-                          {/* Tipo de fase */}
+
                           <div className="flex items-center gap-2 text-xs">
                             <label className="flex items-center gap-1 cursor-pointer">
                               <input
@@ -569,7 +569,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
                           </div>
                         </div>
 
-                        {/* Botão remover */}
+
                         <button
                           type="button"
                           onClick={() => handleRemoveStep(index)}
@@ -589,7 +589,7 @@ export default function PanelEditModal({ panel, open, onClose, onSave }: PanelEd
           </div>
         </form>
 
-        {/* Footer */}
+
         <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <div className="flex items-center justify-end gap-3">
             <button

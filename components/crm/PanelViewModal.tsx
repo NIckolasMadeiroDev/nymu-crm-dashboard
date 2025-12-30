@@ -67,14 +67,13 @@ export default function PanelViewModal({ panel, open, onClose }: PanelViewModalP
     }
   }, [open, panel, fetchCards])
 
-  // Organizar steps e cards por stepId
   const stepsWithCards = useMemo(() => {
     if (!panel.steps) return []
-    
+
     const sortedSteps = [...panel.steps]
       .filter(step => !step.archived)
       .sort((a, b) => a.position - b.position)
-    
+
     return sortedSteps.map(step => ({
       ...step,
       cards: cards.filter(card => card.stepId === step.id)
@@ -103,15 +102,15 @@ export default function PanelViewModal({ panel, open, onClose }: PanelViewModalP
 
   return (
     <>
-      <button 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] cursor-default" 
+      <button
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] cursor-default"
         onClick={onClose}
         aria-label="Fechar modal"
         type="button"
       ></button>
-      
+
       <div className="fixed inset-4 md:inset-8 lg:inset-12 bg-white dark:bg-gray-900 rounded-xl shadow-2xl z-[60] flex flex-col overflow-hidden">
-        {/* Header */}
+
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-4">
             <button
@@ -139,7 +138,6 @@ export default function PanelViewModal({ panel, open, onClose }: PanelViewModalP
           </div>
         </div>
 
-        {/* Kanban Board */}
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
           {isLoading && (
             <div className="flex items-center justify-center h-64">
@@ -164,7 +162,7 @@ export default function PanelViewModal({ panel, open, onClose }: PanelViewModalP
                   key={step.id}
                   className="flex-shrink-0 w-80 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col"
                 >
-                  {/* Step Header */}
+
                   <div
                     className="p-4 border-b border-gray-200 dark:border-gray-700 rounded-t-lg"
                     style={{
@@ -182,7 +180,6 @@ export default function PanelViewModal({ panel, open, onClose }: PanelViewModalP
                     </div>
                   </div>
 
-                  {/* Cards List */}
                   <div className="flex-1 overflow-y-auto p-3 space-y-3">
                     {step.cards.length === 0 ? (
                       <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
@@ -238,7 +235,6 @@ export default function PanelViewModal({ panel, open, onClose }: PanelViewModalP
         </div>
       </div>
 
-      {/* Card Details Modal */}
       {showCardDetails && selectedCard && (
         <CardDetailsModal
           cardId={selectedCard.id}

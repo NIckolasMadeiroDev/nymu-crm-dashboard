@@ -50,7 +50,7 @@ export default function ExportButton({ data, className = '' }: Readonly<ExportBu
         isOpen={showConfigPanel}
         onClose={() => setShowConfigPanel(false)}
         onExport={() => {
-          // Callback após exportação bem-sucedida
+
         }}
       />
     </>

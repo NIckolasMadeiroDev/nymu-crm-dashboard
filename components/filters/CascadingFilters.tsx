@@ -18,7 +18,7 @@ export default function CascadingFilters({
 
   useEffect(() => {
     const options: Record<string, any[]> = {}
-    
+
     filters.forEach((filter) => {
       if (filter.dependentOn) {
         const parentValue = values[filter.dependentOn]
@@ -39,7 +39,7 @@ export default function CascadingFilters({
 
   const handleChange = (key: string, value: any) => {
     const newValues = { ...values, [key]: value }
-    
+
     filters.forEach((filter) => {
       if (filter.dependentOn === key) {
         newValues[filter.key] = ''

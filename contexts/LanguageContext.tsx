@@ -24,7 +24,7 @@ export function LanguageProvider({ children }: Readonly<LanguageProviderProps>) 
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE)
 
   useEffect(() => {
-    // Carregar idioma salvo do localStorage
+
     const savedLocale = localStorage.getItem(STORAGE_KEY) as Locale | null
     if (savedLocale && (savedLocale === 'pt' || savedLocale === 'es' || savedLocale === 'en')) {
       setLocale(savedLocale)
@@ -34,7 +34,7 @@ export function LanguageProvider({ children }: Readonly<LanguageProviderProps>) 
   const handleSetLocale = (newLocale: Locale) => {
     setLocale(newLocale)
     localStorage.setItem(STORAGE_KEY, newLocale)
-    // Atualizar atributo lang do HTML
+
     if (typeof document !== 'undefined') {
       let langValue = 'en'
       if (newLocale === 'pt') {
@@ -63,7 +63,7 @@ export function LanguageProvider({ children }: Readonly<LanguageProviderProps>) 
     return typeof value === 'string' ? value : key
   }
 
-  // Atualizar lang do HTML quando o idioma mudar
+
   useEffect(() => {
     if (typeof document !== 'undefined') {
       let langValue = 'en'

@@ -41,7 +41,6 @@ export default function AnalysisModal({
     return () => globalThis.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
 
-  // Focus modal for accessibility
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
@@ -158,7 +157,7 @@ export default function AnalysisModal({
 
   return (
     <React.Fragment>
-      {/* Backdrop para clicar fora e fechar */}
+
       <div
         className="fixed inset-0 z-40"
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
@@ -178,7 +177,7 @@ export default function AnalysisModal({
           borderWidth: '1px',
         }}
       >
-        {/* Header */}
+
         <div
           className="flex items-center justify-between p-4 sm:p-6 border-b"
           style={{ borderColor: themeColors.gridColor }}
@@ -220,7 +219,6 @@ export default function AnalysisModal({
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {!hasAnalysis && (
             <div className="text-center py-8 sm:py-12">
@@ -246,7 +244,6 @@ export default function AnalysisModal({
                 Não foram detectadas anomalias ou insights para este gráfico no momento.
               </p>
 
-              {/* Estatísticas básicas */}
               {analysis.statistics && (
                 <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-2xl mx-auto">
                   <div
@@ -339,7 +336,7 @@ export default function AnalysisModal({
           )}
           {hasAnalysis && (
             <div className="space-y-6">
-              {/* Anomalias */}
+
               {hasAnomalies && (
                 <div>
                   <div className="flex items-center gap-2 mb-4">
@@ -440,7 +437,6 @@ export default function AnalysisModal({
                 </div>
               )}
 
-              {/* Insights */}
               {hasInsights && (
                 <div>
                   <div className="flex items-center gap-2 mb-4">
@@ -528,7 +524,6 @@ export default function AnalysisModal({
                 </div>
               )}
 
-              {/* Estatísticas */}
               {analysis.statistics && (
                 <div>
                   <div className="flex items-center gap-2 mb-4">
@@ -635,7 +630,6 @@ export default function AnalysisModal({
           )}
         </div>
 
-        {/* Footer */}
         <div
           className="flex justify-end p-4 sm:p-6 border-t"
           style={{ borderColor: themeColors.gridColor }}
@@ -662,5 +656,4 @@ export default function AnalysisModal({
     </React.Fragment>
   );
 }
-
 

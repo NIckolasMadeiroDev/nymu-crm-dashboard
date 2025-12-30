@@ -19,7 +19,6 @@ interface ChartWithControlsProps {
   readonly dragHandleProps?: React.HTMLAttributes<HTMLDivElement>
 }
 
-// Apenas tipos suportados pelo ChartFactory
 const ALL_CHART_TYPES: ChartType[] = [
   'line',
   'area',
@@ -67,7 +66,6 @@ export default function ChartWithControls({
     type: chartType,
   }
 
-  // Calcula análises dos dados do gráfico
   const analysis = useChartAnalysis(chartConfig.data || [])
 
   const handleMinimize = () => {

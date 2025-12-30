@@ -135,7 +135,6 @@ export default function ExportConfigPanel({
 
       const filename = `${config.filename}.${extension}`
 
-      // Se WhatsApp está habilitado e o formato gera arquivo
       if (config.sendToWhatsApp && FILE_FORMATS.has(config.format) && result instanceof Blob) {
         setExportedFile({ blob: result, filename })
         setShowWhatsAppModal(true)
@@ -160,11 +159,11 @@ export default function ExportConfigPanel({
     const encodedMessage = encodeURIComponent(message)
 
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-    
+
     const whatsappUrl = isMobile
       ? `whatsapp://send?text=${encodedMessage}`
       : `https://web.whatsapp.com/send?text=${encodedMessage}`
-    
+
     try {
       window.open(whatsappUrl, '_blank')
     } catch {
@@ -180,7 +179,7 @@ export default function ExportConfigPanel({
       excel: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       json: 'application/json',
     }
-    
+
     exportService.downloadFile(exportedFile.blob, exportedFile.filename, mimeTypes[config.format])
 
     toast.success(
@@ -189,7 +188,7 @@ export default function ExportConfigPanel({
         : 'Arquivo baixado. Abra o WhatsApp Web e anexe o arquivo junto com a mensagem.',
       { duration: 5000 }
     )
-    
+
     setShowWhatsAppModal(false)
     setExportedFile(null)
     onExport()

@@ -9,7 +9,7 @@ interface ErrorMessageProps {
 
 export default function ErrorMessage({ message, onRetry }: Readonly<ErrorMessageProps>) {
   const { t } = useLanguage()
-  
+
   return (
     <div className="flex flex-col items-center justify-center p-8 bg-red-50 rounded-lg border border-red-200">
       <p className="text-red-800 font-secondary mb-4">{message}</p>

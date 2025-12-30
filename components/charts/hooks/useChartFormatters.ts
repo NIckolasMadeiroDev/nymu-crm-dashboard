@@ -5,8 +5,8 @@ import { formatXAxis, formatYAxis, formatValue, formatTooltipValue, shouldUseAda
 export const useChartFormatters = (config: ChartConfig) => {
   const xAxisKey = config.xAxisKey || 'date'
   const yAxisKey = config.yAxisKey || 'value'
-  
-  // Detectar se precisa usar formatação adaptativa baseado nos dados
+
+
   const useAdaptive = useMemo(() => {
     if (config.useAdaptive !== undefined) {
       return config.useAdaptive
@@ -16,17 +16,17 @@ export const useChartFormatters = (config: ChartConfig) => {
     }
     return false
   }, [config.data, config.useAdaptive, yAxisKey])
-  
-  // Calcular domínio adaptativo para o eixo Y
+
+
   const adaptiveDomain = useMemo(() => {
     if (!config.data || !Array.isArray(config.data) || config.data.length === 0) {
       return null
     }
-    
+
     const seriesKeys = config.series?.map(s => s.key) || []
     return calculateAdaptiveDomain(config.data, yAxisKey, seriesKeys)
   }, [config.data, config.series, yAxisKey])
-  
+
   const formatOptions: FormatOptions = useMemo(() => ({
     title: config.title,
     format: config.format,
@@ -42,7 +42,7 @@ export const useChartFormatters = (config: ChartConfig) => {
   }, [formatOptions])
 
   const formatTooltip = useMemo(() => {
-    return (value: number | undefined, name?: string | undefined) => 
+    return (value: number | undefined, name?: string | undefined) =>
       formatTooltipValue(value, name, formatOptions)
   }, [formatOptions])
 

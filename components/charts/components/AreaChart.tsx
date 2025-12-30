@@ -40,10 +40,10 @@ export default function AreaChart({
     >
       <div className="w-full h-full overflow-hidden" style={{ minHeight: responsiveHeight, minWidth: 0 }}>
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={responsiveHeight}>
-          <RechartsAreaChart 
-            data={data} 
-            margin={{ 
-              top: 5, 
+          <RechartsAreaChart
+            data={data}
+            margin={{
+              top: 5,
               right: responsiveChart.marginRight,
               left: responsiveChart.marginLeft,
               bottom: responsiveChart.marginBottom,

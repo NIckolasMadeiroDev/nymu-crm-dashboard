@@ -1,4 +1,4 @@
-// Cores padrão (fallback quando não há tema disponível)
+
 export const DEFAULT_COLORS = [
   '#3b82f6',
   '#10b981',

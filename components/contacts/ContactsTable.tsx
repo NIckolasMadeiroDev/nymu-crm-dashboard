@@ -51,7 +51,6 @@ export default function ContactsTable({ contacts, isLoading, onRowClick, viewMod
     )
   }
 
-  // Visualização em Grid
   if (viewMode === 'grid') {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
@@ -71,7 +70,7 @@ export default function ContactsTable({ contacts, isLoading, onRowClick, viewMod
                   </span>
                 </div>
               </div>
-              
+
               <div className="space-y-1 w-full">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate font-primary">
                   {contact.name}
@@ -116,10 +115,9 @@ export default function ContactsTable({ contacts, isLoading, onRowClick, viewMod
     )
   }
 
-  // Visualização em Lista
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-      {/* Versão Desktop */}
+
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-800">
@@ -208,7 +206,6 @@ export default function ContactsTable({ contacts, isLoading, onRowClick, viewMod
         </table>
       </div>
 
-      {/* Versão Mobile */}
       <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
         {contacts.map((contact) => (
           <button

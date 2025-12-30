@@ -15,7 +15,7 @@ export const useGaugeData = (
   return useMemo(() => {
     const normalizedValue = Math.min(Math.max(value, min), max)
     const color = getColorForValue(normalizedValue, thresholds)
-    
+
     return {
       gaugeData: [
         { name: 'value', value: normalizedValue, fill: color },

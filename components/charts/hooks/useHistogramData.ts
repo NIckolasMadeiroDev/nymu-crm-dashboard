@@ -11,7 +11,7 @@ export const useHistogramData = (data: any[], valueKey: string, bins: number = 1
   return useMemo(() => {
     const values = data.map((d) => Number(d[valueKey])).filter((v) => !Number.isNaN(v))
     if (values.length === 0) return []
-    
+
     const min = Math.min(...values)
     const max = Math.max(...values)
     const binWidth = (max - min) / bins

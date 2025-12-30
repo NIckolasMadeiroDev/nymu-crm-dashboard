@@ -19,8 +19,7 @@ export default function SalesConversionWithControls({
       name: w.label,
       value: w.value,
     }))
-    
-    // Detectar se precisa usar formatação adaptativa
+
     const allValues = chartData.map((d) => Math.abs(d.value))
     const maxValue = allValues.length > 0 ? Math.max(...allValues) : 0
     const useAdaptive = maxValue >= 1000

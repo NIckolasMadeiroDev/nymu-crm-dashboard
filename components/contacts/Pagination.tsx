@@ -8,30 +8,30 @@ interface PaginationProps {
   readonly onPageChange: (page: number) => void
 }
 
-export default function Pagination({ 
-  currentPage, 
-  totalPages, 
-  totalItems, 
+export default function Pagination({
+  currentPage,
+  totalPages,
+  totalItems,
   itemsPerPage,
-  onPageChange 
+  onPageChange
 }: PaginationProps) {
   if (totalPages <= 1) return null
 
   const startItem = (currentPage - 1) * itemsPerPage + 1
   const endItem = Math.min(currentPage * itemsPerPage, totalItems)
 
-  // Gera array de números de página para exibir
+
   const getPageNumbers = () => {
     const pages: (number | string)[] = []
     const maxVisible = 5
 
     if (totalPages <= maxVisible) {
-      // Mostra todas as páginas
+
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i)
       }
     } else {
-      // Lógica para mostrar páginas com ellipsis
+
       if (currentPage <= 3) {
         for (let i = 1; i <= 4; i++) pages.push(i)
         pages.push('...')
@@ -54,16 +54,16 @@ export default function Pagination({
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-      {/* Info */}
+
       <div className="text-sm text-gray-600 dark:text-gray-400 font-secondary">
         Mostrando <span className="font-medium text-gray-900 dark:text-white">{startItem}</span> a{' '}
         <span className="font-medium text-gray-900 dark:text-white">{endItem}</span> de{' '}
         <span className="font-medium text-gray-900 dark:text-white">{totalItems}</span> resultados
       </div>
 
-      {/* Controles */}
+
       <div className="flex items-center gap-2">
-        {/* Botão Anterior */}
+
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
@@ -76,7 +76,7 @@ export default function Pagination({
           <span className="hidden sm:inline">Anterior</span>
         </button>
 
-        {/* Números de Página */}
+
         <div className="flex items-center gap-1">
           {getPageNumbers().map((page, index) => {
             if (page === '...') {
@@ -109,7 +109,7 @@ export default function Pagination({
           })}
         </div>
 
-        {/* Botão Próximo */}
+
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}

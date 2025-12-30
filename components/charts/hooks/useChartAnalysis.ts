@@ -60,7 +60,7 @@ const normalizeValuePoint = (item: { value: number; label?: unknown; name?: unkn
 const formatObjectLabel = (labelObj: Record<string, unknown>): string => {
   const keys = Object.keys(labelObj)
   if (keys.length === 0) return ''
-  
+
   const keyTranslations: Record<string, string> = {
     date: 'Data',
     sevenDays: '7 dias',
@@ -71,7 +71,7 @@ const formatObjectLabel = (labelObj: Record<string, unknown>): string => {
     name: 'Nome',
     label: 'Rótulo',
   }
-  
+
   const formattedPairs: string[] = []
   for (const key of keys) {
     const value = labelObj[key]
@@ -83,7 +83,7 @@ const formatObjectLabel = (labelObj: Record<string, unknown>): string => {
       formattedPairs.push(`${formattedKey}: ${value}`)
     }
   }
-  
+
   return formattedPairs.length > 0 ? formattedPairs.join(' • ') : ''
 }
 
@@ -96,7 +96,7 @@ const normalizeFallbackPoint = (item: any) => {
     numericValue = Object.entries(item)
       .find(([key, val]) => !dateKeys.has(key) && typeof val === 'number')?.[1] as number | undefined
   }
-  
+
   let fallbackLabelStr = ''
   if (item.date) {
     fallbackLabelStr = String(item.date)
@@ -113,7 +113,7 @@ const normalizeFallbackPoint = (item: any) => {
   } else {
     fallbackLabelStr = formatObjectLabel(item)
   }
-  
+
   return {
     value: numericValue || 0,
     label: fallbackLabelStr || undefined,

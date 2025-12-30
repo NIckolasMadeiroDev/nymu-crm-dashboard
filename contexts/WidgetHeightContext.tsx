@@ -16,10 +16,10 @@ interface WidgetHeightProviderProps {
 }
 
 export function WidgetHeightProvider({ children }: Readonly<WidgetHeightProviderProps>) {
-  const [widgetHeight, setWidgetHeightState] = useState<WidgetHeight>(() => 
+  const [widgetHeight, setWidgetHeightState] = useState<WidgetHeight>(() =>
     dashboardPreferencesService.getWidgetHeight()
   )
-  const [widgetHeightPx, setWidgetHeightPx] = useState(() => 
+  const [widgetHeightPx, setWidgetHeightPx] = useState(() =>
     dashboardPreferencesService.getWidgetHeightPx()
   )
 

@@ -65,7 +65,7 @@ export default function WidgetContainer({
     }
   }
 
-  // Cria análise padrão se não fornecida
+
   const defaultAnalysis: DataAnalysisResult = {
     anomalies: [],
     insights: [],
@@ -81,7 +81,7 @@ export default function WidgetContainer({
 
   const chartAnalysis = analysis || defaultAnalysis
 
-  // Sincroniza altura quando o gráfico é restaurado
+
   useEffect(() => {
     const wasMinimized = wasMinimizedRef.current
     const isNowExpanded = !isMinimized && wasMinimized
@@ -97,7 +97,7 @@ export default function WidgetContainer({
 
       const currentParent = containerRef.current?.parentElement
 
-      // Encontra todos os widgets na mesma linha (irmãos no grid)
+
       const siblings = Array.from(gridParent.children).filter((child) => {
         const childElement = child as HTMLElement
         const isMinimizedSibling = childElement.querySelector('button[aria-label*="Restaurar"]')
@@ -106,7 +106,7 @@ export default function WidgetContainer({
 
       if (siblings.length === 0) return
 
-      // Calcula a altura dos irmãos (pega o container do ResizableWidget)
+
       const siblingHeights = siblings
         .map((sibling) => {
           const widgetContainer = sibling.querySelector('.relative') as HTMLElement
@@ -116,10 +116,10 @@ export default function WidgetContainer({
 
       if (siblingHeights.length === 0) return
 
-      // Usa a altura máxima para manter consistência
+
       const targetHeight = Math.max(...siblingHeights)
 
-      // Ajusta a altura do container restaurado
+
       const widgetContainer = containerRef.current?.querySelector('.relative') as HTMLElement
       if (widgetContainer && Math.abs(widgetContainer.offsetHeight - targetHeight) > 10) {
         widgetContainer.style.height = `${targetHeight}px`
@@ -127,7 +127,7 @@ export default function WidgetContainer({
       }
     }
 
-    // Aguarda o próximo frame para garantir que o DOM foi atualizado
+
     requestAnimationFrame(() => {
       setTimeout(syncHeight, 150)
     })

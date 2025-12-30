@@ -43,7 +43,6 @@ export default function SalesByConversionTimeComponent({
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
 
-  // Detectar se precisa usar formatação adaptativa
   const allValues = useMemo(() => {
     const values: number[] = []
     ;[data.sevenDays, data.thirtyDays, data.ninetyDays, data.oneEightyDays].forEach((series) => {
@@ -67,7 +66,6 @@ export default function SalesByConversionTimeComponent({
   const chartData = useMemo(() => {
     const labels = data.sevenDays.map((item) => `${item.days}d`)
 
-    // Se usando formatação adaptativa, escalar os valores para exibição
     const scaleData = (value: number) => {
       if (useAdaptive && adaptiveScale.scale > 1) {
         return value / adaptiveScale.scale
@@ -110,14 +108,11 @@ export default function SalesByConversionTimeComponent({
     }
   }, [data, useAdaptive, adaptiveScale])
 
-  // Calcular domínio adaptativo - sempre calcular para garantir que valores altos sejam exibidos corretamente
   const yAxisDomain = useMemo(() => {
     if (maxValue === 0) {
       return [0, 100] // Valor padrão quando não há dados
     }
-    
-    // Sempre aplicar padding dinâmico baseado no valor máximo
-    // Valores menores precisam de mais padding para melhor visualização
+
     let paddingPercent = 0.15 // Padrão 15%
     if (maxValue < 50) {
       paddingPercent = 0.5 // 50% para valores muito pequenos
@@ -126,23 +121,20 @@ export default function SalesByConversionTimeComponent({
     } else if (maxValue < 1000) {
       paddingPercent = 0.2 // 20% para valores médios
     }
-    
+
     const maxWithPadding = maxValue * (1 + paddingPercent)
-    
+
     if (useAdaptive && adaptiveScale.scale > 1) {
-      // Quando usando formatação adaptativa, trabalhar com valores escalados
+
       const scaledMax = maxWithPadding / adaptiveScale.scale
-      
-      // Arredondar para valor "bonito" (múltiplos de potências de 10)
+
       const magnitude = Math.pow(10, Math.floor(Math.log10(scaledMax)))
       let roundedMax = Math.ceil(scaledMax / magnitude) * magnitude
-      
-      // Garantir que o valor arredondado seja sempre maior que o máximo escalado
+
       if (roundedMax <= scaledMax) {
         roundedMax += magnitude
       }
-      
-      // Garantir mínimo de 20% acima do máximo escalado
+
       const minRequiredMax = (maxValue / adaptiveScale.scale) * 1.2
       if (roundedMax < minRequiredMax) {
         roundedMax = Math.ceil(minRequiredMax / magnitude) * magnitude
@@ -150,19 +142,17 @@ export default function SalesByConversionTimeComponent({
           roundedMax += magnitude
         }
       }
-      
+
       return [0, roundedMax]
     } else {
-      // Para valores menores, arredondar normalmente
+
       const magnitude = Math.pow(10, Math.floor(Math.log10(maxWithPadding)))
       let roundedMax = Math.ceil(maxWithPadding / magnitude) * magnitude
-      
-      // Garantir que o valor arredondado seja sempre maior que o máximo
+
       if (roundedMax <= maxWithPadding) {
         roundedMax += magnitude
       }
-      
-      // Para valores muito pequenos, usar incrementos menores
+
       if (maxValue < 10) {
         roundedMax = Math.ceil(maxWithPadding / 2) * 2
         if (roundedMax <= maxWithPadding) roundedMax += 2
@@ -170,8 +160,7 @@ export default function SalesByConversionTimeComponent({
         roundedMax = Math.ceil(maxWithPadding / 5) * 5
         if (roundedMax <= maxWithPadding) roundedMax += 5
       }
-      
-      // Garantir mínimo de padding mesmo após arredondamento
+
       const minRequiredMax = maxValue * 1.15
       if (roundedMax < minRequiredMax) {
         roundedMax = Math.ceil(minRequiredMax / magnitude) * magnitude
@@ -179,7 +168,7 @@ export default function SalesByConversionTimeComponent({
           roundedMax += magnitude
         }
       }
-      
+
       return [0, roundedMax]
     }
   }, [maxValue, useAdaptive, adaptiveScale])
@@ -201,7 +190,7 @@ export default function SalesByConversionTimeComponent({
       tooltip: {
         callbacks: {
           label: function (context: any) {
-            // Converter valor escalado de volta para o valor original no tooltip
+
             let value = context.parsed.y
             if (useAdaptive && adaptiveScale.scale > 1) {
               value = value * adaptiveScale.scale
@@ -225,7 +214,7 @@ export default function SalesByConversionTimeComponent({
         max: yAxisDomain[1], // Sempre definir o máximo para garantir que valores altos sejam exibidos
         ticks: {
           callback: function (value: any) {
-            // Se usando formatação adaptativa, converter o valor de volta para o formato original
+
             if (useAdaptive && adaptiveScale.scale > 1) {
               const originalValue = value * adaptiveScale.scale
               return formatChartValue(originalValue, useAdaptive)
@@ -275,5 +264,4 @@ export default function SalesByConversionTimeComponent({
     </section>
   )
 }
-
 

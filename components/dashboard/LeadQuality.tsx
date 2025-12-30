@@ -33,12 +33,11 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
     }
   }
 
-  // Filtrar dados por tipo de grupo
   const filteredData = useMemo(() => {
     if (groupFilter === 'all') {
       return data
     }
-    
+
     return data.filter((item) => {
       const origin = item.origin.toLowerCase()
       if (groupFilter === 'tags') {
@@ -77,7 +76,7 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
   const getSortIcon = (column: SortColumn) => {
     const isActive = sortColumn === column
     const baseClasses = "w-4 h-4 transition-all duration-200"
-    
+
     if (!isActive) {
       return (
         <svg
@@ -132,7 +131,6 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
     )
   }
 
-  // Contar grupos por tipo
   const groupCounts = useMemo(() => {
     const tags = data.filter(d => d.origin.toLowerCase().startsWith('tag:')).length
     const colleges = data.filter(d => d.origin.toLowerCase().startsWith('faculdade:')).length
@@ -140,13 +138,13 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
       const origin = d.origin.toLowerCase()
       return !origin.startsWith('tag:') && !origin.startsWith('faculdade:') && origin !== 'unknown'
     }).length
-    
+
     return { tags, colleges, sources, total: data.length }
   }, [data])
 
   return (
     <div className="flex flex-col h-full">
-      {/* Filtros de grupo */}
+
       <div className="flex flex-wrap gap-2 mb-4 px-1">
         <button
           onClick={() => setGroupFilter('all')}

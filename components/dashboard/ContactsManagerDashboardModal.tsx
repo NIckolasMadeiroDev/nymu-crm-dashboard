@@ -10,21 +10,20 @@ interface ContactsManagerDashboardModalProps {
   readonly onClose: () => void
 }
 
-/** Modal responsivo para UI de contatos no contexto do dashboard */
 export default function ContactsManagerDashboardModal({ open, onClose }: ContactsManagerDashboardModalProps) {
   if (!open) return null;
 
   return (
     <>
-      <button 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 cursor-default" 
+      <button
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 cursor-default"
         onClick={onClose}
         aria-label="Fechar modal"
         type="button"
       ></button>
-      
+
       <div className="fixed inset-4 md:inset-8 lg:inset-12 bg-white dark:bg-gray-900 rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden">
-        {/* Header com botão de fechar */}
+
         <div className="flex items-center justify-end p-3 border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={onClose}
@@ -36,8 +35,7 @@ export default function ContactsManagerDashboardModal({ open, onClose }: Contact
             </svg>
           </button>
         </div>
-        
-        {/* Conteúdo */}
+
         <div className="flex-1 overflow-auto">
           <ContactsManager />
         </div>

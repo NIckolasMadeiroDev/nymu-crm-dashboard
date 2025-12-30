@@ -17,7 +17,7 @@ export default function DashboardHeader({
 }: Readonly<DashboardHeaderProps>) {
   const { t } = useLanguage()
   const [logoVariant, setLogoVariant] = useState<'twocolor' | 'white'>('twocolor')
-  
+
   useEffect(() => {
     const updateLogoVariant = () => {
       const theme = themeService.getTheme()
@@ -30,14 +30,13 @@ export default function DashboardHeader({
 
     updateLogoVariant()
 
-    // Listen for theme changes
     const handleStorageChange = () => {
       updateLogoVariant()
     }
 
     if (globalThis.window !== undefined) {
       globalThis.window.addEventListener('storage', handleStorageChange)
-      // Also check periodically for same-window updates
+
       const interval = setInterval(updateLogoVariant, 1000)
 
       return () => {
@@ -46,10 +45,10 @@ export default function DashboardHeader({
       }
     }
   }, [])
-  
+
   const displayTitle = title || t.dashboard.title
   const displaySubtitle = subtitle || t.dashboard.subtitle
-  
+
   return (
     <header className="mb-2 sm:mb-3" role="banner">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">

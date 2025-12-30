@@ -78,8 +78,8 @@ export default function BarChart({
           <RechartsBarChart
             data={data}
             layout={horizontal ? 'vertical' : 'horizontal'}
-            margin={{ 
-              top: 5, 
+            margin={{
+              top: 5,
               right: responsiveChart.marginRight,
               left: horizontal ? responsiveChart.yAxisWidth : responsiveChart.marginLeft,
               bottom: horizontal ? 0 : responsiveChart.marginBottom,

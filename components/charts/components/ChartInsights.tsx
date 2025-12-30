@@ -44,14 +44,14 @@ export default function ChartInsights({
     if (isExpanded && contentRef.current) {
       let resizeTimeout: NodeJS.Timeout | null = null
       let isUpdating = false
-      
+
       const updateHeight = () => {
         if (isUpdating || !contentRef.current) return
         isUpdating = true
-        
+
         requestAnimationFrame(() => {
           if (contentRef.current) {
-            // Limita altura máxima para 60% da viewport para evitar crescimento infinito
+
             const maxHeight = (typeof globalThis !== 'undefined' && globalThis.innerHeight) ? globalThis.innerHeight * 0.6 : 400
             const calculatedHeight = contentRef.current.scrollHeight
             const height = Math.min(maxHeight, calculatedHeight)
@@ -63,7 +63,6 @@ export default function ChartInsights({
 
       updateHeight()
 
-      // Debounce para evitar loops infinitos
       const resizeObserver = new ResizeObserver(() => {
         if (resizeTimeout) clearTimeout(resizeTimeout)
         resizeTimeout = setTimeout(updateHeight, 50)
@@ -142,16 +141,14 @@ export default function ChartInsights({
   const formatObjectLabel = (labelObj: Record<string, unknown>): string => {
     const keys = Object.keys(labelObj)
     if (keys.length === 0) return ''
-    
-    // If single key, return just the value formatted
+
     if (keys.length === 1) {
       const firstValue = labelObj[keys[0]]
       if (firstValue !== undefined && firstValue !== null) {
         return formatLabel(firstValue)
       }
     }
-    
-    // Format object with readable key-value pairs
+
     const formattedPairs: string[] = []
     const keyTranslations: Record<string, string> = {
       date: 'Data',
@@ -163,13 +160,13 @@ export default function ChartInsights({
       name: 'Nome',
       label: 'Rótulo',
     }
-    
+
     for (const key of keys) {
       const value = labelObj[key]
       if (value !== undefined && value !== null) {
         const formattedKey = keyTranslations[key] || key
         let formattedValue: string
-        
+
         if (typeof value === 'number') {
           formattedValue = value.toLocaleString('pt-BR')
         } else if (typeof value === 'string') {
@@ -179,11 +176,11 @@ export default function ChartInsights({
         } else {
           formattedValue = String(value)
         }
-        
+
         formattedPairs.push(`${formattedKey}: ${formattedValue}`)
       }
     }
-    
+
     return formattedPairs.length > 0 ? formattedPairs.join(' • ') : ''
   }
 
@@ -295,7 +292,7 @@ export default function ChartInsights({
             minHeight: isExpanded ? 'auto' : 0,
           }}
         >
-          {/* Anomalias */}
+
           {hasAnomalies && (
             <div className="space-y-3 sm:space-y-4 md:space-y-5">
               <div className="flex items-center gap-1.5 sm:gap-2 pb-0.5 sm:pb-1">
@@ -318,7 +315,7 @@ export default function ChartInsights({
               <div className="space-y-2 sm:space-y-2.5 md:space-y-3">
                 {anomalies.slice(0, 5).map((anomaly) => {
                   const anomalyKey = `anomaly-${anomaly.type}-${anomaly.index}-${anomaly.value}`
-                  
+
                   let anomalyTypeLabel = 'Mudança de Tendência'
                   if (anomaly.type === 'spike') {
                     anomalyTypeLabel = 'Pico'
@@ -327,14 +324,14 @@ export default function ChartInsights({
                   } else if (anomaly.type === 'outlier') {
                     anomalyTypeLabel = 'Outlier'
                   }
-                  
+
                   let anomalySeverityLabel = 'Baixa'
                   if (anomaly.severity === 'high') {
                     anomalySeverityLabel = 'Alta'
                   } else if (anomaly.severity === 'medium') {
                     anomalySeverityLabel = 'Média'
                   }
-                  
+
                   return (
                   <div
                     key={anomalyKey}
@@ -436,7 +433,6 @@ export default function ChartInsights({
             </div>
           )}
 
-          {/* Insights */}
           {hasInsights && (
             <div className="space-y-3 sm:space-y-4 md:space-y-5">
               <div className="flex items-center gap-1.5 sm:gap-2 pb-0.5 sm:pb-1">
@@ -459,7 +455,7 @@ export default function ChartInsights({
               <div className="space-y-2 sm:space-y-2.5 md:space-y-3">
                 {insights.map((insight) => {
                   const insightKey = `insight-${insight.type}-${insight.title}`
-                  
+
                   return (
                   <div
                     key={insightKey}

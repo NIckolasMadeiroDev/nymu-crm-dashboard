@@ -24,9 +24,9 @@ export default function HistogramChart({
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={responsiveHeight}>
           <BarChart data={histogramData} margin={{ top: 5, right: 10, left: -10, bottom: 60 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.gridColor} />
-            <XAxis 
-              dataKey="range" 
-              stroke={themeColors.foreground} 
+            <XAxis
+              dataKey="range"
+              stroke={themeColors.foreground}
               style={{ fontSize: '10px' }}
               angle={-45}
               textAnchor="end"

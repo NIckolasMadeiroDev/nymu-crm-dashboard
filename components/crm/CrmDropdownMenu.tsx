@@ -61,10 +61,10 @@ export default function CrmDropdownMenu({ onContactsClick, onPanelsClick }: CrmD
           />
         </svg>
         <span className="hidden sm:inline truncate">Contatos/Painéis</span>
-        <svg 
-          className={`w-2 h-2 sm:w-2.5 sm:h-2.5 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          className={`w-2 h-2 sm:w-2.5 sm:h-2.5 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

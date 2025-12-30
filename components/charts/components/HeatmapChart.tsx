@@ -49,7 +49,7 @@ export default function HeatmapChart({
                       <td
                         key={`${x}-${y}`}
                         className="border p-2 text-center text-xs font-secondary cursor-pointer hover:opacity-80 transition-opacity"
-                        style={{ 
+                        style={{
                           borderColor: themeColors.gridColor,
                           backgroundColor: getHeatmapColor(value, minValue, maxValue, {
                             primary: themeColors.primary,

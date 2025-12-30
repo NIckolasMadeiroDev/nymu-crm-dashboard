@@ -26,7 +26,7 @@ export default function ChartContainer({
   const hasActions = onDrillDown || onExport || actions
 
   return (
-    <div 
+    <div
       className={`h-full flex flex-col rounded-lg shadow-sm border ${hasActions ? 'p-1 sm:p-1.5' : 'p-1.5 sm:p-2'} ${className}`}
       style={{
         backgroundColor: themeColors.background,

@@ -35,7 +35,7 @@ export default function ScatterChart({
   onDataPointClick,
 }: Readonly<ScatterChartProps>) {
   const themeColors = useThemeColors()
-  
+
   return (
     <ChartContainer
       title={config.title}

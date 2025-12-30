@@ -15,7 +15,7 @@ export default function BubbleChart({
 }: Readonly<BubbleChartProps>) {
   const themeColors = useThemeColors()
   const responsiveHeight = useResponsiveHeight(height)
-  
+
   return (
     <ChartContainer title={config.title} subtitle={config.subtitle}>
       <div className="w-full h-full overflow-hidden" style={{ minHeight: responsiveHeight, minWidth: 0 }}>

@@ -20,33 +20,33 @@ export default function ContactsManager() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
 
-  // Paginação
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [pageSize, setPageSize] = useState(15);
 
-  // --- Novos estados para criação/edição/deleção ---
+
   const [editOpen, setEditOpen] = useState(false);
   const [editMode, setEditMode] = useState<'create'|'edit'>("create");
   const [editContact, setEditContact] = useState<Partial<HelenaContact> | undefined>();
   const [editLoading, setEditLoading] = useState(false);
 
-  // Busca contatos ao entrar ou buscar
+
   const fetchContacts = useCallback(async (searchTerm?: string, page: number = 1) => {
     setIsLoading(true);
     try {
       let data;
       if (searchTerm && searchTerm.trim() !== "") {
-        data = await contactsService.filterContacts({ 
-          textFilter: searchTerm, 
+        data = await contactsService.filterContacts({
+          textFilter: searchTerm,
           pageSize,
-          pageNumber: page 
+          pageNumber: page
         });
       } else {
-        data = await contactsService.listContacts({ 
+        data = await contactsService.listContacts({
           PageSize: pageSize,
-          PageNumber: page 
+          PageNumber: page
         });
       }
       setContacts(data.items);
@@ -67,31 +67,31 @@ export default function ContactsManager() {
     fetchContacts(); // inicializa lista
   }, [fetchContacts]);
 
-  // Busca/filtra
+
   const handleSearch = useCallback(() => {
     setCurrentPage(1);
     fetchContacts(search, 1);
   }, [fetchContacts, search]);
 
-  // Navegação de páginas
+
   const handlePageChange = useCallback((page: number) => {
     fetchContacts(search, page);
   }, [fetchContacts, search]);
 
-  // Clique linha => drawer detalhes
+
   const handleRowClick = useCallback((c: HelenaContact) => {
     setSelectedContact(c);
     setDrawerOpen(true);
   }, []);
 
-  // --- Abrir cadastro/criação ---
+
   const handleCreateContact = useCallback(() => {
     setEditMode('create');
     setEditContact(undefined);
     setEditOpen(true);
   }, []);
 
-  // --- Submeter criação/edição (modo simples: nome, telefone, email) ---
+
   const handleSaveContact = async (form: Partial<HelenaContact>) => {
     setEditLoading(true)
     try {
@@ -107,7 +107,7 @@ export default function ContactsManager() {
     }
   }
 
-  // Editar do Drawer de detalhes
+
   const handleEditContact = useCallback(() => {
     if (!selectedContact) return;
     setEditContact(selectedContact);
@@ -116,7 +116,7 @@ export default function ContactsManager() {
     setEditOpen(true);
   }, [selectedContact]);
 
-  // Deletar do Drawer de detalhes
+
   const handleDeleteContact = useCallback(async () => {
     if (!selectedContact) return;
     setEditLoading(true)
@@ -129,26 +129,26 @@ export default function ContactsManager() {
     }
   }, [selectedContact, fetchContacts]);
 
-  // Drawer detalhes fecha
+
   const handleDrawerClose = useCallback(() => {
     setDrawerOpen(false);
     setSelectedContact(null);
   }, []);
 
-  // Drawer edição fecha
+
   const handleEditClose = useCallback(() => {
     setEditOpen(false);
     setEditContact(undefined);
   }, []);
 
-  // Filtra contatos por status localmente
-  const filteredContacts = statusFilter === 'ALL' 
-    ? contacts 
+
+  const filteredContacts = statusFilter === 'ALL'
+    ? contacts
     : contacts.filter(c => c.status === statusFilter);
 
   return (
     <div className="flex flex-col h-full w-full p-4 sm:p-6 space-y-4 bg-white dark:bg-gray-900">
-      {/* Header + Toolbar */}
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white font-primary">
@@ -171,15 +171,15 @@ export default function ContactsManager() {
         </div>
       </div>
 
-      {/* Busca e Filtros */}
+
       <div className="space-y-3">
         <ContactsSearchBar
           value={search}
           onChange={setSearch}
           onSearch={handleSearch}
         />
-        
-        {/* Filtros e Visualização */}
+
+
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary">Filtrar:</span>
@@ -204,7 +204,7 @@ export default function ContactsManager() {
               ))}
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary">Visualização:</span>
             <div className="flex gap-1 bg-white dark:bg-gray-700 rounded-lg p-0.5 border border-gray-300 dark:border-gray-600">
@@ -235,7 +235,7 @@ export default function ContactsManager() {
                 </svg>
               </button>
             </div>
-            
+
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
@@ -250,17 +250,17 @@ export default function ContactsManager() {
         </div>
       </div>
 
-      {/* Tabela de Contatos */}
+
       <div className="flex-1 overflow-auto">
-        <ContactsTable 
-          contacts={filteredContacts} 
-          isLoading={isLoading} 
+        <ContactsTable
+          contacts={filteredContacts}
+          isLoading={isLoading}
           onRowClick={handleRowClick}
           viewMode={viewMode}
         />
       </div>
 
-      {/* Paginação */}
+
       {!isLoading && filteredContacts.length > 0 && (
         <Pagination
           currentPage={currentPage}
@@ -270,8 +270,8 @@ export default function ContactsManager() {
           onPageChange={handlePageChange}
         />
       )}
-      
-      {/* Drawer de detalhes */}
+
+
       <ContactDetailsDrawer
         open={drawerOpen}
         contact={selectedContact}
@@ -279,8 +279,8 @@ export default function ContactsManager() {
         onEdit={handleEditContact}
         onDelete={handleDeleteContact}
       />
-      
-      {/* Drawer de edição/criação */}
+
+
       <ContactEditDrawer
         open={editOpen}
         loading={editLoading}

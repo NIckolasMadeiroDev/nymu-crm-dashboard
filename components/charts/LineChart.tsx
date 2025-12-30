@@ -40,7 +40,7 @@ export default function LineChart({
 
   const formatXAxis = (tickItem: any) => {
     if (xAxisKey === 'date') {
-      // Verifica se é uma data válida
+
       const date = new Date(tickItem)
       if (!Number.isNaN(date.getTime())) {
         return date.toLocaleDateString('pt-BR', {
@@ -48,7 +48,7 @@ export default function LineChart({
           month: 'short',
         })
       }
-      // Se não for uma data válida, retorna o valor original (ex: "0d", "30d")
+
       return tickItem
     }
     return tickItem

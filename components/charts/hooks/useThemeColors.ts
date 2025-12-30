@@ -182,7 +182,6 @@ export function useThemeColors(): ThemeColors {
 
     updateTheme()
 
-    // Listen for storage changes (when theme is updated)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'crm-dashboard-theme' || e.key?.startsWith('crm-dashboard')) {
         updateTheme()
@@ -190,8 +189,7 @@ export function useThemeColors(): ThemeColors {
     }
 
     globalThis.window.addEventListener('storage', handleStorageChange)
-    
-    // Also check periodically for changes (in case of same-window updates)
+
     const interval = setInterval(updateTheme, 1000)
 
     return () => {
@@ -204,7 +202,6 @@ export function useThemeColors(): ThemeColors {
     return customThemeColors
   }
 
-  // Retorna cores específicas baseadas no tema
   switch (theme) {
     case 'nymu-light':
       return NYMU_LIGHT_THEME_COLORS
