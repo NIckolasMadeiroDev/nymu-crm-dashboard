@@ -26,11 +26,13 @@ export default function TreemapChart({ config, data, height = 300, onDataPointCl
             aspectRatio={4 / 3}
             stroke={themeColors.background}
             fill={themeColors.primary}
-            onClick={onDataPointClick ? (data: any, index: number, e: any) => {
-              console.log('[TreemapChart] Treemap onClick event:', { data, index, e })
-              // No Recharts, o onClick do Treemap recebe (data, index, e)
-              // onde data é o objeto do ponto de dados do array data
-              if (data && typeof data === 'object') {
+            onClick={onDataPointClick ? (node: any) => {
+              console.log('[TreemapChart] Treemap onClick event:', { node })
+              // No Recharts, o onClick do Treemap recebe (node: TreemapNode)
+              // onde node contém as propriedades do nó clicado
+              if (node && typeof node === 'object') {
+                // Extrair os dados do nó (pode estar em node.payload ou diretamente no node)
+                const data = node.payload || node
                 console.log('[TreemapChart] Calling onDataPointClick with data:', data)
                 onDataPointClick(data)
               }
