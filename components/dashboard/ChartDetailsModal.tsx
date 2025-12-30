@@ -247,13 +247,13 @@ export default function ChartDetailsModal({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60]"
         onClick={onClose}
         aria-hidden="true"
       />
       <dialog
         open={isOpen}
-        className="fixed inset-4 sm:inset-8 lg:inset-12 bg-white dark:bg-gray-900 rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden border-0 p-0"
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] sm:w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw] max-w-6xl h-[85vh] sm:h-[80vh] md:h-[75vh] bg-white dark:bg-gray-900 rounded-lg shadow-2xl z-[70] flex flex-col overflow-hidden border-0 p-0"
         aria-labelledby="chart-details-title"
       >
         {/* Header */}
@@ -342,7 +342,7 @@ export default function ChartDetailsModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="flex-1 overflow-y-auto overflow-x-auto p-4 sm:p-6 min-h-0">
           {processedDeals.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 dark:text-gray-400 font-secondary">
