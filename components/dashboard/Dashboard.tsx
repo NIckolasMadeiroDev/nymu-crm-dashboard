@@ -311,7 +311,23 @@ filtersToLoad ??= {
     async (chartTitle: string, period: { type: 'week' | 'days' | 'date'; value: string | number; label: string }) => {
       if (!dashboardData) return
 
-      setChartDetailsData({ title: chartTitle, period })
+      // Calcular label melhorado com range de datas
+      let improvedLabel = period.label
+      try {
+        if (period.type === 'week' && typeof period.value === 'number') {
+          const { getWeekDateRange, formatDateRange } = await import('@/utils/date-ranges')
+          const { startDate, endDate } = getWeekDateRange(period.value)
+          improvedLabel = `Sem ${period.value}: ${formatDateRange(startDate, endDate)}`
+        } else if (period.type === 'days' && typeof period.value === 'number') {
+          const { getDaysDateRange, formatDateRange } = await import('@/utils/date-ranges')
+          const { startDate, endDate } = getDaysDateRange(period.value)
+          improvedLabel = `${period.value} dias: ${formatDateRange(startDate, endDate)}`
+        }
+      } catch (error) {
+        console.error('Error calculating date range:', error)
+      }
+
+      setChartDetailsData({ title: chartTitle, period: { ...period, label: improvedLabel } })
       setShowChartDetailsModal(true)
       setChartDeals([])
       setChartContacts([])

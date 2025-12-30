@@ -139,14 +139,51 @@ export default function SalesByConversionTimeWithControls({
   }, [])
 
   const handleDataPointClick = (clickData: any) => {
+    console.log('[SalesByConversionTimeWithControls] handleDataPointClick called with:', clickData)
     if (onDataPointClick && clickData) {
       // Para gráficos de tempo de conversão, o clickData pode ter diferentes formatos
-      if (clickData.seriesKey && clickData.date) {
-        // Extrair número de dias do formato "Xd"
+      if (clickData.date) {
+        // Extrair número de dias do formato "Xd" (ex: "21d")
+        const daysMatch = (clickData.date as string).match(/(\d+)d/)
+        if (daysMatch) {
+          const days = Number.parseInt(daysMatch[1], 10)
+          
+          // Determinar qual série tem valor > 0 para identificar a série clicada
+          let seriesKey = 'sevenDays'
+          let seriesName = '7 Dias'
+          
+          if (clickData.sevenDays && clickData.sevenDays > 0) {
+            seriesKey = 'sevenDays'
+            seriesName = '7 Dias'
+          } else if (clickData.thirtyDays && clickData.thirtyDays > 0) {
+            seriesKey = 'thirtyDays'
+            seriesName = '30 Dias'
+          } else if (clickData.ninetyDays && clickData.ninetyDays > 0) {
+            seriesKey = 'ninetyDays'
+            seriesName = '90 Dias'
+          } else if (clickData.oneEightyDays && clickData.oneEightyDays > 0) {
+            seriesKey = 'oneEightyDays'
+            seriesName = '180 Dias'
+          } else if (clickData.seriesKey) {
+            // Se já tem seriesKey, usar diretamente
+            seriesKey = clickData.seriesKey
+            seriesName = clickData.seriesName || 
+                        (seriesKey === 'sevenDays' ? '7 Dias' :
+                         seriesKey === 'thirtyDays' ? '30 Dias' :
+                         seriesKey === 'ninetyDays' ? '90 Dias' :
+                         seriesKey === 'oneEightyDays' ? '180 Dias' : seriesKey)
+          }
+          
+          console.log('[SalesByConversionTimeWithControls] Calling onDataPointClick with:', days, seriesKey, seriesName)
+          onDataPointClick(days, seriesKey, seriesName)
+        }
+      } else if (clickData.seriesKey && clickData.date) {
+        // Formato alternativo com seriesKey explícito
         const daysMatch = (clickData.date as string).match(/(\d+)d/)
         if (daysMatch) {
           const days = Number.parseInt(daysMatch[1], 10)
           const seriesName = clickData.seriesName || clickData.seriesKey
+          console.log('[SalesByConversionTimeWithControls] Calling onDataPointClick (alt format) with:', days, clickData.seriesKey, seriesName)
           onDataPointClick(days, clickData.seriesKey, seriesName)
         }
       } else if (clickData.x !== undefined) {
@@ -157,8 +194,13 @@ export default function SalesByConversionTimeWithControls({
                           seriesKey === 'thirtyDays' ? '30 Dias' :
                           seriesKey === 'ninetyDays' ? '90 Dias' :
                           seriesKey === 'oneEightyDays' ? '180 Dias' : seriesKey
+        console.log('[SalesByConversionTimeWithControls] Calling onDataPointClick (scatter) with:', days, seriesKey, seriesName)
         onDataPointClick(days, seriesKey, seriesName)
+      } else {
+        console.warn('[SalesByConversionTimeWithControls] clickData format not recognized:', clickData)
       }
+    } else {
+      console.warn('[SalesByConversionTimeWithControls] onDataPointClick not available or clickData is null')
     }
   }
 

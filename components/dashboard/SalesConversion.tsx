@@ -62,7 +62,7 @@ export default function SalesConversion({ data, onDataPointClick }: Readonly<Sal
       ],
     }
 
-  }, [data])
+  }, [data, useAdaptive, adaptiveScale.scale])
 
   const allValues = useMemo(() => {
     return data.salesByWeek.map((w) => Math.abs(w.value))

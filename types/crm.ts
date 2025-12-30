@@ -23,6 +23,20 @@ export interface CrmDeal {
   createdAt: string
   updatedAt: string
   owner?: string
+  // Campos adicionais retornados pela API de deals
+  closedAt?: string
+  relevantDate?: string
+  relevantDateFormatted?: string
+  valueFormatted?: string
+  contactName?: string
+  contactEmail?: string
+  contactPhone?: string
+  ownerName?: string
+  ownerEmail?: string
+  contactIds?: string[]
+  createdAtFormatted?: string
+  closedAtFormatted?: string
+  updatedAtFormatted?: string
 }
 
 export interface CrmMetrics {

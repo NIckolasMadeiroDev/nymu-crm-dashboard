@@ -202,6 +202,12 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
 
   useEffect(() => {
     if (open && cardId && panelId) {
+      // IMPORTANTE: Setar loading PRIMEIRO para garantir que aparece
+      setIsLoading(true)
+      setIsLoadingContacts(false)
+      setIsLoadingNotes(false)
+      setIsLoadingResponsible(false)
+      
       // Resetar estados quando o modal abre para evitar mostrar dados antigos
       setCard(null)
       setPanel(null)
@@ -210,10 +216,6 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
       setHistory([])
       setCurrentResponsibleUser(null)
       setSelectedStepId('')
-      setIsLoading(true)
-      setIsLoadingContacts(false)
-      setIsLoadingNotes(false)
-      setIsLoadingResponsible(false)
       
       // Carregar dados
       fetchCardDetails()
@@ -228,6 +230,10 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
       setHistory([])
       setCurrentResponsibleUser(null)
       setSelectedStepId('')
+      setIsLoading(false)
+      setIsLoadingContacts(false)
+      setIsLoadingNotes(false)
+      setIsLoadingResponsible(false)
     }
   }, [open, cardId, panelId, fetchCardDetails, fetchNotes, fetchPanel])
 
@@ -439,7 +445,7 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
 
         <div className="flex-1 overflow-y-auto p-6">
           {isLoading || !card ? (
-            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] space-y-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Carregando detalhes do card...</p>
             </div>
