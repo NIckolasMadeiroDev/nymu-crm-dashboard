@@ -25,9 +25,10 @@ ChartJS.register(
 
 interface SalesConversionProps {
   readonly data: SalesConversionMetrics
+  readonly onDataPointClick?: (week: number, label: string) => void
 }
 
-export default function SalesConversion({ data }: Readonly<SalesConversionProps>) {
+export default function SalesConversion({ data, onDataPointClick }: Readonly<SalesConversionProps>) {
   const [isSmallScreen, setIsSmallScreen] = useState(false)
 
   useEffect(() => {
@@ -207,7 +208,21 @@ export default function SalesConversion({ data }: Readonly<SalesConversionProps>
         },
       },
     },
-  }), [useAdaptive, adaptiveScale, isSmallScreen, yAxisDomain])
+    onClick: (event: any, elements: any[]) => {
+      if (elements && elements.length > 0 && onDataPointClick) {
+        const element = elements[0]
+        const weekData = data.salesByWeek[element.index]
+        if (weekData) {
+          onDataPointClick(weekData.week, weekData.label)
+        }
+      }
+    },
+    onHover: (event: any, elements: any[]) => {
+      if (event.native) {
+        event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default'
+      }
+    },
+  }), [useAdaptive, adaptiveScale, isSmallScreen, yAxisDomain, data.salesByWeek, onDataPointClick])
 
   const progressPercentage = (data.closingRate / data.targetRate) * 100
 

@@ -21,8 +21,12 @@ const renderBars = (
   series: Array<{ key: string; name: string; color?: string }>,
   stacked: boolean,
   yAxisKey: string,
-  themeColors: ReturnType<typeof useThemeColors>
+  themeColors: ReturnType<typeof useThemeColors>,
+  data: any[],
+  onDataPointClick?: (data: any) => void
 ) => {
+  // Remover função handleBarClick - não é mais necessária
+
   if (series.length > 0) {
     return series.map((s, index) => (
       <Bar
@@ -32,6 +36,19 @@ const renderBars = (
         stackId={stacked ? '1' : undefined}
         fill={s.color || themeColors.chartColors[index % themeColors.chartColors.length]}
         radius={[4, 4, 0, 0]}
+        onClick={onDataPointClick ? (entry: any, index: number) => {
+          console.log('[BarChart] Bar onClick event:', { entry, index, s })
+          // No Recharts, o onClick do Bar recebe (entry, index)
+          // onde entry é o objeto do ponto de dados do array data
+          if (entry && typeof entry === 'object') {
+            const result = { ...entry }
+            result.seriesKey = s.key
+            result.seriesName = s.name
+            console.log('[BarChart] Calling onDataPointClick with result:', result)
+            onDataPointClick(result)
+          }
+        } : undefined}
+        style={{ cursor: onDataPointClick ? 'pointer' : 'default' }}
       />
     ))
   }
@@ -40,6 +57,14 @@ const renderBars = (
       dataKey={yAxisKey}
       fill={themeColors.primary}
       radius={[4, 4, 0, 0]}
+      onClick={onDataPointClick ? (entry: any, index: number) => {
+        console.log('[BarChart] Single Bar onClick event:', { entry, index })
+        if (entry && typeof entry === 'object') {
+          console.log('[BarChart] Calling onDataPointClick with entry:', entry)
+          onDataPointClick(entry)
+        }
+      } : undefined}
+      style={{ cursor: onDataPointClick ? 'pointer' : 'default' }}
     />
   )
 }
@@ -128,7 +153,7 @@ export default function BarChart({
             formatter={formatTooltip}
           />
           {showLegend && <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />}
-          {renderBars(series, stacked, yAxisKey, themeColors)}
+          {renderBars(series, stacked, yAxisKey, themeColors, data, onDataPointClick)}
         </RechartsBarChart>
         </ResponsiveContainer>
       </div>

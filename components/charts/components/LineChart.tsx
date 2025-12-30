@@ -30,6 +30,9 @@ export default function LineChart({
   const themeColors = useThemeColors()
   const responsiveHeight = useResponsiveHeight(height)
   const responsiveChart = useResponsiveChart()
+  
+  // Armazenar xAxisKey para usar no onClick
+  const chartXAxisKey = xAxisKey
 
   return (
     <ChartContainer
@@ -47,6 +50,49 @@ export default function LineChart({
               left: responsiveChart.marginLeft,
               bottom: responsiveChart.marginBottom,
             }}
+            onClick={onDataPointClick ? (chartData: any, index: number) => {
+              console.log('[RechartsLineChart] Chart onClick:', { chartData, index, data, dataLength: data?.length })
+              // No Recharts, o onClick do LineChart recebe um objeto com activeIndex, activeLabel, etc.
+              if (chartData && typeof chartData === 'object') {
+                let payload: any = null
+                
+                // Tentar usar activePayload primeiro
+                if (chartData.activePayload && chartData.activePayload.length > 0) {
+                  payload = chartData.activePayload[0].payload
+                  console.log('[RechartsLineChart] Using activePayload:', payload)
+                } 
+                // Se não tem activePayload, usar activeIndex para buscar no array data
+                else if (chartData.activeIndex !== undefined && data && Array.isArray(data)) {
+                  const activeIndex = typeof chartData.activeIndex === 'string' 
+                    ? Number.parseInt(chartData.activeIndex, 10) 
+                    : Number(chartData.activeIndex)
+                  console.log('[RechartsLineChart] Parsed activeIndex:', activeIndex, 'from', chartData.activeIndex)
+                  if (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < data.length) {
+                    payload = data[activeIndex]
+                    console.log('[RechartsLineChart] Using activeIndex to get data:', payload)
+                  } else {
+                    console.warn('[RechartsLineChart] Invalid activeIndex:', activeIndex, 'data.length:', data.length)
+                  }
+                }
+                // Fallback: se tem activeLabel, tentar encontrar no array
+                else if (chartData.activeLabel && data && Array.isArray(data)) {
+                  const key = chartXAxisKey || 'name'
+                  payload = data.find((item: any) => item[key] === chartData.activeLabel)
+                  if (payload) {
+                    console.log('[RechartsLineChart] Using activeLabel to find data:', payload)
+                  } else {
+                    console.warn('[RechartsLineChart] Could not find data with', key, '=', chartData.activeLabel)
+                  }
+                }
+                
+                if (payload) {
+                  console.log('[RechartsLineChart] Calling onDataPointClick with payload:', payload)
+                  onDataPointClick(payload)
+                } else {
+                  console.warn('[RechartsLineChart] Could not extract payload from chartData:', chartData)
+                }
+              }
+            } : undefined}
           >
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={themeColors.gridColor} />}
             <XAxis
@@ -89,7 +135,16 @@ export default function LineChart({
                 stroke={s.color || themeColors.chartColors[index % themeColors.chartColors.length]}
                 strokeWidth={2}
                 dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
+                activeDot={{ r: 5, onClick: onDataPointClick ? (dotProps: any, e: any) => {
+                  console.log('[LineChart] activeDot onClick:', { dotProps, e, s })
+                  if (dotProps && dotProps.payload) {
+                    const result = { ...dotProps.payload }
+                    result.seriesKey = s.key
+                    result.seriesName = s.name
+                    onDataPointClick(result)
+                  }
+                } : undefined }}
+                style={{ cursor: onDataPointClick ? 'pointer' : 'default' }}
               />
             ))
           ) : (
@@ -99,7 +154,13 @@ export default function LineChart({
               stroke={themeColors.primary}
               strokeWidth={2}
               dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
+              activeDot={{ r: 5, onClick: onDataPointClick ? (dotProps: any, e: any) => {
+                console.log('[LineChart] Single activeDot onClick:', { dotProps, e })
+                if (dotProps && dotProps.payload) {
+                  onDataPointClick(dotProps.payload)
+                }
+              } : undefined }}
+              style={{ cursor: onDataPointClick ? 'pointer' : 'default' }}
             />
           )}
         </RechartsLineChart>

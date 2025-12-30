@@ -17,6 +17,7 @@ interface ChartWithControlsProps {
   readonly availableChartTypes?: ChartType[]
   readonly onChartTypeChange?: (type: ChartType) => void
   readonly dragHandleProps?: React.HTMLAttributes<HTMLDivElement>
+  readonly onDataPointClick?: (data: any) => void
 }
 
 const ALL_CHART_TYPES: ChartType[] = [
@@ -49,6 +50,7 @@ export default function ChartWithControls({
   availableChartTypes = ALL_CHART_TYPES,
   onChartTypeChange,
   dragHandleProps,
+  onDataPointClick,
 }: ChartWithControlsProps) {
   const [chartType, setChartType] = useState<ChartType>(initialChartType)
   const { isEnabled: isAnalysisEnabled } = useAnalysisPreference()
@@ -90,7 +92,13 @@ export default function ChartWithControls({
       analysis={analysis}
       dragHandleProps={dragHandleProps}
     >
-      <ChartFactory config={currentConfig} />
+      <ChartFactory 
+        config={currentConfig} 
+        onDataPointClick={onDataPointClick ? (data: any) => {
+          console.log('[ChartWithControls] onDataPointClick received:', data)
+          onDataPointClick(data)
+        } : undefined} 
+      />
     </WidgetContainer>
   )
 }

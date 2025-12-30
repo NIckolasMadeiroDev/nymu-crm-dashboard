@@ -9,11 +9,13 @@ import type { ChartType } from '@/components/charts/ChartTypeSelector'
 interface SalesByConversionTimeWithControlsProps {
   readonly data: SalesByConversionTime
   readonly dragHandleProps?: React.HTMLAttributes<HTMLDivElement>
+  readonly onDataPointClick?: (days: number, seriesKey: string, seriesName: string) => void
 }
 
 export default function SalesByConversionTimeWithControls({
   data,
   dragHandleProps,
+  onDataPointClick,
 }: SalesByConversionTimeWithControlsProps) {
   const [currentChartType, setCurrentChartType] = useState<'line' | 'area' | 'stackedArea' | 'scatter' | 'bubble'>('area')
 
@@ -136,6 +138,30 @@ export default function SalesByConversionTimeWithControls({
     }
   }, [])
 
+  const handleDataPointClick = (clickData: any) => {
+    if (onDataPointClick && clickData) {
+      // Para gráficos de tempo de conversão, o clickData pode ter diferentes formatos
+      if (clickData.seriesKey && clickData.date) {
+        // Extrair número de dias do formato "Xd"
+        const daysMatch = (clickData.date as string).match(/(\d+)d/)
+        if (daysMatch) {
+          const days = Number.parseInt(daysMatch[1], 10)
+          const seriesName = clickData.seriesName || clickData.seriesKey
+          onDataPointClick(days, clickData.seriesKey, seriesName)
+        }
+      } else if (clickData.x !== undefined) {
+        // Formato scatter/bubble
+        const days = clickData.x
+        const seriesKey = clickData.category || 'sevenDays'
+        const seriesName = seriesKey === 'sevenDays' ? '7 Dias' :
+                          seriesKey === 'thirtyDays' ? '30 Dias' :
+                          seriesKey === 'ninetyDays' ? '90 Dias' :
+                          seriesKey === 'oneEightyDays' ? '180 Dias' : seriesKey
+        onDataPointClick(days, seriesKey, seriesName)
+      }
+    }
+  }
+
   return (
     <ChartWithControls
       id="sales-conversion-time-chart"
@@ -145,6 +171,7 @@ export default function SalesByConversionTimeWithControls({
       availableChartTypes={['line', 'area', 'stackedArea', 'scatter', 'bubble']}
       onChartTypeChange={handleChartTypeChange}
       dragHandleProps={dragHandleProps}
+      onDataPointClick={handleDataPointClick}
     />
   )
 }

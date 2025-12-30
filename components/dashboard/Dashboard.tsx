@@ -23,6 +23,7 @@ import ContactsManagerDashboardModal from './ContactsManagerDashboardModal'
 import CrmDropdownMenu from '@/components/crm/CrmDropdownMenu'
 import PanelsManagerModal from '@/components/crm/PanelsManagerModal'
 import FiltersModal, { countActiveFilters } from '@/components/filters/FiltersModal'
+import ChartDetailsModal from './ChartDetailsModal'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useWidgetHeight } from '@/contexts/WidgetHeightContext'
 import { useChartMinimization } from '@/contexts/ChartMinimizationContext'
@@ -33,6 +34,8 @@ import { themeService } from '@/services/theme/theme-service'
 import { dashboardPreferencesService } from '@/services/preferences/dashboard-preferences-service'
 import { filterPresetsService } from '@/services/filters/filter-presets-service'
 import type { DrillContext } from '@/services/drill/drill-service'
+import type { CrmDeal } from '@/types/crm'
+import type { HelenaContact } from '@/types/helena'
 
 export default function Dashboard() {
   const { t } = useLanguage()
@@ -47,6 +50,13 @@ export default function Dashboard() {
   const [showHelpModal, setShowHelpModal] = useState(false)
   const [showContactsModal, setShowContactsModal] = useState(false)
   const [showPanelsModal, setShowPanelsModal] = useState(false)
+  const [showChartDetailsModal, setShowChartDetailsModal] = useState(false)
+  const [chartDetailsData, setChartDetailsData] = useState<{
+    title: string
+    period: { type: 'week' | 'days' | 'date'; value: string | number; label: string }
+  } | null>(null)
+  const [chartDeals, setChartDeals] = useState<CrmDeal[]>([])
+  const [chartContacts, setChartContacts] = useState<HelenaContact[]>([])
   const [drillContext, setDrillContext] = useState<DrillContext | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   type LogoVariant = 'twocolor' | 'white'
@@ -297,6 +307,42 @@ filtersToLoad ??= {
     loadDashboardData(filters, true)
   }
 
+  const handleChartDataPointClick = useCallback(
+    async (chartTitle: string, period: { type: 'week' | 'days' | 'date'; value: string | number; label: string }) => {
+      if (!dashboardData) return
+
+      setChartDetailsData({ title: chartTitle, period })
+      setShowChartDetailsModal(true)
+      setChartDeals([])
+      setChartContacts([])
+
+      try {
+        const response = await fetch('/api/dashboard/deals', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            period,
+            filters: dashboardData.filters,
+            chartTitle: chartTitle,
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setChartDeals(data.deals || [])
+          setChartContacts(data.contacts || [])
+        } else {
+          console.error('Failed to fetch deals')
+        }
+      } catch (error) {
+        console.error('Error fetching deals:', error)
+      }
+    },
+    [dashboardData]
+  )
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
 
@@ -338,6 +384,13 @@ filtersToLoad ??= {
               <SalesConversionWithControls
                 data={dashboardData.salesConversion}
                 dragHandleProps={dragHandleProps}
+                onDataPointClick={(week: number, label: string) =>
+                  handleChartDataPointClick('Vendas por Semana', {
+                    type: 'week',
+                    value: week,
+                    label,
+                  })
+                }
               />
             )}
           </DraggableChart>
@@ -349,6 +402,13 @@ filtersToLoad ??= {
               <SalesByConversionTimeWithControls
                 data={dashboardData.salesByConversionTime}
                 dragHandleProps={dragHandleProps}
+                onDataPointClick={(days: number, seriesKey: string, seriesName: string) =>
+                  handleChartDataPointClick('Vendas por Tempo de Conversão', {
+                    type: 'days',
+                    value: days,
+                    label: `${seriesName} - ${days} dias`,
+                  })
+                }
               />
             )}
           </DraggableChart>
@@ -371,6 +431,13 @@ filtersToLoad ??= {
               <LeadStockWithControls
                 data={dashboardData.leadStock}
                 dragHandleProps={dragHandleProps}
+                onDataPointClick={(category: string, label: string) =>
+                  handleChartDataPointClick('Estoque de Leads', {
+                    type: 'date',
+                    value: category,
+                    label: `${label} - Estoque de Leads`,
+                  })
+                }
               />
             )}
           </DraggableChart>
@@ -382,6 +449,13 @@ filtersToLoad ??= {
               <GenerationActivationWithControls
                 data={dashboardData.generationActivation}
                 dragHandleProps={dragHandleProps}
+                onDataPointClick={(week: number, label: string) =>
+                  handleChartDataPointClick('Leads Criados por Semana', {
+                    type: 'week',
+                    value: week,
+                    label,
+                  })
+                }
               />
             )}
           </DraggableChart>
@@ -637,6 +711,19 @@ filtersToLoad ??= {
                   loadDashboardData({ ...dashboardData.filters, ...context.filters } as DashboardData['filters'], true)
                 }
               }}
+            />
+          )}
+          {chartDetailsData && (
+            <ChartDetailsModal
+              isOpen={showChartDetailsModal}
+              onClose={() => {
+                setShowChartDetailsModal(false)
+                setChartDetailsData(null)
+              }}
+              title={chartDetailsData.title}
+              period={chartDetailsData.period}
+              deals={chartDeals}
+              contacts={chartContacts}
             />
           )}
         </div>

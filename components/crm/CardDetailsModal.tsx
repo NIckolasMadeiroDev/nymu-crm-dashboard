@@ -35,16 +35,71 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingContacts, setIsLoadingContacts] = useState(false)
   const [isLoadingNotes, setIsLoadingNotes] = useState(false)
+  const [isLoadingResponsible, setIsLoadingResponsible] = useState(false)
+  const [currentResponsibleUser, setCurrentResponsibleUser] = useState<{ id: string; name: string } | null>(null)
 
   const fetchCardDetails = useCallback(async () => {
+    // Garantir que o loading está ativo antes de começar
     setIsLoading(true)
+    setIsLoadingResponsible(true)
+    // Limpar dados antigos imediatamente
+    setCard(null)
+    setCurrentResponsibleUser(null)
+    
     try {
       const cardsService = helenaServiceFactory.getCardsService()
 
       const data = await cardsService.getCardById(cardId, ['responsibleUser'])
       setCard(data)
+      
+      // Sempre tentar obter o nome do responsável
+      if (data.responsibleUser && data.responsibleUser.name) {
+        // Se já veio populado com nome, usar diretamente
+        setCurrentResponsibleUser(data.responsibleUser)
+        setIsLoadingResponsible(false)
+      } else if (data.responsibleUserId) {
+        // Se não veio populado mas temos o ID, buscar o usuário
+        try {
+          const usersService = helenaServiceFactory.getUsersService()
+          const user = await usersService.getUserById(data.responsibleUserId)
+          if (user && user.name) {
+            setCurrentResponsibleUser({ id: user.id, name: user.name })
+          } else {
+            // Se o usuário não tem nome, tentar buscar todos os usuários e encontrar pelo ID
+            const allUsers = await usersService.getAllUsers()
+            const foundUser = allUsers.find(u => u.id === data.responsibleUserId)
+            if (foundUser && foundUser.name) {
+              setCurrentResponsibleUser({ id: foundUser.id, name: foundUser.name })
+            } else {
+              setCurrentResponsibleUser(null)
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao buscar usuário responsável:', error)
+          // Tentar buscar todos os usuários como fallback
+          try {
+            const usersService = helenaServiceFactory.getUsersService()
+            const allUsers = await usersService.getAllUsers()
+            const foundUser = allUsers.find(u => u.id === data.responsibleUserId)
+            if (foundUser && foundUser.name) {
+              setCurrentResponsibleUser({ id: foundUser.id, name: foundUser.name })
+            } else {
+              setCurrentResponsibleUser(null)
+            }
+          } catch (fallbackError) {
+            console.error('Erro ao buscar todos os usuários:', fallbackError)
+            setCurrentResponsibleUser(null)
+          }
+        } finally {
+          setIsLoadingResponsible(false)
+        }
+      } else {
+        setCurrentResponsibleUser(null)
+        setIsLoadingResponsible(false)
+      }
     } catch (error) {
       console.error('Erro ao carregar detalhes do card:', error)
+      setIsLoadingResponsible(false)
     } finally {
       setIsLoading(false)
     }
@@ -147,9 +202,32 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
 
   useEffect(() => {
     if (open && cardId && panelId) {
+      // Resetar estados quando o modal abre para evitar mostrar dados antigos
+      setCard(null)
+      setPanel(null)
+      setContacts([])
+      setNotes([])
+      setHistory([])
+      setCurrentResponsibleUser(null)
+      setSelectedStepId('')
+      setIsLoading(true)
+      setIsLoadingContacts(false)
+      setIsLoadingNotes(false)
+      setIsLoadingResponsible(false)
+      
+      // Carregar dados
       fetchCardDetails()
       fetchNotes()
       fetchPanel()
+    } else if (!open) {
+      // Limpar estados quando o modal fecha
+      setCard(null)
+      setPanel(null)
+      setContacts([])
+      setNotes([])
+      setHistory([])
+      setCurrentResponsibleUser(null)
+      setSelectedStepId('')
     }
   }, [open, cardId, panelId, fetchCardDetails, fetchNotes, fetchPanel])
 
@@ -360,9 +438,10 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
 
 
         <div className="flex-1 overflow-y-auto p-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
+          {isLoading || !card ? (
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Carregando detalhes do card...</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -448,6 +527,51 @@ export default function CardDetailsModal({ cardId, panelId, open, onClose, onUpd
                 </div>
               )}
 
+              {/* Responsável atual do card */}
+              {(card?.responsibleUserId || card?.responsibleUser || currentResponsibleUser || isLoadingResponsible) && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-secondary">
+                    Responsável
+                  </h3>
+                  {isLoadingResponsible ? (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2 w-32"></div>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-24"></div>
+                      </div>
+                    </div>
+                  ) : currentResponsibleUser || card?.responsibleUser ? (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-600 dark:text-purple-300 font-semibold text-sm">
+                        {getInitials((card?.responsibleUser?.name || currentResponsibleUser?.name) || '')}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {card?.responsibleUser?.name || currentResponsibleUser?.name || 'Não atribuído'}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Responsável atual
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 dark:text-gray-500 font-semibold text-sm">
+                        ?
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-500 dark:text-gray-400">
+                          Não atribuído
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                          Nenhum responsável atribuído
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {panel?.steps && panel.steps.length > 0 && (
                 <div>
