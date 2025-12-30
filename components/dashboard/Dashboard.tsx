@@ -22,6 +22,7 @@ import HelpModal from '@/components/help/HelpModal'
 import ContactsManagerDashboardModal from './ContactsManagerDashboardModal'
 import CrmDropdownMenu from '@/components/crm/CrmDropdownMenu'
 import PanelsManagerModal from '@/components/crm/PanelsManagerModal'
+import DepartmentsManagerModal from '@/components/crm/DepartmentsManagerModal'
 import FiltersModal, { countActiveFilters } from '@/components/filters/FiltersModal'
 import ChartDetailsModal from './ChartDetailsModal'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -50,6 +51,7 @@ export default function Dashboard() {
   const [showHelpModal, setShowHelpModal] = useState(false)
   const [showContactsModal, setShowContactsModal] = useState(false)
   const [showPanelsModal, setShowPanelsModal] = useState(false)
+  const [showDepartmentsModal, setShowDepartmentsModal] = useState(false)
   const [showChartDetailsModal, setShowChartDetailsModal] = useState(false)
   const [chartDetailsData, setChartDetailsData] = useState<{
     title: string
@@ -582,6 +584,7 @@ filtersToLoad ??= {
               <CrmDropdownMenu
                 onContactsClick={() => setShowContactsModal(true)}
                 onPanelsClick={() => setShowPanelsModal(true)}
+                onDepartmentsClick={() => setShowDepartmentsModal(true)}
               />
               <button
                 onClick={() => setShowHelpModal(true)}
@@ -706,6 +709,10 @@ filtersToLoad ??= {
           <PanelsManagerModal
             open={showPanelsModal}
             onClose={() => setShowPanelsModal(false)}
+          />
+          <DepartmentsManagerModal
+            open={showDepartmentsModal}
+            onClose={() => setShowDepartmentsModal(false)}
           />
           {dashboardData && (
             <FiltersModal
