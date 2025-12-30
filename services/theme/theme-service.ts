@@ -161,8 +161,10 @@ class ThemeService {
           this.currentCustomThemeId = storedCustomId
         }
       } else {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        this.currentTheme = prefersDark ? 'nymu-dark' : 'nymu-light'
+        // Força um tema padrão único e consistente em todos os dispositivos,
+        // independente do tema do sistema operacional ou do navegador.
+        // Assim, o primeiro acesso no desktop e no mobile sempre terá as mesmas cores.
+        this.currentTheme = 'nymu-light'
       }
     } catch (error) {
       console.error('Failed to load theme:', error)
