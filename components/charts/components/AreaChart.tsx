@@ -51,7 +51,7 @@ export default function AreaChart({
               left: responsiveChart.marginLeft,
               bottom: responsiveChart.marginBottom,
             }}
-            onClick={onDataPointClick ? (nextState: any, event: any) => {
+            onClick={onDataPointClick ? ((nextState: any, event: any) => {
               console.log('[RechartsAreaChart] Chart onClick:', { nextState, event, data, dataLength: data?.length })
               // No Recharts, o onClick recebe (nextState, event)
               // nextState contém activeIndex, activeLabel, activePayload, etc.
@@ -94,7 +94,7 @@ export default function AreaChart({
                   console.warn('[RechartsAreaChart] Could not extract payload from nextState:', nextState)
                 }
               }
-            } : undefined}
+            }) as any : undefined}
           >
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={themeColors.gridColor} />}
             <XAxis
