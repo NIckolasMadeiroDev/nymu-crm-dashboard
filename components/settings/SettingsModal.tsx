@@ -13,7 +13,6 @@ import {
   type CustomTheme,
   type DefaultThemeColors,
 } from '@/services/theme/theme-service'
-import { dataSourcePreferenceService } from '@/services/data/data-source-preference-service'
 import LanguageSelector from '@/components/language/LanguageSelector'
 import ColorPicker from './ColorPicker'
 
@@ -39,7 +38,6 @@ export default function SettingsModal({
   const [showDarkColors, setShowDarkColors] = useState(false)
   const [lightColors, setLightColors] = useState<DefaultThemeColors>(themeService.getAlternativeLightTheme())
   const [darkColors, setDarkColors] = useState<DefaultThemeColors>(themeService.getAlternativeDarkTheme())
-  const [useMockData, setUseMockData] = useState(dataSourcePreferenceService.isUsingMockData())
 
   useEffect(() => {
     if (isOpen) {
@@ -48,7 +46,6 @@ export default function SettingsModal({
       setCustomThemes(themeService.getCustomThemes())
       setLightColors(themeService.getAlternativeLightTheme())
       setDarkColors(themeService.getAlternativeDarkTheme())
-      setUseMockData(dataSourcePreferenceService.isUsingMockData())
 
       if (theme === 'custom') {
         const customId = themeService.getCurrentCustomThemeId()
@@ -192,50 +189,6 @@ export default function SettingsModal({
               </select>
             </div>
 
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <label
-                    htmlFor="data-source-toggle"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Fonte de Dados
-                  </label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {useMockData
-                      ? 'Usando dados de demonstração (mock)'
-                      : 'Usando dados reais da API Helena'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  id="data-source-toggle"
-                  role="switch"
-                  aria-checked={!useMockData}
-                  aria-label={useMockData ? 'Alternar para dados reais' : 'Alternar para dados mock'}
-                  onClick={() => {
-                    const newValue = !useMockData
-                    setUseMockData(newValue)
-                    dataSourcePreferenceService.setDataSource(newValue ? 'mock' : 'real')
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log('[Settings] Data source changed to:', newValue ? 'mock' : 'real')
-                    }
-                    window.location.reload()
-                  }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    !useMockData
-                      ? 'bg-blue-600'
-                      : 'bg-gray-300 dark:bg-gray-600'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      !useMockData ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
 
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
               <button

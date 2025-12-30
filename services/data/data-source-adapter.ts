@@ -18,28 +18,6 @@ export interface DataSource {
   }>
 }
 
-class MockDataSource implements DataSource {
-  async getDashboardData(filters: DashboardFilters): Promise<DashboardData> {
-    const { generateMockDashboardData } = await import(
-      '@/services/dashboard-mock-service'
-    )
-    return generateMockDashboardData(filters)
-  }
-
-  async getAvailableFilters() {
-    const { SDRS, COLLEGES, ORIGINS } = await import(
-      '@/services/dashboard-mock-service'
-    )
-    return {
-      sdrs: SDRS,
-      colleges: COLLEGES,
-      origins: ORIGINS,
-      seasons: ['2025.1', '2024.2', '2024.1', '2023.2'],
-      panels: [],
-    }
-  }
-}
-
 class HelenaDataSource implements DataSource {
   private readonly dashboardAdapter: DashboardAdapter
 
@@ -136,17 +114,16 @@ class HelenaDataSource implements DataSource {
 
 class DataSourceAdapter {
   private getSource(options?: DataSourceAdapterOptions): DataSource {
-    if (isHelenaApiEnabled(options?.cookieHeader)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[DataSourceAdapter] Using Helena API (real data)')
-      }
-      return new HelenaDataSource()
-    } else {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[DataSourceAdapter] Using Mock Data')
-      }
-      return new MockDataSource()
+    if (!isHelenaApiEnabled(options?.cookieHeader)) {
+      throw new Error(
+        'Helena API não está configurada. Configure HELENA_API_BASE_URL e HELENA_API_TOKEN nas variáveis de ambiente.'
+      )
     }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DataSourceAdapter] Using Helena API (real data)')
+    }
+    return new HelenaDataSource()
   }
 
   async getDashboardData(filters: DashboardFilters, options?: DataSourceAdapterOptions): Promise<DashboardData> {

@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateMockMetrics } from '@/services/mock-data-service'
 import { isHelenaApiEnabled } from '@/services/helena/helena-config'
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 
 export async function GET(request: NextRequest) {
   try {
     if (!isHelenaApiEnabled()) {
-      const mockData = generateMockMetrics()
-      return NextResponse.json(mockData)
+      return NextResponse.json(
+        { 
+          error: 'Helena API não está configurada. Configure HELENA_API_BASE_URL e HELENA_API_TOKEN nas variáveis de ambiente.' 
+        },
+        { status: 503 }
+      )
     }
 
     const searchParams = request.nextUrl.searchParams
