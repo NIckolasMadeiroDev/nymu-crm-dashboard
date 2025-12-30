@@ -4,6 +4,7 @@ export interface DashboardFilters {
   sdr: string
   college: string
   origin: string
+  panelId?: string // ID do painel específico ou undefined para todos
 }
 
 export interface GenerationActivationMetrics {
@@ -41,6 +42,20 @@ export interface LeadStock {
   firstContact: number
   inGroup: number
   postMeet: number
+  // Valores monetários por categoria
+  contactListValue: number
+  firstContactValue: number
+  inGroupValue: number
+  postMeetValue: number
+  totalValue: number
+  // Detalhes por etapa
+  byStep: Array<{
+    stepId: string
+    stepTitle: string
+    count: number
+    value: number
+    category: 'contactList' | 'firstContact' | 'inGroup' | 'postMeet' | 'other'
+  }>
 }
 
 export interface SalesByConversionTime {

@@ -102,6 +102,7 @@ filtersToLoad ??= {
   sdr: 'Todos',
   college: 'Todas',
   origin: '',
+  panelId: undefined,
 }
 
     loadDashboardData(filtersToLoad, false)
@@ -197,6 +198,7 @@ filtersToLoad ??= {
         sdr: 'Todos',
         college: 'Todas',
         origin: '',
+        panelId: undefined,
       }
 
       const response = await fetch('/api/dashboard', {

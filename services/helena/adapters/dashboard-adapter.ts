@@ -108,8 +108,21 @@ export class DashboardAdapter {
       }
     })
     
-    // Get cards from all panels (sem IncludeDetails pois o endpoint não aceita)
-    const cardsPromises = allPanels.map((panel: any) => 
+    // Filter panels if panelId filter is specified
+    const panelsToProcess = filters.panelId 
+      ? allPanels.filter((panel: any) => panel.id === filters.panelId)
+      : allPanels
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] Panel filter:', {
+        panelId: filters.panelId || 'Todos',
+        totalPanels: allPanels.length,
+        filteredPanels: panelsToProcess.length,
+      })
+    }
+
+    // Get cards from filtered panels (sem IncludeDetails pois o endpoint não aceita)
+    const cardsPromises = panelsToProcess.map((panel: any) => 
       cardsService.getAllCardsByPanel(panel.id).catch((error) => {
         if (process.env.NODE_ENV === 'development') {
           console.warn(`[DashboardAdapter] Error fetching cards for panel ${panel.id}:`, error)
@@ -534,65 +547,98 @@ export class DashboardAdapter {
   }
 
   private buildLeadStock(leads: LeadLike[], contacts: HelenaContact[]): LeadStock {
-    // Use real card data to count leads in each stage
+    // Use real card data to count leads in each stage with values
     const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
     
     // Filter only active (non-archived) cards
     const activeCards = allCards.filter((card: any) => !card.archived)
     
-    // Count cards by step
-    const cardsByStep = new Map<string, number>()
+    // Helper function to categorize a step
+    const categorizeStep = (stepInfo: any, stepTitle: string): 'contactList' | 'firstContact' | 'inGroup' | 'postMeet' | 'other' => {
+      if (stepInfo.isInitial || stepTitle.includes('lista') || stepTitle.includes('contato') || stepTitle.includes('novo') || stepTitle.includes('carência')) {
+        return 'contactList'
+      } else if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato') || stepTitle.includes('contato inicial')) {
+        return 'firstContact'
+      } else if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo') || stepTitle.includes('no grupo')) {
+        return 'inGroup'
+      } else if (stepTitle.includes('pós-meet') || stepTitle.includes('pos-meet') || stepTitle.includes('pos meet') || stepTitle.includes('pós meet') || stepTitle.includes('contato pós-meet')) {
+        return 'postMeet'
+      }
+      return 'other'
+    }
+    
+    // Count cards and values by step
+    const cardsByStep = new Map<string, { count: number; value: number; category: string; stepTitle: string }>()
+    
     activeCards.forEach((card: any) => {
       const stepId = card.stepId
-      if (stepId) {
-        cardsByStep.set(stepId, (cardsByStep.get(stepId) || 0) + 1)
-      }
+      if (!stepId) return
+      
+      const stepInfo = stepMap.get(stepId)
+      if (!stepInfo) return
+      
+      const stepTitle = stepInfo.title?.toLowerCase() || ''
+      const category = categorizeStep(stepInfo, stepTitle)
+      const value = card.monetaryAmount || card.value || 0
+      
+      const existing = cardsByStep.get(stepId) || { count: 0, value: 0, category, stepTitle: stepInfo.title || '' }
+      existing.count++
+      existing.value += value
+      cardsByStep.set(stepId, existing)
     })
     
-    // Map step titles to lead stock categories
+    // Aggregate by category
     let contactList = 0
     let firstContact = 0
     let inGroup = 0
     let postMeet = 0
+    let contactListValue = 0
+    let firstContactValue = 0
+    let inGroupValue = 0
+    let postMeetValue = 0
     
-    stepMap.forEach((stepInfo, stepId) => {
-      const count = cardsByStep.get(stepId) || 0
-      if (count === 0) return
+    const byStep: Array<{
+      stepId: string
+      stepTitle: string
+      count: number
+      value: number
+      category: 'contactList' | 'firstContact' | 'inGroup' | 'postMeet' | 'other'
+    }> = []
+    
+    cardsByStep.forEach((data, stepId) => {
+      byStep.push({
+        stepId,
+        stepTitle: data.stepTitle,
+        count: data.count,
+        value: data.value,
+        category: data.category as 'contactList' | 'firstContact' | 'inGroup' | 'postMeet' | 'other',
+      })
       
-      const stepTitle = stepInfo.title.toLowerCase()
-      
-      // More flexible matching with priority order
-      if (stepInfo.isInitial || stepTitle.includes('lista') || stepTitle.includes('contato') || stepTitle.includes('novo') || stepTitle.includes('carência')) {
-        contactList += count
-      } else if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato') || stepTitle.includes('contato inicial')) {
-        firstContact += count
-      } else if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo') || stepTitle.includes('no grupo')) {
-        inGroup += count
-      } else if (stepTitle.includes('pós-meet') || stepTitle.includes('pos-meet') || stepTitle.includes('pos meet') || stepTitle.includes('pós meet') || stepTitle.includes('contato pós-meet')) {
-        postMeet += count
-      } else {
-        // Default to contact list if step doesn't match any category
-        contactList += count
+      switch (data.category) {
+        case 'contactList':
+          contactList += data.count
+          contactListValue += data.value
+          break
+        case 'firstContact':
+          firstContact += data.count
+          firstContactValue += data.value
+          break
+        case 'inGroup':
+          inGroup += data.count
+          inGroupValue += data.value
+          break
+        case 'postMeet':
+          postMeet += data.count
+          postMeetValue += data.value
+          break
       }
     })
     
-    // Also count from leads status as fallback
-    const contactListFromLeads = leads.filter((lead) => lead.status === 'contact_list' || !lead.status).length
-    const firstContactFromLeads = leads.filter((lead) => lead.status === 'first_contact').length
-    const inGroupFromLeads = leads.filter((lead) => lead.status === 'in_group').length
-    const postMeetFromLeads = leads.filter((lead) => lead.status === 'post_meet').length
+    // Sort byStep by count (descending)
+    byStep.sort((a, b) => b.count - a.count)
     
-    // Use maximum to ensure we capture all leads
-    contactList = Math.max(contactList, contactListFromLeads)
-    firstContact = Math.max(firstContact, firstContactFromLeads)
-    inGroup = Math.max(inGroup, inGroupFromLeads)
-    postMeet = Math.max(postMeet, postMeetFromLeads)
-    
-    // Fallback to total contacts if no cards found
-    if (contactList === 0 && firstContact === 0 && inGroup === 0 && postMeet === 0) {
-      contactList = contacts.length
-    }
+    const totalValue = contactListValue + firstContactValue + inGroupValue + postMeetValue
     
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] buildLeadStock:', {
@@ -600,8 +646,13 @@ export class DashboardAdapter {
         firstContact,
         inGroup,
         postMeet,
-        totalCards: allCards.length,
-        cardsByStepCount: cardsByStep.size,
+        contactListValue,
+        firstContactValue,
+        inGroupValue,
+        postMeetValue,
+        totalValue,
+        totalCards: activeCards.length,
+        stepsCount: byStep.length,
       })
     }
     
@@ -610,6 +661,12 @@ export class DashboardAdapter {
       firstContact,
       inGroup,
       postMeet,
+      contactListValue,
+      firstContactValue,
+      inGroupValue,
+      postMeetValue,
+      totalValue,
+      byStep,
     }
   }
 

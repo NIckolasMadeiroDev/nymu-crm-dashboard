@@ -14,6 +14,7 @@ export interface DataSource {
     colleges: string[]
     origins: string[]
     seasons: string[]
+    panels: Array<{ id: string; title: string; key: string }>
   }>
 }
 
@@ -34,6 +35,7 @@ class MockDataSource implements DataSource {
       colleges: COLLEGES,
       origins: ORIGINS,
       seasons: ['2025.1', '2024.2', '2024.1', '2023.2'],
+      panels: [],
     }
   }
 }
@@ -54,6 +56,7 @@ class HelenaDataSource implements DataSource {
     colleges: string[]
     origins: string[]
     seasons: string[]
+    panels: Array<{ id: string; title: string; key: string }>
   }> {
     try {
       const cardsService = helenaServiceFactory.getCardsService()
@@ -102,11 +105,21 @@ class HelenaDataSource implements DataSource {
         )
       )
 
+      // Get panels for filter (exclude archived and personal task panels)
+      const availablePanels = panels
+        .filter((panel: any) => !panel.archived && panel.scope !== 'USER')
+        .map((panel: any) => ({
+          id: panel.id,
+          title: panel.title,
+          key: panel.key,
+        }))
+
       return {
         sdrs: sdrs.length > 0 ? sdrs : ['Todos'],
         colleges: colleges.length > 0 ? colleges : ['Todas'],
         origins: origins.length > 0 ? origins : [],
         seasons: ['2025.1', '2024.2', '2024.1', '2023.2'],
+        panels: availablePanels || [],
       }
     } catch (error) {
       console.error('Error fetching available filters from Helena:', error)
@@ -115,6 +128,7 @@ class HelenaDataSource implements DataSource {
         colleges: ['Todas'],
         origins: [],
         seasons: ['2025.1', '2024.2', '2024.1', '2023.2'],
+        panels: [],
       }
     }
   }

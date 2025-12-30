@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
       sdr: 'Todos',
       college: 'Todas',
       origin: '',
+      panelId: undefined,
     }
 
     const cookieHeader = request.headers.get('cookie')
@@ -46,12 +47,14 @@ Erro original: ${error.message}`
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
+    const panelIdParam = searchParams.get('panelId')
     const filters: DashboardFilters = {
       date: searchParams.get('date') || '2025-12-17',
       season: searchParams.get('season') || '2025.1',
       sdr: searchParams.get('sdr') || 'Todos',
       college: searchParams.get('college') || 'Todas',
       origin: searchParams.get('origin') || '',
+      panelId: panelIdParam || undefined,
     }
 
     const cookieHeader = request.headers.get('cookie')
