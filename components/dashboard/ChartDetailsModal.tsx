@@ -19,6 +19,7 @@ interface ChartDetailsModalProps {
   deals: CrmDeal[]
   contacts: HelenaContact[]
   users?: Array<{ id: string; name: string }>
+  isLoading?: boolean
 }
 
 type SortField = 'title' | 'value' | 'date' | 'owner' | 'contact'
@@ -33,6 +34,7 @@ export default function ChartDetailsModal({
   deals,
   contacts,
   users = [],
+  isLoading = false,
 }: Readonly<ChartDetailsModalProps>) {
   const [searchTerm, setSearchTerm] = useState('')
   const [sortField, setSortField] = useState<SortField>('date')
@@ -343,7 +345,11 @@ export default function ChartDetailsModal({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto overflow-x-auto p-4 sm:p-6 min-h-0">
-          {processedDeals.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
+            </div>
+          ) : processedDeals.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 dark:text-gray-400 font-secondary">
                 {(() => {

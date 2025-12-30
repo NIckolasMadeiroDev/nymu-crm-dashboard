@@ -57,6 +57,7 @@ export default function Dashboard() {
   } | null>(null)
   const [chartDeals, setChartDeals] = useState<CrmDeal[]>([])
   const [chartContacts, setChartContacts] = useState<HelenaContact[]>([])
+  const [isLoadingChartDetails, setIsLoadingChartDetails] = useState(false)
   const [drillContext, setDrillContext] = useState<DrillContext | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   type LogoVariant = 'twocolor' | 'white'
@@ -331,6 +332,7 @@ filtersToLoad ??= {
       setShowChartDetailsModal(true)
       setChartDeals([])
       setChartContacts([])
+      setIsLoadingChartDetails(true)
 
       try {
         const response = await fetch('/api/dashboard/deals', {
@@ -354,6 +356,8 @@ filtersToLoad ??= {
         }
       } catch (error) {
         console.error('Error fetching deals:', error)
+      } finally {
+        setIsLoadingChartDetails(false)
       }
     },
     [dashboardData]
@@ -735,11 +739,13 @@ filtersToLoad ??= {
               onClose={() => {
                 setShowChartDetailsModal(false)
                 setChartDetailsData(null)
+                setIsLoadingChartDetails(false)
               }}
               title={chartDetailsData.title}
               period={chartDetailsData.period}
               deals={chartDeals}
               contacts={chartContacts}
+              isLoading={isLoadingChartDetails}
             />
           )}
         </div>
