@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     let allCards: any[] = []
     if (filters.panelIds && filters.panelIds.length > 0) {
       // Buscar cards dos painéis selecionados
-      const cardsPromises = filters.panelIds.map((panelId) =>
+      const cardsPromises = filters.panelIds.map((panelId: string) =>
         cardsService.getAllCardsByPanel(panelId).catch(() => [])
       )
       const cardsResults = await Promise.allSettled(cardsPromises)
