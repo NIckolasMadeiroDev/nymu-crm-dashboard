@@ -122,10 +122,22 @@ class SchedulingService {
 
   private async executeReport(report: ScheduledReport) {
     try {
-      const { generateMockDashboardData } = await import(
-        '@/services/dashboard-mock-service'
-      )
-      const data = generateMockDashboardData(report.filters as any)
+      // Fetch dashboard data from API
+      const response = await fetch('/api/dashboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filters: report.filters,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch dashboard data: ${response.statusText}`)
+      }
+
+      const data = await response.json()
 
       const { exportService } = await import('@/services/export/export-service')
       const result = await exportService.exportDashboard(data, {

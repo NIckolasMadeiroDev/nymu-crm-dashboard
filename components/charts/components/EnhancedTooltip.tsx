@@ -10,6 +10,7 @@ interface EnhancedTooltipProps extends TooltipProps<any, any> {
   readonly label?: any
   readonly showFullDetails?: boolean
   readonly title?: string
+  readonly chartTitle?: string
   readonly additionalInfo?: Record<string, any>
 }
 
@@ -19,6 +20,7 @@ export function EnhancedTooltip(props: Readonly<EnhancedTooltipProps>) {
     payload,
     label,
     showFullDetails = false,
+    chartTitle,
     additionalInfo,
   } = props
   
@@ -86,7 +88,24 @@ export function EnhancedTooltip(props: Readonly<EnhancedTooltipProps>) {
       <div className="space-y-2">
         {payload.map((entry: any, index: number) => {
           const value = typeof entry.value === 'number' ? entry.value : 0
-          const name = entry.name || entry.dataKey || 'Valor'
+          let name = entry.name || entry.dataKey || 'Valor'
+          
+          // Mapear labels baseado no título do gráfico ou dataKey
+          // Se o name for "value" ou o dataKey for "value", usar labels customizados
+          if ((name === 'value' || entry.dataKey === 'value') && payload.length === 1) {
+            // Usar chartTitle passado como prop ou tentar obter do payload
+            const title = chartTitle || mainData._chartTitle || entry.payload?._chartTitle
+            if (title) {
+              if (title.includes('Leads Criados por Semana') || title.includes('Geração e Ativação')) {
+                name = 'Leads'
+              } else if (title.includes('Vendas por Semana') || title.includes('Conversão de Vendas')) {
+                name = 'Vendas por Semana'
+              } else if (title.includes('Vendas por Tempo de Conversão')) {
+                name = 'Vendas por Conversão'
+              }
+            }
+          }
+          
           const color = entry.color || '#3b82f6'
           const percentage = calculatedTotal > 0 ? ((value / calculatedTotal) * 100).toFixed(1) : '0'
           const entryKey = entry.dataKey || entry.name || `entry-${index}`

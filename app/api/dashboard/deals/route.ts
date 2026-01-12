@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { dataSourceAdapter } from '@/services/data/data-source-adapter'
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 import { formatCurrency } from '@/utils/format-currency'
+import { requestDeduplicator } from '@/services/helena/adapters/request-deduplicator'
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +29,12 @@ export async function POST(request: NextRequest) {
     const panelsService = helenaServiceFactory.getPanelsService()
 
     // Buscar todos os painéis para obter os steps
-    const panels = await panelsService.getPanelsWithDetails()
+    // Use request deduplicator to prevent multiple simultaneous requests
+    const panels = await requestDeduplicator.execute(
+      'getPanelsWithDetails',
+      () => panelsService.getPanelsWithDetails(),
+      2000 // Minimum 2 seconds between panel requests
+    )
     const stepMap = new Map<string, any>()
 
     panels.forEach((panel: any) => {
@@ -45,8 +51,15 @@ export async function POST(request: NextRequest) {
 
     // Buscar todos os cards
     let allCards: any[] = []
-    if (filters.panelId && filters.panelId !== '') {
-      allCards = await cardsService.getAllCardsByPanel(filters.panelId)
+    if (filters.panelIds && filters.panelIds.length > 0) {
+      // Buscar cards dos painéis selecionados
+      const cardsPromises = filters.panelIds.map((panelId) =>
+        cardsService.getAllCardsByPanel(panelId).catch(() => [])
+      )
+      const cardsResults = await Promise.allSettled(cardsPromises)
+      allCards = cardsResults
+        .filter((result) => result.status === 'fulfilled')
+        .flatMap((result) => (result as PromiseFulfilledResult<any[]>).value)
     } else {
       // Buscar cards de todos os painéis
       const departmentPanels = panels.filter(
@@ -180,9 +193,26 @@ export async function POST(request: NextRequest) {
           
           return matches
         } else {
-          // Para vendas, usar número da semana do ano
-          const weekNumber = getWeekNumber(dealDate)
-          return weekNumber === period.value
+          // Para vendas, usar a mesma lógica do dashboard: semanas relativas
+          const now = Date.now()
+          const cardTime = dealDate.getTime()
+          const diffMs = now - cardTime
+          const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
+          
+          // O gráfico usa week 1, 2, 3... mas o cálculo retorna 0, 1, 2...
+          // Sem 1 = esta semana (diffWeeks 0)
+          // Sem 2 = semana passada (diffWeeks 1)
+          // Sem 3 = 2 semanas atrás (diffWeeks 2)
+          const weekIndex = diffWeeks
+          const requestedWeek = typeof period.value === 'number' ? period.value : Number.parseInt(String(period.value), 10)
+          
+          const matches = weekIndex === (requestedWeek - 1) && weekIndex >= 0 && weekIndex < 12
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[API] Sales week filter: cardDate=${dealDate.toISOString()}, diffWeeks=${diffWeeks}, weekIndex=${weekIndex}, requestedWeek=${requestedWeek}, matches=${matches}`)
+          }
+          
+          return matches
         }
       } else if (period.type === 'days') {
         const days = typeof period.value === 'number' ? period.value : 0

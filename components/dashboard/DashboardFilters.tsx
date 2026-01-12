@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Save } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { DashboardFilters } from '@/types/dashboard'
-import { SDRS, COLLEGES, ORIGINS } from '@/services/dashboard-mock-service'
 import { filterPresetsService } from '@/services/filters/filter-presets-service'
 
 interface DashboardFiltersProps {
@@ -20,6 +19,29 @@ export default function DashboardFiltersComponent({
 }: DashboardFiltersProps) {
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [availableSdrs, setAvailableSdrs] = useState<string[]>([])
+  const [availableColleges, setAvailableColleges] = useState<string[]>([])
+  const [availableOrigins, setAvailableOrigins] = useState<string[]>([])
+
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const response = await fetch('/api/dashboard/filters')
+        if (!response.ok) throw new Error('Failed to fetch filters')
+        const filtersData = await response.json()
+        
+        setAvailableSdrs(filtersData.sdrs || [])
+        setAvailableColleges(filtersData.colleges || [])
+        setAvailableOrigins(filtersData.origins || [])
+      } catch (error) {
+        console.error('Error fetching filters:', error)
+        setAvailableSdrs([])
+        setAvailableColleges([])
+        setAvailableOrigins([])
+      }
+    }
+    fetchFilters()
+  }, [])
 
   useEffect(() => {
     if (selectedPresetId) {
@@ -166,7 +188,7 @@ export default function DashboardFiltersComponent({
             className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           >
             <option value="Todos">Todos</option>
-            {SDRS.map((sdr) => (
+            {availableSdrs.map((sdr) => (
               <option key={sdr} value={sdr}>
                 {sdr}
               </option>
@@ -189,7 +211,7 @@ export default function DashboardFiltersComponent({
             className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           >
             <option value="Todas">Todas</option>
-            {COLLEGES.map((college) => (
+            {availableColleges.map((college) => (
               <option key={college} value={college}>
                 {college}
               </option>
@@ -212,7 +234,7 @@ export default function DashboardFiltersComponent({
             className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           >
             <option value="">Todas</option>
-            {ORIGINS.map((origin) => (
+            {availableOrigins.map((origin) => (
               <option key={origin} value={origin}>
                 {origin}
               </option>

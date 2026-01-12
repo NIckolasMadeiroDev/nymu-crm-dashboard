@@ -35,6 +35,7 @@ interface LeadLike {
 
 import { helenaServiceFactory } from '../helena-service-factory'
 import { HelenaApiError } from '@/types/helena'
+import { requestDeduplicator } from './request-deduplicator'
 
 export class DashboardAdapter {
   async getDashboardData(filters: DashboardFilters): Promise<DashboardData> {
@@ -79,7 +80,12 @@ export class DashboardAdapter {
     }
 
     // Get all panels with steps using the same method as PanelsManagerModal
-    const allPanels = await panelsService.getPanelsWithDetails().catch((error) => {
+    // Use request deduplicator to prevent multiple simultaneous requests
+    const allPanels = await requestDeduplicator.execute(
+      'getPanelsWithDetails',
+      () => panelsService.getPanelsWithDetails(),
+      2000 // Minimum 2 seconds between panel requests
+    ).catch((error) => {
       const errorMessage = getErrorMessage(error)
       errors.panels = errorMessage
       if (process.env.NODE_ENV === 'development') {
@@ -108,14 +114,14 @@ export class DashboardAdapter {
       }
     })
     
-    // Filter panels if panelId filter is specified
-    const panelsToProcess = filters.panelId 
-      ? allPanels.filter((panel: any) => panel.id === filters.panelId)
+    // Filter panels if panelIds filter is specified
+    const panelsToProcess = filters.panelIds && filters.panelIds.length > 0
+      ? allPanels.filter((panel: any) => filters.panelIds!.includes(panel.id))
       : allPanels
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] Panel filter:', {
-        panelId: filters.panelId || 'Todos',
+        panelIds: filters.panelIds?.length ? filters.panelIds : 'Todos',
         totalPanels: allPanels.length,
         filteredPanels: panelsToProcess.length,
       })
@@ -140,7 +146,11 @@ export class DashboardAdapter {
         }
         return []
       }),
-      contactsService.getAllContacts(['tags', 'customFields']).catch((error) => {
+      requestDeduplicator.execute(
+        'getAllContacts',
+        () => contactsService.getAllContacts(['tags', 'customFields']),
+        2000 // Minimum 2 seconds between contact requests
+      ).catch((error) => {
         const errorMessage = getErrorMessage(error)
         errors.contacts = errorMessage
         if (process.env.NODE_ENV === 'development') {
@@ -297,7 +307,8 @@ export class DashboardAdapter {
         createdAt: card.createdAt,
         updatedAt: card.updatedAt,
         closedAt: card.closedAt || card.updatedAt,
-        owner: card.responsibleUserId || card.ownerId
+        owner: card.responsibleUserId || card.ownerId,
+        contactIds: card.contactIds || []
       }))
 
     if (process.env.NODE_ENV === 'development') {
@@ -349,6 +360,92 @@ export class DashboardAdapter {
       })
     }
 
+    // Transformar deals para formato simplificado para client-side filtering
+    const dealsData = filteredDeals.map((deal) => ({
+      id: deal.id,
+      title: deal.title || deal.name || '',
+      value: deal.value || 0,
+      stageId: deal.stageId || '',
+      pipelineId: deal.pipelineId || '',
+      createdAt: deal.createdAt,
+      updatedAt: deal.updatedAt,
+      closedAt: deal.closedAt,
+      owner: deal.owner || '',
+      contactIds: deal.contactIds || [],
+    }))
+
+    // Transformar cards para formato de leads (todos os cards não arquivados, não apenas final steps)
+    const leadsData = cards
+      .filter((card: any) => !card.archived)
+      .map((card: any) => ({
+        id: card.id,
+        title: card.title || '',
+        value: card.monetaryAmount || card.value || 0,
+        stageId: card.stepId || card.stageId || '',
+        pipelineId: card.panelId || card.pipelineId || '',
+        createdAt: card.createdAt,
+        updatedAt: card.updatedAt,
+        owner: card.responsibleUserId || card.ownerId || '',
+        contactIds: card.contactIds || [],
+      }))
+
+    // Buscar contatos relacionados (tanto de deals quanto de leads)
+    const contactIds = new Set<string>()
+    dealsData.forEach((deal) => {
+      if (deal.contactIds && Array.isArray(deal.contactIds)) {
+        deal.contactIds.forEach((id) => contactIds.add(id))
+      }
+    })
+    leadsData.forEach((lead) => {
+      if (lead.contactIds && Array.isArray(lead.contactIds)) {
+        lead.contactIds.forEach((id) => contactIds.add(id))
+      }
+    })
+
+    const contactsData = filteredContacts
+      .filter((contact) => contactIds.has(contact.id))
+      .map((contact) => ({
+        id: contact.id,
+        name: contact.name || '',
+        email: contact.email ?? undefined,
+        phoneNumber: contact.phoneNumber || '',
+        phone: contact.phoneNumber || '',
+        phoneNumberFormatted: contact.phoneNumberFormatted || contact.phoneNumber || '',
+        createdAt: contact.createdAt,
+        updatedAt: contact.updatedAt,
+        companyId: contact.companyId,
+        status: contact.status || 'active',
+        tags: contact.tags || [],
+        customFields: contact.customFields || {},
+      }))
+
+    // Buscar usuários (owners) - tanto de deals quanto de leads
+    const userIds = new Set<string>()
+    dealsData.forEach((deal) => {
+      if (deal.owner) userIds.add(deal.owner)
+    })
+    leadsData.forEach((lead) => {
+      if (lead.owner) userIds.add(lead.owner)
+    })
+
+    const usersData: Array<{ id: string; name: string; email?: string }> = []
+    try {
+      const { helenaServiceFactory } = await import('../helena-service-factory')
+      const usersService = helenaServiceFactory.getUsersService()
+      const allUsers = await usersService.getAllUsers()
+      usersData.push(
+        ...allUsers
+          .filter((u: any) => userIds.has(u.id))
+          .map((u: any) => ({
+            id: u.id,
+            name: u.name || '',
+            email: u.email,
+          }))
+      )
+    } catch (error) {
+      console.error('Error fetching users for dashboard data:', error)
+    }
+
     const dashboardData: DashboardData = {
       filters,
       generationActivation: await this.buildGenerationActivation(filteredLeads, filteredContacts),
@@ -359,6 +456,9 @@ export class DashboardAdapter {
       // buildLeadQuality usa cards diretamente, não precisa de leads/deals filtrados
       leadQuality: this.buildLeadQuality(leads, deals),
       operational: await this.buildOperationalMetrics(cards, panels, filters),
+      deals: dealsData,
+      contacts: contactsData,
+      users: usersData,
     }
 
     if (Object.keys(errors).length > 0) {

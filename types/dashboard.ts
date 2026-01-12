@@ -4,7 +4,7 @@ export interface DashboardFilters {
   sdr: string
   college: string
   origin: string
-  panelId?: string // ID do painel específico ou undefined para todos
+  panelIds?: string[] // IDs dos painéis selecionados ou undefined para todos
 }
 
 export interface GenerationActivationMetrics {
@@ -161,5 +161,47 @@ export interface DashboardData {
     panels?: string
     wallets?: string
   }
+  deals?: Array<{
+    id: string
+    title: string
+    value: number
+    stageId: string
+    pipelineId: string
+    createdAt: string
+    updatedAt: string
+    closedAt?: string
+    owner: string
+    contactIds: string[]
+  }>
+  leads?: Array<{
+    id: string
+    title: string
+    value: number
+    stageId: string
+    pipelineId: string
+    createdAt: string
+    updatedAt: string
+    owner: string
+    contactIds: string[]
+  }>
+  contacts?: Array<{
+    id: string
+    name: string
+    email?: string
+    phone?: string
+    phoneNumber?: string
+    phoneNumberFormatted?: string
+    createdAt?: string
+    updatedAt?: string
+    companyId?: string
+    status?: string
+    tags?: Array<{ id: string; name: string; bgColor?: string; textColor?: string }>
+    customFields?: Record<string, any>
+  }>
+  users?: Array<{
+    id: string
+    name: string
+    email?: string
+  }>
 }
 

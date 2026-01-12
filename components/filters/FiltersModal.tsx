@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { X, Save, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { DashboardFilters } from '@/types/dashboard'
-import { SDRS, COLLEGES, ORIGINS } from '@/services/dashboard-mock-service'
 import {
   filterPresetsService,
   type FilterPreset,
@@ -34,7 +33,9 @@ export default function FiltersModal({
   const [isSaving, setIsSaving] = useState(false)
   const [isApplyingFilters, setIsApplyingFilters] = useState(false)
   const [showPresetDialog, setShowPresetDialog] = useState(false)
-  const [availablePanels, setAvailablePanels] = useState<Array<{ id: string; title: string; key: string }>>([])
+  const [availableSdrs, setAvailableSdrs] = useState<string[]>([])
+  const [availableColleges, setAvailableColleges] = useState<string[]>([])
+  const [availableOrigins, setAvailableOrigins] = useState<string[]>([])
 
   // Inicializar filtros locais quando o modal abre ou quando os filtros externos mudam
   useEffect(() => {
@@ -61,29 +62,28 @@ export default function FiltersModal({
 
   useEffect(() => {
     if (isOpen) {
-      // Fetch available panels
-      const fetchPanels = async () => {
+      // Fetch available filters and panels
+      const fetchFilters = async () => {
         try {
-          const panelsService = helenaServiceFactory.getPanelsService()
-          const panels = await panelsService.getPanelsWithDetails()
-          const filtered = panels
-            .filter((panel: any) => !panel.archived && panel.scope !== 'USER')
-            .map((panel: any) => ({
-              id: panel.id,
-              title: panel.title,
-              key: panel.key,
-            }))
-          setAvailablePanels(filtered)
+          const response = await fetch('/api/dashboard/filters')
+          if (!response.ok) throw new Error('Failed to fetch filters')
+          const filters = await response.json()
+          
+          setAvailableSdrs(filters.sdrs || [])
+          setAvailableColleges(filters.colleges || [])
+          setAvailableOrigins(filters.origins || [])
         } catch (error) {
-          console.error('Error fetching panels for filter:', error)
-          setAvailablePanels([])
+          console.error('Error fetching filters:', error)
+          setAvailableSdrs([])
+          setAvailableColleges([])
+          setAvailableOrigins([])
         }
       }
-      fetchPanels()
+      fetchFilters()
     }
   }, [isOpen])
 
-  const handleChange = (field: keyof DashboardFilters, value: string | undefined) => {
+  const handleChange = (field: keyof DashboardFilters, value: string | undefined | string[]) => {
     // Atualizar apenas o estado local, não aplicar imediatamente
     setLocalFilters({ ...localFilters, [field]: value })
   }
@@ -290,7 +290,7 @@ export default function FiltersModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="Todos">Todos</option>
-                {SDRS.map((sdr) => (
+                {availableSdrs.map((sdr) => (
                   <option key={sdr} value={sdr}>
                     {sdr}
                   </option>
@@ -314,7 +314,7 @@ export default function FiltersModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="Todas">Todas</option>
-                {COLLEGES.map((college) => (
+                {availableColleges.map((college) => (
                   <option key={college} value={college}>
                     {college}
                   </option>
@@ -338,33 +338,9 @@ export default function FiltersModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">Todas</option>
-                {ORIGINS.map((origin) => (
+                {availableOrigins.map((origin) => (
                   <option key={origin} value={origin}>
                     {origin}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="filter-panel"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary mb-2"
-              >
-                Painel
-              </label>
-              <select
-                id="filter-panel"
-                value={localFilters.panelId || ''}
-                onChange={(e) => handleChange('panelId', e.target.value || undefined)}
-                disabled={isApplyingFilters}
-                aria-label="Filtro de painel"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">Todos os painéis</option>
-                {availablePanels.map((panel) => (
-                  <option key={panel.id} value={panel.id}>
-                    {panel.title} ({panel.key})
                   </option>
                 ))}
               </select>
@@ -400,7 +376,6 @@ export default function FiltersModal({
                     sdr: 'Todos',
                     college: 'Todas',
                     origin: '',
-                    panelId: undefined,
                   }
                   setLocalFilters(defaultFilters)
                 }}
@@ -473,10 +448,6 @@ export function countActiveFilters(filters: DashboardFilters): number {
 
 
   if (filters.origin && filters.origin !== '') {
-    count++
-  }
-
-  if (filters.panelId && filters.panelId !== '') {
     count++
   }
 

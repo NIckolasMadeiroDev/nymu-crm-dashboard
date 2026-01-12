@@ -119,7 +119,7 @@ export default function AreaChart({
               label={adaptiveDomain?.unit ? { value: `(${adaptiveDomain.unit})`, angle: -90, position: 'insideLeft', style: { fontSize: '9px' } } : undefined}
             />
           <Tooltip
-            content={<EnhancedTooltip showFullDetails={true} />}
+            content={<EnhancedTooltip showFullDetails={true} chartTitle={config.title} />}
             wrapperStyle={{ zIndex: 1000 }}
           />
           {showLegend && <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />}

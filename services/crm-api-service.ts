@@ -1,9 +1,4 @@
 import type { CrmPipeline, CrmMetrics, CrmDeal } from '@/types/crm'
-import {
-  generateMockPipelines,
-  generateMockDeals,
-  generateMockMetrics,
-} from './mock-data-service'
 
 class CrmApiService {
   private async fetchFromApi<T>(endpoint: string): Promise<T> {

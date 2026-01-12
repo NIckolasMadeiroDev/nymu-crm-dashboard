@@ -16,14 +16,12 @@ import CapacityOfAttendanceWithControls from './CapacityOfAttendanceWithControls
 import DraggableChart from './DraggableChart'
 import ExportButton from '@/components/export/ExportButton'
 import ShareButton from '@/components/sharing/ShareButton'
-import SchedulingPanel from '@/components/scheduling/SchedulingPanel'
 import FilterPresets from '@/components/filters/FilterPresets'
 import DrillNavigation from '@/components/drill/DrillNavigation'
 import SettingsModal from '@/components/settings/SettingsModal'
 import HelpModal from '@/components/help/HelpModal'
 import ContactsManagerDashboardModal from './ContactsManagerDashboardModal'
 import CrmDropdownMenu from '@/components/crm/CrmDropdownMenu'
-import PanelsManagerModal from '@/components/crm/PanelsManagerModal'
 import DepartmentsManagerModal from '@/components/crm/DepartmentsManagerModal'
 import FiltersModal, { countActiveFilters } from '@/components/filters/FiltersModal'
 import ChartDetailsModal from './ChartDetailsModal'
@@ -48,11 +46,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasPermanentErrors, setHasPermanentErrors] = useState(false)
-  const [showScheduling, setShowScheduling] = useState(false)
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [showHelpModal, setShowHelpModal] = useState(false)
   const [showContactsModal, setShowContactsModal] = useState(false)
-  const [showPanelsModal, setShowPanelsModal] = useState(false)
+  const [availablePanels, setAvailablePanels] = useState<Array<{ id: string; title: string; key: string }>>([])
   const [showDepartmentsModal, setShowDepartmentsModal] = useState(false)
   const [showChartDetailsModal, setShowChartDetailsModal] = useState(false)
   const [chartDetailsData, setChartDetailsData] = useState<{
@@ -111,16 +108,57 @@ export default function Dashboard() {
       filtersToLoad = preferences.filters
     }
 
-filtersToLoad ??= {
-  date: '2025-12-17',
-  season: '2025.1',
-  sdr: 'Todos',
-  college: 'Todas',
-  origin: '',
-  panelId: undefined,
-}
-
-    loadDashboardData(filtersToLoad, false)
+    // Se não há filtros, buscar painel padrão
+    if (!filtersToLoad) {
+      const loadDefaultFilters = async () => {
+        try {
+          const filtersResponse = await fetch('/api/dashboard/filters')
+          if (filtersResponse.ok) {
+            const filtersData = await filtersResponse.json()
+            const panels = filtersData.panels || []
+            // Buscar painel "02 Máquina de Vendas" por key "02" ou título
+            const defaultPanel = panels.find((panel: { id: string; title: string; key: string }) => 
+              panel.key === '02' || panel.title.includes('Máquina de Vendas')
+            )
+            
+            const defaultFilters: DashboardData['filters'] = {
+              date: '2025-12-17',
+              season: '2025.1',
+              sdr: 'Todos',
+              college: 'Todas',
+              origin: '',
+              panelIds: defaultPanel ? [defaultPanel.id] : undefined,
+            }
+            
+            loadDashboardData(defaultFilters, false)
+          } else {
+            const defaultFilters: DashboardData['filters'] = {
+              date: '2025-12-17',
+              season: '2025.1',
+              sdr: 'Todos',
+              college: 'Todas',
+              origin: '',
+              panelIds: undefined,
+            }
+            loadDashboardData(defaultFilters, false)
+          }
+        } catch (error) {
+          const defaultFilters: DashboardData['filters'] = {
+            date: '2025-12-17',
+            season: '2025.1',
+            sdr: 'Todos',
+            college: 'Todas',
+            origin: '',
+            panelIds: undefined,
+          }
+          loadDashboardData(defaultFilters, false)
+        }
+      }
+      
+      loadDefaultFilters()
+    } else {
+      loadDashboardData(filtersToLoad, false)
+    }
 
   }, [])
 
@@ -213,7 +251,7 @@ filtersToLoad ??= {
         sdr: 'Todos',
         college: 'Todas',
         origin: '',
-        panelId: undefined,
+        panelIds: undefined,
       }
 
       const response = await fetch('/api/dashboard', {
@@ -253,6 +291,22 @@ filtersToLoad ??= {
   loadDashboardDataRef.current = loadDashboardData
 
   useEffect(() => {
+    const fetchPanels = async () => {
+      try {
+        const response = await fetch('/api/dashboard/filters')
+        if (response.ok) {
+          const filtersData = await response.json()
+          setAvailablePanels(filtersData.panels || [])
+        }
+      } catch (error) {
+        console.error('Error fetching panels:', error)
+        setAvailablePanels([])
+      }
+    }
+    fetchPanels()
+  }, [])
+
+  useEffect(() => {
     if (hasPermanentErrors) {
       if (process.env.NODE_ENV === 'development') {
         console.log('[Dashboard] Polling disabled due to permanent errors (404, etc.)')
@@ -260,11 +314,12 @@ filtersToLoad ??= {
       return
     }
 
+    // Increase polling interval to 60 seconds to reduce API load
     const intervalId = setInterval(() => {
       if (!hasPermanentErrorsRef.current) {
         loadDashboardDataRef.current()
       }
-    }, 30000)
+    }, 60000)
 
     return () => {
       clearInterval(intervalId)
@@ -339,27 +394,272 @@ filtersToLoad ??= {
       setIsLoadingChartDetails(true)
 
       try {
-        const response = await fetch('/api/dashboard/deals', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            period,
-            filters: dashboardData.filters,
-            chartTitle: chartTitle,
-          }),
-        })
+        const chartTitleLower = chartTitle.toLowerCase()
+        const isLeadsCreated = chartTitleLower.includes('leads criados') || chartTitleLower.includes('geração')
+        const isLeadStock = chartTitleLower.includes('estoque de leads')
+        const isSales = chartTitleLower.includes('vendas por semana') || chartTitleLower.includes('conversão de vendas')
 
-        if (response.ok) {
-          const data = await response.json()
-          setChartDeals(data.deals || [])
-          setChartContacts(data.contacts || [])
+        // Usar dados locais se disponíveis
+        if (isLeadsCreated && dashboardData.leads && dashboardData.contacts && dashboardData.users) {
+          // Filtrar leads localmente (Leads Criados por Semana)
+          const filteredLeads = dashboardData.leads.filter((lead: {
+            id: string
+            title: string
+            value: number
+            stageId: string
+            pipelineId: string
+            createdAt: string
+            updatedAt: string
+            owner: string
+            contactIds: string[]
+          }) => {
+            const dateField = lead.createdAt
+            if (!dateField) return false
+
+            const leadDate = new Date(dateField)
+
+            if (period.type === 'week' && typeof period.value === 'number') {
+              const now = Date.now()
+              const cardTime = leadDate.getTime()
+              const diffMs = now - cardTime
+              const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
+              const weekIndex = diffWeeks
+              const requestedWeek = period.value
+              return weekIndex === (requestedWeek - 1) && weekIndex >= 0 && weekIndex < 12
+            } else if (period.type === 'days' && typeof period.value === 'number') {
+              const days = period.value
+              const now = new Date()
+              const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+              return leadDate >= daysAgo && leadDate <= now
+            } else if (period.type === 'date') {
+              if (isLeadStock) return true
+              const periodDate = new Date(period.value as string)
+              return (
+                leadDate.getFullYear() === periodDate.getFullYear() &&
+                leadDate.getMonth() === periodDate.getMonth() &&
+                leadDate.getDate() === periodDate.getDate()
+              )
+            }
+            return false
+          })
+
+          // Enriquecer leads com informações formatadas
+          const { formatCurrency } = await import('@/utils/format-currency')
+          const enrichedDeals = filteredLeads.map((lead: {
+            id: string
+            title: string
+            value: number
+            stageId: string
+            pipelineId: string
+            createdAt: string
+            updatedAt: string
+            owner: string
+            contactIds: string[]
+          }) => {
+            const leadDate = new Date(lead.createdAt)
+            const contact = dashboardData.contacts?.find((c: { id: string; name: string; email?: string; phone?: string }) => lead.contactIds?.includes(c.id))
+            const user = dashboardData.users?.find((u: { id: string; name: string; email?: string }) => u.id === lead.owner)
+
+            return {
+              ...lead,
+              createdAtFormatted: lead.createdAt
+                ? new Date(lead.createdAt).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : null,
+              updatedAtFormatted: lead.updatedAt
+                ? new Date(lead.updatedAt).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : null,
+              valueFormatted: formatCurrency(lead.value || 0),
+              contactName: contact?.name || lead.title || 'Sem contato associado',
+              contactEmail: contact?.email || undefined,
+              contactPhone: contact?.phoneNumber || contact?.phone || undefined,
+              ownerName: user?.name || lead.owner || 'Não atribuído',
+              ownerEmail: user?.email || undefined,
+              relevantDate: leadDate.toISOString(),
+              relevantDateFormatted: leadDate.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            }
+          })
+
+          setChartDeals(enrichedDeals as CrmDeal[])
+          // Converter contatos para formato HelenaContact completo
+          const allContacts = dashboardData.contacts || []
+          setChartContacts(allContacts.map((c) => ({
+            id: c.id,
+            name: c.name || '',
+            email: (c.email ?? undefined) as string | undefined,
+            phoneNumber: c.phoneNumber || c.phone || '',
+            phoneNumberFormatted: c.phoneNumberFormatted || c.phoneNumber || c.phone || '',
+            createdAt: c.createdAt || new Date().toISOString(),
+            updatedAt: c.updatedAt || new Date().toISOString(),
+            companyId: c.companyId || '',
+            status: c.status || 'active',
+            tags: c.tags || [],
+            customFields: c.customFields || {},
+          })) as HelenaContact[])
+        } else if (isSales && dashboardData.deals && dashboardData.contacts && dashboardData.users) {
+          // Filtrar deals localmente (Vendas por Semana)
+          const filteredDeals = dashboardData.deals.filter((deal: {
+            id: string
+            title: string
+            value: number
+            stageId: string
+            pipelineId: string
+            createdAt: string
+            updatedAt: string
+            closedAt?: string
+            owner: string
+            contactIds: string[]
+          }) => {
+            const dateField = deal.closedAt || deal.updatedAt
+            if (!dateField) return false
+
+            const dealDate = new Date(dateField)
+
+            if (period.type === 'week' && typeof period.value === 'number') {
+              const now = Date.now()
+              const cardTime = dealDate.getTime()
+              const diffMs = now - cardTime
+              const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
+              const weekIndex = diffWeeks
+              const requestedWeek = period.value
+              return weekIndex === (requestedWeek - 1) && weekIndex >= 0 && weekIndex < 12
+            } else if (period.type === 'days' && typeof period.value === 'number') {
+              const days = period.value
+              const now = new Date()
+              const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+              return dealDate >= daysAgo && dealDate <= now
+            } else if (period.type === 'date') {
+              const periodDate = new Date(period.value as string)
+              return (
+                dealDate.getFullYear() === periodDate.getFullYear() &&
+                dealDate.getMonth() === periodDate.getMonth() &&
+                dealDate.getDate() === periodDate.getDate()
+              )
+            }
+            return false
+          })
+
+          // Enriquecer deals com informações formatadas
+          const { formatCurrency } = await import('@/utils/format-currency')
+          const enrichedDeals = filteredDeals.map((deal: {
+            id: string
+            title: string
+            value: number
+            stageId: string
+            pipelineId: string
+            createdAt: string
+            updatedAt: string
+            closedAt?: string
+            owner: string
+            contactIds: string[]
+          }) => {
+            const dealDate = new Date(deal.closedAt || deal.updatedAt)
+            const contact = dashboardData.contacts?.find((c: { id: string; name: string; email?: string; phone?: string }) => deal.contactIds?.includes(c.id))
+            const user = dashboardData.users?.find((u: { id: string; name: string; email?: string }) => u.id === deal.owner)
+
+            return {
+              ...deal,
+              createdAtFormatted: deal.createdAt
+                ? new Date(deal.createdAt).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : null,
+              closedAtFormatted: deal.closedAt
+                ? new Date(deal.closedAt).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : null,
+              updatedAtFormatted: deal.updatedAt
+                ? new Date(deal.updatedAt).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : null,
+              valueFormatted: formatCurrency(deal.value || 0),
+              contactName: contact?.name || deal.title || 'Sem contato associado',
+              contactEmail: contact?.email || undefined,
+              contactPhone: contact?.phoneNumber || contact?.phone || undefined,
+              ownerName: user?.name || deal.owner || 'Não atribuído',
+              ownerEmail: user?.email || undefined,
+              relevantDate: dealDate.toISOString(),
+              relevantDateFormatted: dealDate.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            }
+          })
+
+          setChartDeals(enrichedDeals as CrmDeal[])
+          // Converter contatos para formato HelenaContact completo
+          const allContacts = dashboardData.contacts || []
+          setChartContacts(allContacts.map((c) => ({
+            id: c.id,
+            name: c.name || '',
+            email: (c.email ?? undefined) as string | undefined,
+            phoneNumber: c.phoneNumber || c.phone || '',
+            phoneNumberFormatted: c.phoneNumberFormatted || c.phoneNumber || c.phone || '',
+            createdAt: c.createdAt || new Date().toISOString(),
+            updatedAt: c.updatedAt || new Date().toISOString(),
+            companyId: c.companyId || '',
+            status: c.status || 'active',
+            tags: c.tags || [],
+            customFields: c.customFields || {},
+          })) as HelenaContact[])
         } else {
-          console.error('Failed to fetch deals')
+          // Fallback para API se dados locais não estiverem disponíveis
+          const response = await fetch('/api/dashboard/deals', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              period,
+              filters: dashboardData.filters,
+              chartTitle: chartTitle,
+            }),
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            setChartDeals(data.deals || [])
+            setChartContacts(data.contacts || [])
+          } else {
+            console.error('Failed to fetch deals')
+          }
         }
       } catch (error) {
-        console.error('Error fetching deals:', error)
+        console.error('Error filtering deals:', error)
       } finally {
         setIsLoadingChartDetails(false)
       }
@@ -495,12 +795,14 @@ filtersToLoad ??= {
             )}
           </DraggableChart>
         )
-      case 'attendances-by-channel-chart':
-        return dashboardData.operational?.channels ? (
+      case 'attendances-by-channel-chart': {
+        const operational = dashboardData.operational
+        if (!operational?.channels) return null
+        return (
           <DraggableChart key={chartId} id={chartId} span={dynamicSpan}>
             {(dragHandleProps) => (
               <AttendancesByChannelWithControls
-                data={dashboardData.operational.channels}
+                data={operational.channels}
                 dragHandleProps={dragHandleProps}
                 onDataPointClick={(channel: string, label: string) =>
                   handleChartDataPointClick('Atendimentos por Canal', {
@@ -512,18 +814,22 @@ filtersToLoad ??= {
               />
             )}
           </DraggableChart>
-        ) : null
-      case 'capacity-of-attendance-widget':
-        return dashboardData.operational?.capacity ? (
+        )
+      }
+      case 'capacity-of-attendance-widget': {
+        const operational = dashboardData.operational
+        if (!operational?.capacity) return null
+        return (
           <DraggableChart key={chartId} id={chartId} span={dynamicSpan}>
             {(dragHandleProps) => (
               <CapacityOfAttendanceWithControls
-                data={dashboardData.operational.capacity}
+                data={operational.capacity}
                 dragHandleProps={dragHandleProps}
               />
             )}
           </DraggableChart>
-        ) : null
+        )
+      }
       default:
         return null
     }
@@ -614,7 +920,7 @@ filtersToLoad ??= {
               </div>
               <CrmDropdownMenu
                 onContactsClick={() => setShowContactsModal(true)}
-                onPanelsClick={() => setShowPanelsModal(true)}
+                onPanelsClick={() => {}}
                 onDepartmentsClick={() => setShowDepartmentsModal(true)}
               />
               <button
@@ -694,27 +1000,61 @@ filtersToLoad ??= {
                 </svg>
                 <span className="hidden sm:inline truncate">Config</span>
               </button>
-              <button
-                onClick={() => setShowScheduling(true)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    setShowScheduling(true)
-                  }
-                }}
-                aria-label={t.scheduling.title}
-                className="w-auto min-w-0 px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 whitespace-nowrap"
-              >
-                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span className="hidden sm:inline truncate">{t.scheduling.title}</span>
-              </button>
+              <div className="relative w-auto min-w-0">
+                <select
+                  value={(() => {
+                    const panelIds = dashboardData?.filters?.panelIds
+                    if (panelIds && panelIds.length === 1) {
+                      return panelIds[0]
+                    }
+                    // Se não há painel selecionado, buscar o padrão "02 Máquina de Vendas"
+                    const defaultPanel = availablePanels.find((panel) => 
+                      panel.key === '02' || panel.title.includes('Máquina de Vendas')
+                    )
+                    return defaultPanel?.id || 'all'
+                  })()}
+                  onChange={(e) => {
+                    const panelId = e.target.value
+                    const currentFilters = dashboardData?.filters || {
+                      date: '2025-12-17',
+                      season: '2025.1',
+                      sdr: 'Todos',
+                      college: 'Todas',
+                      origin: '',
+                    }
+                    const newFilters: DashboardData['filters'] = {
+                      ...currentFilters,
+                      panelIds: panelId === 'all' ? undefined : [panelId],
+                    }
+                    handleFilterChange(newFilters)
+                  }}
+                  aria-label="Selecionar painel"
+                  className="w-48 min-w-0 pl-1.5 sm:pl-2 md:pl-2 pr-5 sm:pr-6 md:pr-6 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-secondary focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 whitespace-nowrap border-0 cursor-pointer appearance-none truncate"
+                >
+                  <option value="all">Todos os painéis</option>
+                  {availablePanels.map((panel) => (
+                    <option key={panel.id} value={panel.id} className="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">
+                      {panel.title} ({panel.key})
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg
+                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
+              </div>
               <div className="col-span-2 sm:col-span-1 w-auto min-w-0">
                 <ShareButton filters={dashboardData.filters} className="w-auto min-w-0" />
               </div>
@@ -736,10 +1076,6 @@ filtersToLoad ??= {
           <ContactsManagerDashboardModal
             open={showContactsModal}
             onClose={() => setShowContactsModal(false)}
-          />
-          <PanelsManagerModal
-            open={showPanelsModal}
-            onClose={() => setShowPanelsModal(false)}
           />
           <DepartmentsManagerModal
             open={showDepartmentsModal}
@@ -787,13 +1123,6 @@ filtersToLoad ??= {
             />
           )}
         </div>
-
-        {showScheduling && (
-          <SchedulingPanel
-            filters={dashboardData.filters}
-            onClose={() => setShowScheduling(false)}
-          />
-        )}
 
         {(() => {
           if (loading) {

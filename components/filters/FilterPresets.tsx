@@ -8,8 +8,6 @@ import {
   filterPresetsService,
   type FilterPreset,
 } from '@/services/filters/filter-presets-service'
-import { SDRS, COLLEGES, ORIGINS } from '@/services/dashboard-mock-service'
-
 interface FilterPresetsProps {
   readonly onSelectPreset: (filters: DashboardFilters) => void
   readonly currentFilters: DashboardFilters
@@ -92,6 +90,29 @@ export function PresetDialog({
 }: Readonly<PresetDialogProps>) {
   const [name, setName] = useState(preset?.name || '')
   const [filters, setFilters] = useState<DashboardFilters>({ ...initialFilters })
+  const [availableSdrs, setAvailableSdrs] = useState<string[]>([])
+  const [availableColleges, setAvailableColleges] = useState<string[]>([])
+  const [availableOrigins, setAvailableOrigins] = useState<string[]>([])
+
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const response = await fetch('/api/dashboard/filters')
+        if (!response.ok) throw new Error('Failed to fetch filters')
+        const filtersData = await response.json()
+        
+        setAvailableSdrs(filtersData.sdrs || [])
+        setAvailableColleges(filtersData.colleges || [])
+        setAvailableOrigins(filtersData.origins || [])
+      } catch (error) {
+        console.error('Error fetching filters:', error)
+        setAvailableSdrs([])
+        setAvailableColleges([])
+        setAvailableOrigins([])
+      }
+    }
+    fetchFilters()
+  }, [])
 
   const handleFilterChange = (field: keyof DashboardFilters, value: string) => {
     setFilters({ ...filters, [field]: value })
@@ -188,7 +209,7 @@ export function PresetDialog({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
                   <option value="Todos">Todos</option>
-                  {SDRS.map((sdr) => (
+                  {availableSdrs.map((sdr) => (
                     <option key={sdr} value={sdr}>
                       {sdr}
                     </option>
@@ -207,7 +228,7 @@ export function PresetDialog({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
                   <option value="Todas">Todas</option>
-                  {COLLEGES.map((college) => (
+                  {availableColleges.map((college) => (
                     <option key={college} value={college}>
                       {college}
                     </option>
@@ -226,7 +247,7 @@ export function PresetDialog({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
                   <option value="">Todas</option>
-                  {ORIGINS.map((origin) => (
+                  {availableOrigins.map((origin) => (
                     <option key={origin} value={origin}>
                       {origin}
                     </option>

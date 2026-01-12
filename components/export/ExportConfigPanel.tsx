@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import type { ExportFormat } from '@/services/export/export-service'
 import type { DashboardData } from '@/types/dashboard'
 import { exportService } from '@/services/export/export-service'
 import WhatsAppPreviewModal from './WhatsAppPreviewModal'
 import { generateWhatsAppMessage } from '@/utils/whatsapp-message-generator'
+import SchedulingPanel from '@/components/scheduling/SchedulingPanel'
 
 interface ExportConfigPanelProps {
   readonly data: DashboardData
@@ -36,6 +37,7 @@ interface ExportConfig {
     sdr?: string[]
     college?: string[]
     origin?: string[]
+    panelIds?: string[]
   }
 }
 
@@ -70,6 +72,25 @@ export default function ExportConfigPanel({
   const [isExporting, setIsExporting] = useState(false)
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
   const [exportedFile, setExportedFile] = useState<{ blob: Blob; filename: string } | null>(null)
+  const [showScheduling, setShowScheduling] = useState(false)
+  const [availablePanels, setAvailablePanels] = useState<Array<{ id: string; title: string; key: string }>>([])
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchPanels = async () => {
+        try {
+          const response = await fetch('/api/dashboard/filters')
+          if (!response.ok) throw new Error('Failed to fetch panels')
+          const filtersData = await response.json()
+          setAvailablePanels(filtersData.panels || [])
+        } catch (error) {
+          console.error('Error fetching panels:', error)
+          setAvailablePanels([])
+        }
+      }
+      fetchPanels()
+    }
+  }, [isOpen])
 
   const filteredData = useMemo(() => {
     if (!config.filters || Object.keys(config.filters).length === 0) {
@@ -241,14 +262,14 @@ export default function ExportConfigPanel({
         onCancel={onClose}
       >
         <div
-          className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] sm:max-h-[85vh] overflow-y-auto mx-2 sm:mx-4"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] sm:max-h-[85vh] overflow-y-auto mx-2 sm:mx-4"
           onClick={(e) => e.stopPropagation()}
           aria-label="Configurações de exportação"
         >
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
             <h2
               id="export-config-title"
-              className="text-lg sm:text-xl font-bold font-primary text-gray-900 truncate flex-1 min-w-0"
+              className="text-lg sm:text-xl font-bold font-primary text-gray-900 dark:text-white truncate flex-1 min-w-0"
             >
               Configurações de Exportação
             </h2>
@@ -261,7 +282,7 @@ export default function ExportConfigPanel({
                 }
               }}
               aria-label="Fechar painel de configurações"
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -276,14 +297,14 @@ export default function ExportConfigPanel({
 
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             <div>
-              <label htmlFor="export-format-select" className="block text-sm font-medium font-secondary text-gray-700 mb-2">
+              <label htmlFor="export-format-select" className="block text-sm font-medium font-secondary text-gray-700 dark:text-gray-300 mb-2">
                 Formato
               </label>
               <select
                 id="export-format-select"
                 value={config.format}
                 onChange={(e) => updateConfig({ format: e.target.value as ExportFormat })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-secondary"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-secondary dark:bg-gray-700 dark:text-white"
                 aria-label="Selecionar formato de exportação"
               >
                 <option value="pdf">PDF</option>
@@ -296,7 +317,7 @@ export default function ExportConfigPanel({
 
             <div>
               <div className="flex items-center justify-between mb-3">
-                <span className="block text-sm font-medium font-secondary text-gray-700">
+                <span className="block text-sm font-medium font-secondary text-gray-700 dark:text-gray-300">
                   Seções para Exportar
                 </span>
                 <button
@@ -325,67 +346,67 @@ export default function ExportConfigPanel({
                 }).map(([key, label]) => (
                   <label
                     key={key}
-                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
                   >
                     <input
                       type="checkbox"
                       checked={config.sections[key as keyof ExportConfig['sections']]}
                       onChange={() => toggleSection(key as keyof ExportConfig['sections'])}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:ring-offset-gray-800 dark:focus:ring-blue-500"
                       aria-label={`Incluir ${label} na exportação`}
                     />
-                    <span className="text-sm font-secondary text-gray-700">{label}</span>
+                    <span className="text-sm font-secondary text-gray-700 dark:text-gray-300">{label}</span>
                   </label>
                 ))}
               </div>
             </div>
 
             <div>
-              <span className="block text-sm font-medium font-secondary text-gray-700 mb-2">
+              <span className="block text-sm font-medium font-secondary text-gray-700 dark:text-gray-300 mb-2">
                 Tipos de Conteúdo
               </span>
               <div className="space-y-2">
-                <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded">
                   <input
                     type="checkbox"
                     checked={config.includeKPIs}
                     onChange={(e) => updateConfig({ includeKPIs: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:ring-offset-gray-800 dark:focus:ring-blue-500"
                     aria-label="Incluir KPIs"
                   />
-                  <span className="text-sm font-secondary text-gray-700">KPIs e Métricas</span>
+                  <span className="text-sm font-secondary text-gray-700 dark:text-gray-300">KPIs e Métricas</span>
                 </label>
-                <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded">
                   <input
                     type="checkbox"
                     checked={config.includeCharts}
                     onChange={(e) => updateConfig({ includeCharts: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:ring-offset-gray-800 dark:focus:ring-blue-500"
                     aria-label="Incluir gráficos"
                   />
-                  <span className="text-sm font-secondary text-gray-700">Gráficos</span>
+                  <span className="text-sm font-secondary text-gray-700 dark:text-gray-300">Gráficos</span>
                 </label>
-                <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded">
                   <input
                     type="checkbox"
                     checked={config.includeTables}
                     onChange={(e) => updateConfig({ includeTables: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:ring-offset-gray-800 dark:focus:ring-blue-500"
                     aria-label="Incluir tabelas"
                   />
-                  <span className="text-sm font-secondary text-gray-700">Tabelas</span>
+                  <span className="text-sm font-secondary text-gray-700 dark:text-gray-300">Tabelas</span>
                 </label>
               </div>
             </div>
 
             {FILE_FORMATS.has(config.format) && (
               <div>
-                <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg border border-gray-200">
+                <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-lg border border-gray-200 dark:border-gray-600">
                   <input
                     type="checkbox"
                     checked={config.sendToWhatsApp}
                     onChange={(e) => updateConfig({ sendToWhatsApp: e.target.checked })}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:ring-offset-gray-800 dark:focus:ring-green-500"
                     aria-label="Enviar por WhatsApp"
                   />
                   <div className="flex items-center gap-2 flex-1">
@@ -397,7 +418,7 @@ export default function ExportConfigPanel({
                     >
                       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .965 5.53.965 11.085c0 1.933.518 3.748 1.424 5.317L.654 24l7.855-2.143a11.882 11.882 0 003.54.536h.005c6.554 0 11.085-5.529 11.085-11.084 0-3.007-1.12-5.868-3.162-8.015" />
                     </svg>
-                    <span className="text-sm font-secondary text-gray-700">
+                    <span className="text-sm font-secondary text-gray-700 dark:text-gray-300">
                       Enviar por WhatsApp
                     </span>
                   </div>
@@ -411,12 +432,72 @@ export default function ExportConfigPanel({
             )}
 
             <div>
-              <span className="block text-sm font-medium font-secondary text-gray-700 mb-2">
+              <span className="block text-sm font-medium font-secondary text-gray-700 dark:text-gray-300 mb-2">
                 Filtros Adicionais
               </span>
               <div className="space-y-3">
                 <div>
-                  <label htmlFor="origin-filter-select" className="block text-xs font-secondary text-gray-600 mb-1">
+                  <span className="block text-xs font-secondary text-gray-600 dark:text-gray-400 mb-2">
+                    Painéis
+                  </span>
+                  <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 max-h-48 overflow-y-auto bg-white dark:bg-gray-700">
+                    <div className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        id="select-all-export-panels"
+                        checked={config.filters.panelIds === undefined || (availablePanels.length > 0 && config.filters.panelIds?.length === availablePanels.length)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            updateConfig({ filters: { ...config.filters, panelIds: undefined } })
+                          } else {
+                            updateConfig({ filters: { ...config.filters, panelIds: [] } })
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:ring-offset-gray-800 dark:focus:ring-blue-500"
+                      />
+                      <label
+                        htmlFor="select-all-export-panels"
+                        className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+                      >
+                        Todos os painéis
+                      </label>
+                    </div>
+                    <div className="space-y-2">
+                      {availablePanels.map((panel) => (
+                        <div key={panel.id} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`export-panel-${panel.id}`}
+                            checked={config.filters.panelIds?.includes(panel.id) ?? false}
+                            onChange={(e) => {
+                              const currentIds = config.filters.panelIds || []
+                              if (e.target.checked) {
+                                updateConfig({ filters: { ...config.filters, panelIds: [...currentIds, panel.id] } })
+                              } else {
+                                const newIds = currentIds.filter((id) => id !== panel.id)
+                                updateConfig({ filters: { ...config.filters, panelIds: newIds.length > 0 ? newIds : undefined } })
+                              }
+                            }}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:ring-offset-gray-800 dark:focus:ring-blue-500"
+                          />
+                          <label
+                            htmlFor={`export-panel-${panel.id}`}
+                            className="ml-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                          >
+                            {panel.key} {panel.title}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {config.filters.panelIds && config.filters.panelIds.length > 0 && (
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {config.filters.panelIds.length} painel(is) selecionado(s)
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="origin-filter-select" className="block text-xs font-secondary text-gray-600 dark:text-gray-400 mb-1">
                     Origem (múltipla seleção)
                   </label>
                   <select
@@ -429,7 +510,7 @@ export default function ExportConfigPanel({
                         filters: { ...config.filters, origin: selected },
                       })
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-secondary text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-secondary text-sm dark:bg-gray-700 dark:text-white"
                     aria-label="Filtrar por origem"
                     size={4}
                   >
@@ -440,7 +521,7 @@ export default function ExportConfigPanel({
                     <option value="Facebook">Facebook</option>
                     <option value="Google Ads">Google Ads</option>
                   </select>
-                  <p className="text-xs text-gray-500 mt-1 font-secondary">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-secondary">
                     Mantenha Ctrl/Cmd pressionado para seleção múltipla
                   </p>
                 </div>
@@ -449,7 +530,7 @@ export default function ExportConfigPanel({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="report-title-input" className="block text-sm font-medium font-secondary text-gray-700 mb-2">
+                <label htmlFor="report-title-input" className="block text-sm font-medium font-secondary text-gray-700 dark:text-gray-300 mb-2">
                   Título do Relatório
                 </label>
                 <input
@@ -457,12 +538,12 @@ export default function ExportConfigPanel({
                   type="text"
                   value={config.title}
                   onChange={(e) => updateConfig({ title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-secondary"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-secondary dark:bg-gray-700 dark:text-white"
                   aria-label="Título do relatório"
                 />
               </div>
               <div>
-                <label htmlFor="filename-input" className="block text-sm font-medium font-secondary text-gray-700 mb-2">
+                <label htmlFor="filename-input" className="block text-sm font-medium font-secondary text-gray-700 dark:text-gray-300 mb-2">
                   Nome do Arquivo
                 </label>
                 <input
@@ -470,38 +551,48 @@ export default function ExportConfigPanel({
                   type="text"
                   value={config.filename}
                   onChange={(e) => updateConfig({ filename: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-secondary"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-secondary dark:bg-gray-700 dark:text-white"
                   aria-label="Nome do arquivo"
                 />
               </div>
             </div>
           </div>
 
-          <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
+          <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
             <button
-              onClick={onClose}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  onClose()
-                }
-              }}
-              disabled={isExporting}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-secondary focus:outline-none focus:ring-2 focus:ring-gray-500"
+              onClick={() => setShowScheduling(true)}
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors font-secondary flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              Cancelar
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Agendar Relatório
             </button>
-            <button
-              onClick={handleExport}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  handleExport()
-                }
-              }}
-              disabled={isExporting || !Object.values(config.sections).some(Boolean)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-secondary flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
+            <div className="flex gap-2 sm:gap-3">
+              <button
+                onClick={onClose}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    onClose()
+                  }
+                }}
+                disabled={isExporting}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-secondary focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleExport}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleExport()
+                  }
+                }}
+                disabled={isExporting || !Object.values(config.sections).some(Boolean)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-secondary flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
               {isExporting ? (
                 <>
                   <svg
@@ -546,6 +637,7 @@ export default function ExportConfigPanel({
                 </>
               )}
             </button>
+            </div>
           </div>
         </div>
       </dialog>
@@ -569,6 +661,13 @@ export default function ExportConfigPanel({
         filename={exportedFile?.filename || `${config.filename}.${config.format === 'excel' ? 'xlsx' : config.format}`}
         filters={filteredData.filters}
       />
+
+      {showScheduling && (
+        <SchedulingPanel
+          filters={data.filters}
+          onClose={() => setShowScheduling(false)}
+        />
+      )}
     </>
   )
 }
