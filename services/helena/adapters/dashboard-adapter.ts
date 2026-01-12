@@ -363,7 +363,7 @@ export class DashboardAdapter {
     // Transformar deals para formato simplificado para client-side filtering
     const dealsData = filteredDeals.map((deal) => ({
       id: deal.id,
-      title: deal.title || deal.name || '',
+      title: deal.title || '',
       value: deal.value || 0,
       stageId: deal.stageId || '',
       pipelineId: deal.pipelineId || '',
