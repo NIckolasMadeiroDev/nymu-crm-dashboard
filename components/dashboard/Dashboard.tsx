@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage from '@/components/ui/ErrorMessage'
+import { logout } from '@/services/auth/auth-service'
+import { toast } from 'react-hot-toast'
 import GenerationActivationWithControls from './GenerationActivationWithControls'
 import SalesConversionWithControls from './SalesConversionWithControls'
 import ConversionRatesWithControls from './ConversionRatesWithControls'
@@ -40,6 +43,7 @@ import type { HelenaContact } from '@/types/helena'
 
 export default function Dashboard() {
   const { t } = useLanguage()
+  const router = useRouter()
   useWidgetHeight() // Usado no SettingsModal através do contexto
   const { getDynamicSpan } = useChartMinimization()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
@@ -68,14 +72,14 @@ export default function Dashboard() {
   const [chartLayout, setChartLayout] = useState<ChartLayout>('three')
   const [showSettingsModal, setShowSettingsModal] = useState(false)
 
-  const defaultChartOrder = [
+  const defaultChartOrder = useMemo(() => [
     'sales-conversion-chart',
     'sales-conversion-time-chart',
     'conversion-rates-widget',
     'lead-stock-chart',
     'generation-activation-chart',
     'lead-quality-widget',
-  ]
+  ], [])
 
   const [chartOrder, setChartOrder] = useState<string[]>(defaultChartOrder)
 
@@ -109,14 +113,15 @@ export default function Dashboard() {
     }
 
     // Se não há filtros, buscar painel padrão
-    if (!filtersToLoad) {
+    if (filtersToLoad) {
+      loadDashboardDataRef.current?.(filtersToLoad, false)
+    } else {
       const loadDefaultFilters = async () => {
         try {
           const filtersResponse = await fetch('/api/dashboard/filters')
           if (filtersResponse.ok) {
             const filtersData = await filtersResponse.json()
             const panels = filtersData.panels || []
-            // Buscar painel "02 Máquina de Vendas" por key "02" ou título
             const defaultPanel = panels.find((panel: { id: string; title: string; key: string }) => 
               panel.key === '02' || panel.title.includes('Máquina de Vendas')
             )
@@ -130,7 +135,7 @@ export default function Dashboard() {
               panelIds: defaultPanel ? [defaultPanel.id] : undefined,
             }
             
-            loadDashboardData(defaultFilters, false)
+            loadDashboardDataRef.current?.(defaultFilters, false)
           } else {
             const defaultFilters: DashboardData['filters'] = {
               date: '2025-12-17',
@@ -139,28 +144,27 @@ export default function Dashboard() {
               college: 'Todas',
               origin: '',
               panelIds: undefined,
-            }
-            loadDashboardData(defaultFilters, false)
           }
-        } catch (error) {
-          const defaultFilters: DashboardData['filters'] = {
-            date: '2025-12-17',
-            season: '2025.1',
-            sdr: 'Todos',
-            college: 'Todas',
-            origin: '',
-            panelIds: undefined,
-          }
-          loadDashboardData(defaultFilters, false)
+          loadDashboardDataRef.current?.(defaultFilters, false)
         }
+      } catch (error) {
+        console.error('Error loading default filters:', error)
+        const defaultFilters: DashboardData['filters'] = {
+          date: '2025-12-17',
+          season: '2025.1',
+          sdr: 'Todos',
+          college: 'Todas',
+          origin: '',
+          panelIds: undefined,
+        }
+        loadDashboardDataRef.current?.(defaultFilters, false)
+      }
       }
       
       loadDefaultFilters()
-    } else {
-      loadDashboardData(filtersToLoad, false)
     }
 
-  }, [])
+  }, [defaultChartOrder])
 
   const handlePresetSelected = (presetId: string | null) => {
     setSelectedPresetId(presetId)
@@ -189,6 +193,7 @@ export default function Dashboard() {
 
   const hasPermanentErrorsRef = useRef(false)
   const isLoadingRef = useRef(false)
+  const loadDashboardDataRef = useRef<((filters?: DashboardData['filters'], silent?: boolean) => Promise<void>) | null>(null)
 
   const handlePermanentError = useCallback((errorMessage: string) => {
     hasPermanentErrorsRef.current = true
@@ -287,7 +292,6 @@ export default function Dashboard() {
     }
   }, [handleLoadError, checkDataErrors, dashboardData])
 
-  const loadDashboardDataRef = useRef(loadDashboardData)
   loadDashboardDataRef.current = loadDashboardData
 
   useEffect(() => {
@@ -317,7 +321,7 @@ export default function Dashboard() {
     // Increase polling interval to 60 seconds to reduce API load
     const intervalId = setInterval(() => {
       if (!hasPermanentErrorsRef.current) {
-        loadDashboardDataRef.current()
+        loadDashboardDataRef.current?.()
       }
     }, 60000)
 
@@ -365,6 +369,12 @@ export default function Dashboard() {
     dashboardPreferencesService.saveFilters(filters)
 
     loadDashboardData(filters, true)
+  }
+
+  const handleLogout = () => {
+    logout()
+    toast.success('Logout realizado com sucesso!')
+    router.push('/login')
   }
 
   const handleChartDataPointClick = useCallback(
@@ -503,7 +513,7 @@ export default function Dashboard() {
           setChartContacts(allContacts.map((c) => ({
             id: c.id,
             name: c.name || '',
-            email: (c.email ?? undefined) as string | undefined,
+            email: c.email ?? undefined,
             phoneNumber: c.phoneNumber || c.phone || '',
             phoneNumberFormatted: c.phoneNumberFormatted || c.phoneNumber || c.phone || '',
             createdAt: c.createdAt || new Date().toISOString(),
@@ -626,7 +636,7 @@ export default function Dashboard() {
           setChartContacts(allContacts.map((c) => ({
             id: c.id,
             name: c.name || '',
-            email: (c.email ?? undefined) as string | undefined,
+            email: c.email ?? undefined,
             phoneNumber: c.phoneNumber || c.phone || '',
             phoneNumberFormatted: c.phoneNumberFormatted || c.phoneNumber || c.phone || '',
             createdAt: c.createdAt || new Date().toISOString(),
@@ -833,7 +843,7 @@ export default function Dashboard() {
       default:
         return null
     }
-  }, [dashboardData, chartOrder, chartLayout, getDynamicSpan])
+  }, [dashboardData, chartOrder, chartLayout, getDynamicSpan, handleChartDataPointClick])
 
   if (loading && !dashboardData) {
     return (
@@ -900,7 +910,7 @@ export default function Dashboard() {
             className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 sm:p-3 md:p-3 border border-gray-100 dark:border-gray-700 mb-2 sm:mb-3"
             aria-label="Controles do dashboard"
           >
-            <div className="flex flex-nowrap gap-1 overflow-x-auto py-1 sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 sm:gap-2 sm:overflow-visible sm:py-0 items-center justify-start">
+            <div className="flex flex-nowrap gap-1 overflow-x-auto py-1 sm:grid sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 sm:gap-2 sm:overflow-visible sm:py-0 items-center justify-start">
               <div className="flex items-center justify-center col-span-1 px-1">
                 <NymuLogo
                   variant={logoVariant}
@@ -1004,7 +1014,7 @@ export default function Dashboard() {
                 <select
                   value={(() => {
                     const panelIds = dashboardData?.filters?.panelIds
-                    if (panelIds && panelIds.length === 1) {
+                    if (panelIds?.length === 1) {
                       return panelIds[0]
                     }
                     // Se não há painel selecionado, buscar o padrão "02 Máquina de Vendas"
@@ -1029,7 +1039,7 @@ export default function Dashboard() {
                     handleFilterChange(newFilters)
                   }}
                   aria-label="Selecionar painel"
-                  className="w-48 min-w-0 pl-1.5 sm:pl-2 md:pl-2 pr-5 sm:pr-6 md:pr-6 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-secondary focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 whitespace-nowrap border-0 cursor-pointer appearance-none truncate"
+                  className="w-44 min-w-0 pl-1.5 sm:pl-2 md:pl-2 pr-5 sm:pr-6 md:pr-6 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-secondary focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 whitespace-nowrap border-0 cursor-pointer appearance-none truncate"
                 >
                   <option value="all">Todos os painéis</option>
                   {availablePanels.map((panel) => (
@@ -1058,6 +1068,27 @@ export default function Dashboard() {
               <div className="col-span-2 sm:col-span-1 w-auto min-w-0">
                 <ShareButton filters={dashboardData.filters} className="w-auto min-w-0" />
               </div>
+              <button
+                onClick={handleLogout}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleLogout()
+                  }
+                }}
+                aria-label="Sair"
+                className="w-auto min-w-0 px-1.5 sm:px-2 md:px-2 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-secondary flex items-center justify-center gap-0.5 sm:gap-1 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 whitespace-nowrap"
+              >
+                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                <span className="hidden sm:inline truncate">Sair</span>
+              </button>
             </div>
           </section>
           <SettingsModal

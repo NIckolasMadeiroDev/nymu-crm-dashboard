@@ -120,3 +120,7 @@ export function isAuthenticated(): boolean {
   return isValidSession()
 }
 
+export function logout(): void {
+  clearSession()
+}
+
