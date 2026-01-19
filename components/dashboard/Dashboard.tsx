@@ -122,7 +122,46 @@ export default function Dashboard() {
     }
 
     if (filtersToLoad) {
-      loadDashboardDataRef.current?.(filtersToLoad, false)
+      if (!filtersToLoad.panelIds || filtersToLoad.panelIds.length === 0) {
+        const loadDefaultPanel = async () => {
+          const currentFilters = filtersToLoad
+          if (!currentFilters) return
+          
+          try {
+            const filtersResponse = await fetch('/api/dashboard/filters')
+            if (filtersResponse.ok) {
+              const filtersData = await filtersResponse.json()
+              const panels = filtersData.panels || []
+              const defaultPanel = panels.find((panel: { id: string; title: string; key: string }) => 
+                panel.key === '02' || panel.title.includes('Máquina de Vendas')
+              )
+              
+              if (defaultPanel) {
+                const updatedFilters: DashboardData['filters'] = {
+                  date: currentFilters.date || '2025-12-17',
+                  sdr: currentFilters.sdr || 'Todos',
+                  college: currentFilters.college || 'Todas',
+                  origin: currentFilters.origin || '',
+                  dateTo: currentFilters.dateTo,
+                  panelIds: [defaultPanel.id],
+                }
+                dashboardPreferencesService.saveFilters(updatedFilters)
+                loadDashboardDataRef.current?.(updatedFilters, false)
+              } else {
+                loadDashboardDataRef.current?.(currentFilters, false)
+              }
+            } else {
+              loadDashboardDataRef.current?.(currentFilters, false)
+            }
+          } catch (error) {
+            console.error('Error loading default panel:', error)
+            loadDashboardDataRef.current?.(currentFilters, false)
+          }
+        }
+        loadDefaultPanel()
+      } else {
+        loadDashboardDataRef.current?.(filtersToLoad, false)
+      }
     } else {
       const loadDefaultFilters = async () => {
         try {
@@ -141,6 +180,11 @@ export default function Dashboard() {
               origin: '',
               panelIds: defaultPanel ? [defaultPanel.id] : undefined,
             }
+            
+            if (defaultPanel) {
+              dashboardPreferencesService.saveFilters(defaultFilters)
+            }
+            
             loadDashboardDataRef.current?.(defaultFilters, false)
           } else {
             const defaultFilters: DashboardData['filters'] = {
@@ -393,14 +437,13 @@ export default function Dashboard() {
   const handlePanelChange = async (panelId: string) => {
     try {
       setLoadingPanel(true)
-      const currentFilters = dashboardData?.filters || {
-        date: '2025-12-17',
-        sdr: 'Todos',
-        college: 'Todas',
-        origin: '',
-      }
+      const currentFilters = dashboardData?.filters
       const newFilters: DashboardData['filters'] = {
-        ...currentFilters,
+        date: currentFilters?.date || '2025-12-17',
+        sdr: currentFilters?.sdr || 'Todos',
+        college: currentFilters?.college || 'Todas',
+        origin: currentFilters?.origin || '',
+        dateTo: currentFilters?.dateTo,
         panelIds: panelId === 'all' ? undefined : [panelId],
       }
       dashboardPreferencesService.saveFilters(newFilters)
@@ -1557,9 +1600,16 @@ export default function Dashboard() {
             <DrillNavigation
               onContextChange={(context) => {
                 setDrillContext(context)
-                if (context) {
-
-                  loadDashboardData({ ...dashboardData.filters, ...context.filters } as DashboardData['filters'], true)
+                if (context && dashboardData) {
+                  const mergedFilters: DashboardData['filters'] = {
+                    date: context.filters.date || dashboardData.filters.date || '2025-12-17',
+                    sdr: context.filters.sdr || dashboardData.filters.sdr || 'Todos',
+                    college: context.filters.college || dashboardData.filters.college || 'Todas',
+                    origin: context.filters.origin || dashboardData.filters.origin || '',
+                    dateTo: context.filters.dateTo || dashboardData.filters.dateTo,
+                    panelIds: context.filters.panelIds || dashboardData.filters.panelIds,
+                  }
+                  loadDashboardData(mergedFilters, true)
                 }
               }}
             />
