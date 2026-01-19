@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const filters: DashboardFilters = body.filters || {
       date: '2025-12-17',
-      season: '2025.1',
       sdr: 'Todos',
       college: 'Todas',
       origin: '',
@@ -50,7 +49,6 @@ export async function GET(request: NextRequest) {
     const panelIdsParam = searchParams.get('panelIds')
     const filters: DashboardFilters = {
       date: searchParams.get('date') || '2025-12-17',
-      season: searchParams.get('season') || '2025.1',
       sdr: searchParams.get('sdr') || 'Todos',
       college: searchParams.get('college') || 'Todas',
       origin: searchParams.get('origin') || '',

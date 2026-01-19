@@ -28,6 +28,7 @@ import CrmDropdownMenu from '@/components/crm/CrmDropdownMenu'
 import DepartmentsManagerModal from '@/components/crm/DepartmentsManagerModal'
 import FiltersModal, { countActiveFilters } from '@/components/filters/FiltersModal'
 import ChartDetailsModal from './ChartDetailsModal'
+import CardDetailsModal from './CardDetailsModal'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useWidgetHeight } from '@/contexts/WidgetHeightContext'
 import { useChartMinimization } from '@/contexts/ChartMinimizationContext'
@@ -48,7 +49,9 @@ export default function Dashboard() {
   const { getDynamicSpan } = useChartMinimization()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingPanel, setLoadingPanel] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showFiltersInfo, setShowFiltersInfo] = useState(true)
   const [hasPermanentErrors, setHasPermanentErrors] = useState(false)
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [showHelpModal, setShowHelpModal] = useState(false)
@@ -65,6 +68,10 @@ export default function Dashboard() {
   const [isLoadingChartDetails, setIsLoadingChartDetails] = useState(false)
   const [drillContext, setDrillContext] = useState<DrillContext | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
+  const [showCardDetailsModal, setShowCardDetailsModal] = useState(false)
+  const [cardDetailsType, setCardDetailsType] = useState<'leadsCreated' | 'leadsInGroup' | 'meetParticipants' | 'closedSales' | 'revenue' | null>(null)
+  const [cardDetailsData, setCardDetailsData] = useState<any[]>([])
+  const [isLoadingCardDetails, setIsLoadingCardDetails] = useState(false)
   type LogoVariant = 'twocolor' | 'white'
   type ChartLayout = 'one' | 'two' | 'three'
 
@@ -128,7 +135,6 @@ export default function Dashboard() {
             
             const defaultFilters: DashboardData['filters'] = {
               date: '2025-12-17',
-              season: '2025.1',
               sdr: 'Todos',
               college: 'Todas',
               origin: '',
@@ -139,7 +145,6 @@ export default function Dashboard() {
           } else {
             const defaultFilters: DashboardData['filters'] = {
               date: '2025-12-17',
-              season: '2025.1',
               sdr: 'Todos',
               college: 'Todas',
               origin: '',
@@ -151,7 +156,6 @@ export default function Dashboard() {
         console.error('Error loading default filters:', error)
         const defaultFilters: DashboardData['filters'] = {
           date: '2025-12-17',
-          season: '2025.1',
           sdr: 'Todos',
           college: 'Todas',
           origin: '',
@@ -252,7 +256,6 @@ export default function Dashboard() {
 
       const activeFilters = filters || {
         date: '2025-12-17',
-        season: '2025.1',
         sdr: 'Todos',
         college: 'Todas',
         origin: '',
@@ -371,10 +374,256 @@ export default function Dashboard() {
     loadDashboardData(filters, true)
   }
 
+  const handlePanelChange = async (panelId: string) => {
+    try {
+      setLoadingPanel(true)
+      const currentFilters = dashboardData?.filters || {
+        date: '2025-12-17',
+        sdr: 'Todos',
+        college: 'Todas',
+        origin: '',
+      }
+      const newFilters: DashboardData['filters'] = {
+        ...currentFilters,
+        panelIds: panelId === 'all' ? undefined : [panelId],
+      }
+      dashboardPreferencesService.saveFilters(newFilters)
+      await loadDashboardData(newFilters, true)
+    } finally {
+      setLoadingPanel(false)
+    }
+  }
+
+  const filtersDisplay = useMemo(() => {
+    if (!dashboardData?.filters) return 'Carregando filtros...'
+
+    const filters = dashboardData.filters
+    const parts: string[] = []
+
+    if (filters.date) {
+      const [year, month, day] = filters.date.split('-').map(Number)
+      const dateObj = new Date(year, month - 1, day)
+      const formattedDate = dateObj.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+      
+      const dateTo = filters.dateTo || (() => {
+        const endDate = new Date(dateObj)
+        endDate.setMonth(endDate.getMonth() + 6)
+        return endDate.toISOString().split('T')[0]
+      })()
+      
+      const [yearTo, monthTo, dayTo] = dateTo.split('-').map(Number)
+      const dateToObj = new Date(yearTo, monthTo - 1, dayTo)
+      const formattedDateTo = dateToObj.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+      
+      parts.push(`Período: ${formattedDate} a ${formattedDateTo}`)
+    }
+
+    if (filters.sdr && filters.sdr !== 'Todos') {
+      parts.push(`SDR: ${filters.sdr}`)
+    }
+
+    if (filters.college && filters.college !== 'Todas') {
+      parts.push(`Faculdade: ${filters.college}`)
+    }
+
+    if (filters.origin && filters.origin.trim() !== '') {
+      parts.push(`Origem: ${filters.origin}`)
+    }
+
+    if (filters.panelIds && filters.panelIds.length > 0) {
+      const selectedPanel = availablePanels.find((panel) => panel.id === filters.panelIds?.[0])
+      if (selectedPanel) {
+        parts.push(`Painel: ${selectedPanel.title} (${selectedPanel.key})`)
+      } else if (filters.panelIds.length > 0) {
+        parts.push(`Painel: ${filters.panelIds.length} painel(is) selecionado(s)`)
+      }
+    }
+
+    if (parts.length === 0) {
+      return 'Todos os filtros padrão aplicados'
+    }
+
+    return parts.join(' • ')
+  }, [dashboardData?.filters, availablePanels])
+
   const handleLogout = () => {
     logout()
     toast.success('Logout realizado com sucesso!')
     router.push('/login')
+  }
+
+  const handleCardClick = async (cardType: 'leadsCreated' | 'leadsInGroup' | 'meetParticipants' | 'closedSales' | 'revenue') => {
+    if (!dashboardData) return
+
+    setCardDetailsType(cardType)
+    setShowCardDetailsModal(true)
+    setIsLoadingCardDetails(true)
+
+    try {
+      const { helenaServiceFactory } = await import('@/services/helena/helena-service-factory')
+      const panelsService = helenaServiceFactory.getPanelsService()
+      const panels = await panelsService.getPanelsWithDetails()
+
+      const stepMap = new Map<string, { title: string; panelId: string; panelTitle: string; panelKey: string }>()
+      
+      panels.forEach((panel: any) => {
+        if (panel.steps && Array.isArray(panel.steps)) {
+          panel.steps.forEach((step: any) => {
+            if (step.id && !step.archived) {
+              stepMap.set(step.id, {
+                title: step.title || step.name || '',
+                panelId: panel.id,
+                panelTitle: panel.title || '',
+                panelKey: panel.key || '',
+              })
+            }
+          })
+        }
+      })
+
+      let cards: any[] = []
+      const leads = dashboardData.leads || []
+      const deals = dashboardData.deals || []
+      const contacts = dashboardData.contacts || []
+
+      switch (cardType) {
+        case 'leadsCreated':
+          cards = leads.map((lead: any) => {
+            const stepInfo = stepMap.get(lead.stageId || '')
+            return {
+              id: lead.id,
+              title: lead.title || '',
+              value: lead.value || 0,
+              stageId: lead.stageId || '',
+              pipelineId: lead.pipelineId || '',
+              createdAt: lead.createdAt,
+              updatedAt: lead.updatedAt,
+              owner: lead.owner,
+              contactIds: lead.contactIds || [],
+              panelTitle: stepInfo?.panelTitle || 'Painel não encontrado',
+              panelKey: stepInfo?.panelKey || '',
+              stepTitle: stepInfo?.title || 'Etapa não encontrada',
+            }
+          })
+          break
+
+        case 'leadsInGroup': {
+          const panel02 = panels.find((p: any) => p.key === '02')
+          if (panel02) {
+            const grupoStepIds = new Set<string>()
+            panel02.steps?.forEach((step: any) => {
+              const stepTitle = (step.title || step.name || '').toLowerCase()
+              if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo')) {
+                if (step.id) grupoStepIds.add(step.id)
+              }
+            })
+
+            cards = leads
+              .filter((lead: any) => {
+                const leadPanelId = lead.pipelineId || ''
+                const leadStepId = lead.stageId || ''
+                return panel02.id === leadPanelId && (grupoStepIds.has(leadStepId) || grupoStepIds.has(lead.stepId || ''))
+              })
+              .map((lead: any) => {
+                const stepInfo = stepMap.get(lead.stageId || '')
+                return {
+                  id: lead.id,
+                  title: lead.title || '',
+                  value: lead.value || 0,
+                  stageId: lead.stageId || '',
+                  pipelineId: lead.pipelineId || '',
+                  createdAt: lead.createdAt,
+                  updatedAt: lead.updatedAt,
+                  owner: lead.owner,
+                  contactIds: lead.contactIds || [],
+                  panelTitle: panel02.title || 'Painel 02',
+                  panelKey: panel02.key || '02',
+                  stepTitle: stepInfo?.title || 'Etapa não encontrada',
+                  enteredGroupDate: stepInfo && grupoStepIds.has(lead.stageId || '') ? lead.updatedAt : null,
+                }
+              })
+          }
+          break
+        }
+
+        case 'meetParticipants':
+          cards = leads
+            .filter((lead: any) => {
+              const stepInfo = stepMap.get(lead.stageId || '')
+              const stepTitle = (stepInfo?.title || '').toLowerCase()
+              return stepTitle.includes('meet') || stepTitle.includes('participou') || stepTitle.includes('participante')
+            })
+            .map((lead: any) => {
+              const stepInfo = stepMap.get(lead.stageId || '')
+              return {
+                id: lead.id,
+                title: lead.title || '',
+                value: lead.value || 0,
+                stageId: lead.stageId || '',
+                pipelineId: lead.pipelineId || '',
+                createdAt: lead.createdAt,
+                updatedAt: lead.updatedAt,
+                owner: lead.owner,
+                contactIds: lead.contactIds || [],
+                panelTitle: stepInfo?.panelTitle || 'Painel não encontrado',
+                panelKey: stepInfo?.panelKey || '',
+                stepTitle: stepInfo?.title || 'Etapa não encontrada',
+              }
+            })
+          break
+
+        case 'closedSales':
+        case 'revenue':
+          cards = deals.map((deal: any) => {
+            const stepInfo = stepMap.get(deal.stageId || '')
+            return {
+              id: deal.id,
+              title: deal.title || '',
+              value: deal.value || 0,
+              stageId: deal.stageId || '',
+              pipelineId: deal.pipelineId || '',
+              createdAt: deal.createdAt,
+              updatedAt: deal.updatedAt,
+              closedAt: deal.closedAt,
+              owner: deal.owner,
+              contactIds: deal.contactIds || [],
+              panelTitle: stepInfo?.panelTitle || 'Painel não encontrado',
+              panelKey: stepInfo?.panelKey || '',
+              stepTitle: stepInfo?.title || 'Etapa não encontrada',
+            }
+          })
+          break
+      }
+
+      setCardDetailsData(cards)
+      setChartContacts(contacts.map((c) => ({
+        id: c.id,
+        name: c.name || '',
+        email: c.email,
+        phoneNumber: c.phoneNumber || c.phone || '',
+        phoneNumberFormatted: c.phoneNumberFormatted || c.phoneNumber || c.phone || '',
+        createdAt: c.createdAt || new Date().toISOString(),
+        updatedAt: c.updatedAt || new Date().toISOString(),
+        companyId: c.companyId || '',
+        status: c.status || 'active',
+        tags: c.tags || [],
+        customFields: c.customFields || {},
+      })))
+    } catch (error) {
+      console.error('Erro ao processar detalhes dos cards:', error)
+      toast.error('Erro ao processar detalhes dos cards')
+      setCardDetailsData([])
+    } finally {
+      setIsLoadingCardDetails(false)
+    }
   }
 
   const handleChartDataPointClick = useCallback(
@@ -1011,6 +1260,30 @@ export default function Dashboard() {
                 <span className="hidden sm:inline truncate">Config</span>
               </button>
               <div className="relative w-auto min-w-0">
+                {loadingPanel && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-purple-600/80 rounded-lg z-10">
+                    <svg
+                      className="animate-spin h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                  </div>
+                )}
                 <select
                   value={(() => {
                     const panelIds = dashboardData?.filters?.panelIds
@@ -1024,22 +1297,11 @@ export default function Dashboard() {
                     return defaultPanel?.id || 'all'
                   })()}
                   onChange={(e) => {
-                    const panelId = e.target.value
-                    const currentFilters = dashboardData?.filters || {
-                      date: '2025-12-17',
-                      season: '2025.1',
-                      sdr: 'Todos',
-                      college: 'Todas',
-                      origin: '',
-                    }
-                    const newFilters: DashboardData['filters'] = {
-                      ...currentFilters,
-                      panelIds: panelId === 'all' ? undefined : [panelId],
-                    }
-                    handleFilterChange(newFilters)
+                    handlePanelChange(e.target.value)
                   }}
+                  disabled={loadingPanel}
                   aria-label="Selecionar painel"
-                  className="w-44 min-w-0 pl-1.5 sm:pl-2 md:pl-2 pr-5 sm:pr-6 md:pr-6 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-secondary focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 whitespace-nowrap border-0 cursor-pointer appearance-none truncate"
+                  className="w-44 min-w-0 pl-1.5 sm:pl-2 md:pl-2 pr-5 sm:pr-6 md:pr-6 py-1 sm:py-1.5 md:py-1.5 text-[9px] sm:text-[10px] md:text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-secondary focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 whitespace-nowrap border-0 cursor-pointer appearance-none truncate disabled:opacity-75 disabled:cursor-not-allowed"
                 >
                   <option value="all">Todos os painéis</option>
                   {availablePanels.map((panel) => (
@@ -1153,6 +1415,37 @@ export default function Dashboard() {
               isLoading={isLoadingChartDetails}
             />
           )}
+          {cardDetailsType && dashboardData && (
+            <CardDetailsModal
+              isOpen={showCardDetailsModal}
+              onClose={() => {
+                setShowCardDetailsModal(false)
+                setCardDetailsType(null)
+                setCardDetailsData([])
+                setIsLoadingCardDetails(false)
+              }}
+              title={(() => {
+                switch (cardDetailsType) {
+                  case 'leadsCreated':
+                    return 'Leads Criados'
+                  case 'leadsInGroup':
+                    return 'Leads no Grupo'
+                  case 'meetParticipants':
+                    return 'Participantes no Meet'
+                  case 'closedSales':
+                    return 'Vendas Fechadas'
+                  default:
+                    return 'Receita Gerada'
+                }
+              })()}
+              cardType={cardDetailsType}
+              filters={dashboardData.filters}
+              cards={cardDetailsData}
+              contacts={chartContacts}
+              users={dashboardData.users || []}
+              isLoading={isLoadingCardDetails}
+            />
+          )}
         </div>
 
         {(() => {
@@ -1172,35 +1465,96 @@ export default function Dashboard() {
                id="dashboard-export-container"
                className="transition-all duration-300 space-y-4 sm:space-y-4 md:space-y-5"
              >
+            {dashboardData?.filters && showFiltersInfo && (
+              <div className="mb-3 sm:mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 relative">
+                <button
+                  onClick={() => setShowFiltersInfo(false)}
+                  className="absolute top-2 right-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-1"
+                  aria-label="Fechar informações de filtros"
+                >
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+                <div className="flex items-center gap-2 pr-6">
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                    />
+                  </svg>
+                  <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 break-words">
+                    <span className="font-semibold text-blue-900 dark:text-blue-100">Filtros Aplicados:</span> {filtersDisplay}
+                  </p>
+                </div>
+              </div>
+            )}
             <div
   className="flex flex-row gap-2 items-stretch overflow-x-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 sm:grid sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 sm:overflow-visible min-w-0"
   style={{ WebkitOverflowScrolling: 'touch' }}
 >
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+              <button
+                onClick={() => handleCardClick('leadsCreated')}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0 hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-2"
+                aria-label="Ver detalhes dos Leads Criados"
+              >
                 <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Leads Criados</h3>
                 <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatNumber(dashboardData.generationActivation.leadsCreated)}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+              </button>
+              <button
+                onClick={() => handleCardClick('leadsInGroup')}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0 hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-2"
+                aria-label="Ver detalhes dos Leads no Grupo"
+              >
                 <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Leads no Grupo</h3>
                 <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatNumber(dashboardData.generationActivation.leadsInGroup)}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+              </button>
+              <button
+                onClick={() => handleCardClick('meetParticipants')}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0 hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-2"
+                aria-label="Ver detalhes dos Participantes no Meet"
+              >
                 <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Participantes no Meet</h3>
                 <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatNumber(dashboardData.generationActivation.meetParticipants)}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+              </button>
+              <button
+                onClick={() => handleCardClick('closedSales')}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0 hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-2"
+                aria-label="Ver detalhes das Vendas Fechadas"
+              >
                 <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Vendas Fechadas</h3>
                 <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatNumber(dashboardData.salesConversion.closedSales)}</p>
-              </div>
+              </button>
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
                 <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Taxa de Fechamento</h3>
                 <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{dashboardData.salesConversion.closingRate.toFixed(0)}%</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0">
+              <button
+                onClick={() => handleCardClick('revenue')}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-1 sm:p-2 md:p-2.5 border border-gray-100 dark:border-gray-700 flex flex-col justify-between min-w-[110px] max-w-[135px] sm:min-w-0 sm:max-w-none flex-shrink-0 hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF9D02] focus:ring-offset-2"
+                aria-label="Ver detalhes da Receita Gerada"
+              >
                 <h3 className="text-[9px] sm:text-[11px] md:text-xs font-medium text-gray-600 dark:text-gray-400 font-secondary mb-0.5 sm:mb-1 truncate">Receita Gerada</h3>
                 <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white font-primary break-words leading-tight">{formatCurrency(dashboardData.salesConversion.revenueGenerated)}</p>
-              </div>
+              </button>
             </div>
 
             <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

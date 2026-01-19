@@ -1,6 +1,6 @@
 export interface DashboardFilters {
   date: string
-  season: string
+  dateTo?: string
   sdr: string
   college: string
   origin: string

@@ -1,15 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { X, Save, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { DashboardFilters } from '@/types/dashboard'
 import {
   filterPresetsService,
-  type FilterPreset,
 } from '@/services/filters/filter-presets-service'
 import { PresetDialog } from '@/components/filters/FilterPresets'
-import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 
 interface FiltersModalProps {
   readonly isOpen: boolean
@@ -37,13 +35,27 @@ export default function FiltersModal({
   const [availableColleges, setAvailableColleges] = useState<string[]>([])
   const [availableOrigins, setAvailableOrigins] = useState<string[]>([])
 
+  const calculateDateTo = useCallback((dateFrom: string): string => {
+    if (!dateFrom) return ''
+    const date = new Date(dateFrom)
+    date.setMonth(date.getMonth() + 6)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }, [])
+
   // Inicializar filtros locais quando o modal abre ou quando os filtros externos mudam
   useEffect(() => {
     if (isOpen) {
-      setLocalFilters(filters)
+      const initializedFilters = { ...filters }
+      if (filters.date && !filters.dateTo) {
+        initializedFilters.dateTo = calculateDateTo(filters.date)
+      }
+      setLocalFilters(initializedFilters)
       setIsApplyingFilters(false) // Resetar estado de loading ao abrir
     }
-  }, [isOpen, filters])
+  }, [isOpen, filters, calculateDateTo])
 
   useEffect(() => {
     if (selectedPresetId) {
@@ -84,8 +96,11 @@ export default function FiltersModal({
   }, [isOpen])
 
   const handleChange = (field: keyof DashboardFilters, value: string | undefined | string[]) => {
-    // Atualizar apenas o estado local, não aplicar imediatamente
-    setLocalFilters({ ...localFilters, [field]: value })
+    const newFilters = { ...localFilters, [field]: value }
+    if (field === 'date' && value && typeof value === 'string') {
+      newFilters.dateTo = calculateDateTo(value)
+    }
+    setLocalFilters(newFilters)
   }
 
   const handleSaveToPreset = async () => {
@@ -239,7 +254,7 @@ export default function FiltersModal({
                 htmlFor="filter-date"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary mb-2"
               >
-                Data
+                Data Inicial
               </label>
               <input
                 id="filter-date"
@@ -247,31 +262,26 @@ export default function FiltersModal({
                 value={localFilters.date}
                 onChange={(e) => handleChange('date', e.target.value)}
                 disabled={isApplyingFilters}
-                aria-label="Filtro de data"
+                aria-label="Filtro de data inicial"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
-
             <div>
               <label
-                htmlFor="filter-season"
+                htmlFor="filter-date-to"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary mb-2"
               >
-                Temporada
+                Data Final (6 meses)
               </label>
-              <select
-                id="filter-season"
-                value={localFilters.season}
-                onChange={(e) => handleChange('season', e.target.value)}
-                disabled={isApplyingFilters}
-                aria-label="Filtro de temporada"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="2025.1">2025.1</option>
-                <option value="2024.2">2024.2</option>
-                <option value="2024.1">2024.1</option>
-                <option value="2023.2">2023.2</option>
-              </select>
+              <input
+                id="filter-date-to"
+                type="date"
+                value={localFilters.dateTo || calculateDateTo(localFilters.date)}
+                readOnly
+                disabled
+                aria-label="Filtro de data final (calculado automaticamente)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 cursor-not-allowed opacity-60"
+              />
             </div>
 
             <div>
@@ -370,9 +380,10 @@ export default function FiltersModal({
               )}
               <button
                 onClick={() => {
+                  const today = new Date().toISOString().split('T')[0]
                   const defaultFilters: DashboardFilters = {
-                    date: new Date().toISOString().split('T')[0],
-                    season: '2025.1',
+                    date: today,
+                    dateTo: calculateDateTo(today),
                     sdr: 'Todos',
                     college: 'Todas',
                     origin: '',
