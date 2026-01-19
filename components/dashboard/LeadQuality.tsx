@@ -7,13 +7,14 @@ import { formatNumber } from '@/utils/format-currency'
 interface LeadQualityProps {
   readonly data: LeadQuality[]
   readonly useNewDesign?: boolean
+  readonly onRowClick?: (origin: string) => void
 }
 
 type SortColumn = 'origin' | 'totalLeads' | 'percentageOfTotal'
 type SortDirection = 'asc' | 'desc' | null
 type GroupFilter = 'all' | 'tags' | 'college' | 'source'
 
-export default function LeadQualityComponent({ data, useNewDesign = true }: LeadQualityProps) {
+export default function LeadQualityComponent({ data, useNewDesign = true, onRowClick }: LeadQualityProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
   const [groupFilter, setGroupFilter] = useState<GroupFilter>('all')
@@ -271,7 +272,8 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                 return (
                 <tr
                   key={rowKey}
-                  className={`transition-colors duration-150 ${
+                  onClick={() => onRowClick?.(item.origin)}
+                  className={`transition-colors duration-150 cursor-pointer ${
                     useNewDesign
                       ? 'hover:bg-blue-50 dark:hover:bg-gray-700 nymu-dark:hover:bg-gray-700 hover:shadow-sm even:bg-gray-50/50 dark:even:bg-gray-700/50 nymu-dark:even:bg-gray-700/50'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-700 nymu-dark:hover:bg-gray-700'

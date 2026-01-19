@@ -46,7 +46,7 @@ import type { HelenaContact } from '@/types/helena'
 export default function Dashboard() {
   const { t } = useLanguage()
   const router = useRouter()
-  useWidgetHeight() // Usado no SettingsModal através do contexto
+  useWidgetHeight()
   const { getDynamicSpan } = useChartMinimization()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -121,7 +121,6 @@ export default function Dashboard() {
       filtersToLoad = preferences.filters
     }
 
-    // Se não há filtros, buscar painel padrão
     if (filtersToLoad) {
       loadDashboardDataRef.current?.(filtersToLoad, false)
     } else {
@@ -142,7 +141,6 @@ export default function Dashboard() {
               origin: '',
               panelIds: defaultPanel ? [defaultPanel.id] : undefined,
             }
-            
             loadDashboardDataRef.current?.(defaultFilters, false)
           } else {
             const defaultFilters: DashboardData['filters'] = {
@@ -151,20 +149,20 @@ export default function Dashboard() {
               college: 'Todas',
               origin: '',
               panelIds: undefined,
+            }
+            loadDashboardDataRef.current?.(defaultFilters, false)
+          }
+        } catch (error) {
+          console.error('Error loading default filters:', error)
+          const defaultFilters: DashboardData['filters'] = {
+            date: '2025-12-17',
+            sdr: 'Todos',
+            college: 'Todas',
+            origin: '',
+            panelIds: undefined,
           }
           loadDashboardDataRef.current?.(defaultFilters, false)
         }
-      } catch (error) {
-        console.error('Error loading default filters:', error)
-        const defaultFilters: DashboardData['filters'] = {
-          date: '2025-12-17',
-          sdr: 'Todos',
-          college: 'Todas',
-          origin: '',
-          panelIds: undefined,
-        }
-        loadDashboardDataRef.current?.(defaultFilters, false)
-      }
       }
       
       loadDefaultFilters()
@@ -256,7 +254,7 @@ export default function Dashboard() {
       }
       setError(null)
 
-      const activeFilters = filters || {
+      const activeFilters = filters || dashboardData?.filters || {
         date: '2025-12-17',
         sdr: 'Todos',
         college: 'Todas',
@@ -316,6 +314,23 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
+    if (dashboardData && availablePanels.length === 0) {
+      const fetchPanels = async () => {
+        try {
+          const response = await fetch('/api/dashboard/filters')
+          if (response.ok) {
+            const filtersData = await response.json()
+            setAvailablePanels(filtersData.panels || [])
+          }
+        } catch (error) {
+          console.error('Error fetching panels:', error)
+        }
+      }
+      fetchPanels()
+    }
+  }, [dashboardData, availablePanels.length])
+
+  useEffect(() => {
     if (hasPermanentErrors) {
       if (process.env.NODE_ENV === 'development') {
         console.log('[Dashboard] Polling disabled due to permanent errors (404, etc.)')
@@ -323,7 +338,6 @@ export default function Dashboard() {
       return
     }
 
-    // Increase polling interval to 60 seconds to reduce API load
     const intervalId = setInterval(() => {
       if (!hasPermanentErrorsRef.current) {
         loadDashboardDataRef.current?.()
@@ -443,12 +457,13 @@ export default function Dashboard() {
     if (filters.panelIds && filters.panelIds.length > 0) {
       const panelId = filters.panelIds[0]
       const selectedPanel = availablePanels.find((panel) => panel.id === panelId)
+      
       if (selectedPanel) {
         parts.push(`Painel: ${selectedPanel.title} (${selectedPanel.key})`)
-      } else {
+      } else if (availablePanels.length > 0) {
         parts.push(`Painel: ${panelId}`)
       }
-    } else if (filters.panelIds === undefined || filters.panelIds === null || filters.panelIds.length === 0) {
+    } else {
       parts.push('Painel: Todos os painéis')
     }
 
@@ -464,6 +479,112 @@ export default function Dashboard() {
     toast.success('Logout realizado com sucesso!')
     router.push('/login')
   }
+
+  const handleLeadQualityClick = useCallback(async (origin: string) => {
+    if (!dashboardData) return
+
+    setCardDetailsType('leadsCreated')
+    setShowCardDetailsModal(true)
+    setIsLoadingCardDetails(true)
+
+    try {
+      const { helenaServiceFactory } = await import('@/services/helena/helena-service-factory')
+      const panelsService = helenaServiceFactory.getPanelsService()
+      const panels = await panelsService.getPanelsWithDetails()
+
+      const stepMap = new Map<string, { title: string; panelId: string; panelTitle: string; panelKey: string }>()
+      
+      panels.forEach((panel: any) => {
+        if (panel.steps && Array.isArray(panel.steps)) {
+          panel.steps.forEach((step: any) => {
+            if (step.id && !step.archived) {
+              stepMap.set(step.id, {
+                title: step.title || step.name || '',
+                panelId: panel.id,
+                panelTitle: panel.title || '',
+                panelKey: panel.key || '',
+              })
+            }
+          })
+        }
+      })
+
+      const cards = dashboardData.cards || []
+      const contacts = dashboardData.contacts || []
+
+      const panelMap = new Map<string, { key: string; title: string }>()
+      panels.forEach((panel: any) => {
+        if (panel.id) {
+          panelMap.set(panel.id, {
+            key: panel.key || panel.id,
+            title: panel.title || 'Painel Desconhecido',
+          })
+        }
+      })
+
+      const filteredCards = cards.filter((card: any) => {
+        if (card.archived) return false
+        
+        const panelId = card.panelId || card.pipelineId || ''
+        const stepId = card.stepId || card.stageId || ''
+        const stepInfo = stepMap.get(stepId)
+        const panelInfo = panelMap.get(panelId)
+        
+        if (!panelInfo) return false
+        
+        let groupKey = 'Sem categoria'
+        if (panelInfo && stepInfo) {
+          const panelLabel = panelInfo.key ? `Painel ${panelInfo.key}` : panelInfo.title
+          const stepTitle = stepInfo.title || 'Sem etapa'
+          groupKey = `${panelLabel} - ${stepTitle}`
+        } else if (panelInfo && !stepInfo) {
+          const panelLabel = panelInfo.key ? `Painel ${panelInfo.key}` : panelInfo.title
+          groupKey = `${panelLabel} - Sem etapa`
+        }
+        
+        return groupKey === origin
+      })
+
+      const cardsToDisplay = filteredCards.map((card: any) => {
+        const stepInfo = stepMap.get(card.stepId || '')
+        return {
+          id: card.id,
+          title: card.title || '',
+          value: card.monetaryAmount || 0,
+          stageId: card.stepId || '',
+          pipelineId: card.panelId || '',
+          createdAt: card.createdAt,
+          updatedAt: card.updatedAt,
+          owner: card.responsibleUserId || '',
+          contactIds: card.contactIds || [],
+          panelTitle: stepInfo?.panelTitle || 'Painel não encontrado',
+          panelKey: stepInfo?.panelKey || '',
+          stepTitle: stepInfo?.title || 'Etapa não encontrada',
+        }
+      })
+
+      setCardDetailsData(cardsToDisplay)
+      setChartContacts(contacts.map((c) => ({
+        id: c.id,
+        name: c.name || '',
+        email: c.email,
+        phoneNumber: c.phoneNumber || c.phone || '',
+        phoneNumberFormatted: c.phoneNumberFormatted || c.phoneNumber || c.phone || '',
+        createdAt: c.createdAt || new Date().toISOString(),
+        updatedAt: c.updatedAt || new Date().toISOString(),
+        companyId: c.companyId || '',
+        status: c.status || 'active',
+        tags: c.tags || [],
+        customFields: c.customFields || {},
+      })))
+    } catch (error) {
+      console.error('Erro ao processar detalhes dos leads de qualidade:', error)
+      toast.error('Erro ao processar detalhes dos leads')
+      setCardDetailsData([])
+    } finally {
+      setIsLoadingCardDetails(false)
+    }
+  }, [dashboardData])
 
   const handleCardClick = async (cardType: 'leadsCreated' | 'leadsInGroup' | 'meetParticipants' | 'closedSales' | 'revenue') => {
     if (!dashboardData) return
@@ -534,41 +655,54 @@ export default function Dashboard() {
         }
 
         case 'leadsInGroup': {
-          const panel02 = panels.find((p: any) => p.key === '02')
-          if (panel02) {
-            const grupoStepIds = new Set<string>()
-            panel02.steps?.forEach((step: any) => {
+          const filteredPanelIds = dashboardData.filters?.panelIds
+          const isPanelFiltered = filteredPanelIds && filteredPanelIds.length > 0
+          
+          const panelsToSearch = isPanelFiltered
+            ? panels.filter((p: any) => filteredPanelIds.includes(p.id))
+            : panels
+
+          const grupoStepIds = new Set<string>()
+          panelsToSearch.forEach((panel: any) => {
+            panel.steps?.forEach((step: any) => {
               const stepTitle = (step.title || step.name || '').toLowerCase()
-              if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo')) {
+              if (stepTitle.includes('entrou no grupo')) {
                 if (step.id) grupoStepIds.add(step.id)
               }
             })
+          })
 
-            cardsToDisplay = cards
-              .filter((card: any) => {
-                const cardPanelId = card.panelId || ''
-                const cardStepId = card.stepId || ''
-                return panel02.id === cardPanelId && grupoStepIds.has(cardStepId)
-              })
-              .map((card: any) => {
-                const stepInfo = stepMap.get(card.stepId || '')
-                return {
-                  id: card.id,
-                  title: card.title || '',
-                  value: card.monetaryAmount || 0,
-                  stageId: card.stepId || '',
-                  pipelineId: card.panelId || '',
-                  createdAt: card.createdAt,
-                  updatedAt: card.updatedAt,
-                  owner: card.responsibleUserId || '',
-                  contactIds: card.contactIds || [],
-                  panelTitle: panel02.title || 'Painel 02',
-                  panelKey: panel02.key || '02',
-                  stepTitle: stepInfo?.title || 'Etapa não encontrada',
-                  enteredGroupDate: stepInfo && grupoStepIds.has(card.stepId || '') ? card.updatedAt : null,
-                }
-              })
-          }
+          cardsToDisplay = cards
+            .filter((card: any) => {
+              if (card.archived) return false
+              const cardPanelId = card.panelId || card.pipelineId || ''
+              const cardStepId = card.stepId || card.stageId || ''
+              
+              if (isPanelFiltered && !filteredPanelIds.includes(cardPanelId)) {
+                return false
+              }
+              
+              return grupoStepIds.has(cardStepId)
+            })
+            .map((card: any) => {
+              const stepInfo = stepMap.get(card.stepId || card.stageId || '')
+              const panel = panels.find((p: any) => p.id === (card.panelId || card.pipelineId))
+              return {
+                id: card.id,
+                title: card.title || '',
+                value: card.monetaryAmount || 0,
+                stageId: card.stepId || card.stageId || '',
+                pipelineId: card.panelId || card.pipelineId || '',
+                createdAt: card.createdAt,
+                updatedAt: card.updatedAt,
+                owner: card.responsibleUserId || '',
+                contactIds: card.contactIds || [],
+                panelTitle: panel?.title || 'Painel não encontrado',
+                panelKey: panel?.key || '',
+                stepTitle: stepInfo?.title || 'Etapa não encontrada',
+                enteredGroupDate: stepInfo && grupoStepIds.has(card.stepId || card.stageId || '') ? card.updatedAt : null,
+              }
+            })
           break
         }
 
@@ -668,7 +802,6 @@ export default function Dashboard() {
     async (chartTitle: string, period: { type: 'week' | 'days' | 'date'; value: string | number; label: string }) => {
       if (!dashboardData) return
 
-      // Calcular label melhorado com range de datas
       let improvedLabel = period.label
       try {
         if (period.type === 'week' && typeof period.value === 'number') {
@@ -696,9 +829,7 @@ export default function Dashboard() {
         const isLeadStock = chartTitleLower.includes('estoque de leads')
         const isSales = chartTitleLower.includes('vendas por semana') || chartTitleLower.includes('conversão de vendas')
 
-        // Usar dados locais se disponíveis
         if (isLeadsCreated && dashboardData.leads && dashboardData.contacts && dashboardData.users) {
-          // Filtrar leads localmente (Leads Criados por Semana)
           const filteredLeads = dashboardData.leads.filter((lead: {
             id: string
             title: string
@@ -740,7 +871,6 @@ export default function Dashboard() {
             return false
           })
 
-          // Enriquecer leads com informações formatadas
           const { formatCurrency } = await import('@/utils/format-currency')
           const enrichedDeals = filteredLeads.map((lead: {
             id: string
@@ -795,7 +925,6 @@ export default function Dashboard() {
           })
 
           setChartDeals(enrichedDeals as CrmDeal[])
-          // Converter contatos para formato HelenaContact completo
           const allContacts = dashboardData.contacts || []
           setChartContacts(allContacts.map((c) => ({
             id: c.id,
@@ -811,7 +940,6 @@ export default function Dashboard() {
             customFields: c.customFields || {},
           })) as HelenaContact[])
         } else if (isSales && dashboardData.deals && dashboardData.contacts && dashboardData.users) {
-          // Filtrar deals localmente (Vendas por Semana)
           const filteredDeals = dashboardData.deals.filter((deal: {
             id: string
             title: string
@@ -853,7 +981,6 @@ export default function Dashboard() {
             return false
           })
 
-          // Enriquecer deals com informações formatadas
           const { formatCurrency } = await import('@/utils/format-currency')
           const enrichedDeals = filteredDeals.map((deal: {
             id: string
@@ -918,7 +1045,6 @@ export default function Dashboard() {
           })
 
           setChartDeals(enrichedDeals as CrmDeal[])
-          // Converter contatos para formato HelenaContact completo
           const allContacts = dashboardData.contacts || []
           setChartContacts(allContacts.map((c) => ({
             id: c.id,
@@ -934,7 +1060,6 @@ export default function Dashboard() {
             customFields: c.customFields || {},
           })) as HelenaContact[])
         } else {
-          // Fallback para API se dados locais não estiverem disponíveis
           const response = await fetch('/api/dashboard/deals', {
             method: 'POST',
             headers: {
@@ -1088,6 +1213,7 @@ export default function Dashboard() {
               <LeadQualityWithControls
                 data={dashboardData.leadQuality}
                 dragHandleProps={dragHandleProps}
+                onRowClick={handleLeadQualityClick}
               />
             )}
           </DraggableChart>
@@ -1130,7 +1256,7 @@ export default function Dashboard() {
       default:
         return null
     }
-  }, [dashboardData, chartOrder, chartLayout, getDynamicSpan, handleChartDataPointClick])
+  }, [dashboardData, chartOrder, chartLayout, getDynamicSpan, handleChartDataPointClick, handleLeadQualityClick])
 
   if (loading && !dashboardData) {
     return (
@@ -1328,11 +1454,7 @@ export default function Dashboard() {
                     if (panelIds?.length === 1) {
                       return panelIds[0]
                     }
-                    // Se não há painel selecionado, buscar o padrão "02 Máquina de Vendas"
-                    const defaultPanel = availablePanels.find((panel) => 
-                      panel.key === '02' || panel.title.includes('Máquina de Vendas')
-                    )
-                    return defaultPanel?.id || 'all'
+                    return 'all'
                   })()}
                   onChange={(e) => {
                     handlePanelChange(e.target.value)

@@ -10,11 +10,13 @@ import { useChartMinimization } from '@/contexts/ChartMinimizationContext'
 interface LeadQualityWithControlsProps {
   readonly data: LeadQuality[]
   readonly dragHandleProps?: React.HTMLAttributes<HTMLDivElement>
+  readonly onRowClick?: (origin: string) => void
 }
 
 export default function LeadQualityWithControls({
   data,
   dragHandleProps,
+  onRowClick,
 }: LeadQualityWithControlsProps) {
   const { isEnabled: isAnalysisEnabled } = useAnalysisPreference()
   const { isMinimized: isMinimizedContext, toggleMinimize } = useChartMinimization()
@@ -54,7 +56,7 @@ export default function LeadQualityWithControls({
         </button>
       }
     >
-      <LeadQualityComponent data={data} useNewDesign={useNewDesign} />
+      <LeadQualityComponent data={data} useNewDesign={useNewDesign} onRowClick={onRowClick} />
     </WidgetContainer>
   )
 }
