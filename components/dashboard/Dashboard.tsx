@@ -494,31 +494,44 @@ export default function Dashboard() {
         }
       })
 
-      let cards: any[] = []
-      const leads = dashboardData.leads || []
+      const filteredPanelIds = dashboardData.filters?.panelIds
+      const isPanelFiltered = filteredPanelIds && filteredPanelIds.length > 0
+
+      let cardsToDisplay: any[] = []
+      const cards = dashboardData.cards || []
       const deals = dashboardData.deals || []
       const contacts = dashboardData.contacts || []
 
       switch (cardType) {
-        case 'leadsCreated':
-          cards = leads.map((lead: any) => {
-            const stepInfo = stepMap.get(lead.stageId || '')
+        case 'leadsCreated': {
+          let filteredCards = cards
+          
+          if (isPanelFiltered) {
+            filteredCards = cards.filter((card: any) => {
+              const cardPanelId = card.panelId || ''
+              return filteredPanelIds.includes(cardPanelId)
+            })
+          }
+          
+          cardsToDisplay = filteredCards.map((card: any) => {
+            const stepInfo = stepMap.get(card.stepId || '')
             return {
-              id: lead.id,
-              title: lead.title || '',
-              value: lead.value || 0,
-              stageId: lead.stageId || '',
-              pipelineId: lead.pipelineId || '',
-              createdAt: lead.createdAt,
-              updatedAt: lead.updatedAt,
-              owner: lead.owner,
-              contactIds: lead.contactIds || [],
+              id: card.id,
+              title: card.title || '',
+              value: card.monetaryAmount || 0,
+              stageId: card.stepId || '',
+              pipelineId: card.panelId || '',
+              createdAt: card.createdAt,
+              updatedAt: card.updatedAt,
+              owner: card.responsibleUserId || '',
+              contactIds: card.contactIds || [],
               panelTitle: stepInfo?.panelTitle || 'Painel não encontrado',
               panelKey: stepInfo?.panelKey || '',
               stepTitle: stepInfo?.title || 'Etapa não encontrada',
             }
           })
           break
+        }
 
         case 'leadsInGroup': {
           const panel02 = panels.find((p: any) => p.key === '02')
@@ -531,63 +544,82 @@ export default function Dashboard() {
               }
             })
 
-            cards = leads
-              .filter((lead: any) => {
-                const leadPanelId = lead.pipelineId || ''
-                const leadStepId = lead.stageId || ''
-                return panel02.id === leadPanelId && (grupoStepIds.has(leadStepId) || grupoStepIds.has(lead.stepId || ''))
+            cardsToDisplay = cards
+              .filter((card: any) => {
+                const cardPanelId = card.panelId || ''
+                const cardStepId = card.stepId || ''
+                return panel02.id === cardPanelId && grupoStepIds.has(cardStepId)
               })
-              .map((lead: any) => {
-                const stepInfo = stepMap.get(lead.stageId || '')
+              .map((card: any) => {
+                const stepInfo = stepMap.get(card.stepId || '')
                 return {
-                  id: lead.id,
-                  title: lead.title || '',
-                  value: lead.value || 0,
-                  stageId: lead.stageId || '',
-                  pipelineId: lead.pipelineId || '',
-                  createdAt: lead.createdAt,
-                  updatedAt: lead.updatedAt,
-                  owner: lead.owner,
-                  contactIds: lead.contactIds || [],
+                  id: card.id,
+                  title: card.title || '',
+                  value: card.monetaryAmount || 0,
+                  stageId: card.stepId || '',
+                  pipelineId: card.panelId || '',
+                  createdAt: card.createdAt,
+                  updatedAt: card.updatedAt,
+                  owner: card.responsibleUserId || '',
+                  contactIds: card.contactIds || [],
                   panelTitle: panel02.title || 'Painel 02',
                   panelKey: panel02.key || '02',
                   stepTitle: stepInfo?.title || 'Etapa não encontrada',
-                  enteredGroupDate: stepInfo && grupoStepIds.has(lead.stageId || '') ? lead.updatedAt : null,
+                  enteredGroupDate: stepInfo && grupoStepIds.has(card.stepId || '') ? card.updatedAt : null,
                 }
               })
           }
           break
         }
 
-        case 'meetParticipants':
-          cards = leads
-            .filter((lead: any) => {
-              const stepInfo = stepMap.get(lead.stageId || '')
+        case 'meetParticipants': {
+          let filteredCards = cards
+          
+          if (isPanelFiltered) {
+            filteredCards = cards.filter((card: any) => {
+              const cardPanelId = card.panelId || ''
+              return filteredPanelIds.includes(cardPanelId)
+            })
+          }
+          
+          cardsToDisplay = filteredCards
+            .filter((card: any) => {
+              const stepInfo = stepMap.get(card.stepId || '')
               const stepTitle = (stepInfo?.title || '').toLowerCase()
               return stepTitle.includes('meet') || stepTitle.includes('participou') || stepTitle.includes('participante')
             })
-            .map((lead: any) => {
-              const stepInfo = stepMap.get(lead.stageId || '')
+            .map((card: any) => {
+              const stepInfo = stepMap.get(card.stepId || '')
               return {
-                id: lead.id,
-                title: lead.title || '',
-                value: lead.value || 0,
-                stageId: lead.stageId || '',
-                pipelineId: lead.pipelineId || '',
-                createdAt: lead.createdAt,
-                updatedAt: lead.updatedAt,
-                owner: lead.owner,
-                contactIds: lead.contactIds || [],
+                id: card.id,
+                title: card.title || '',
+                value: card.monetaryAmount || 0,
+                stageId: card.stepId || '',
+                pipelineId: card.panelId || '',
+                createdAt: card.createdAt,
+                updatedAt: card.updatedAt,
+                owner: card.responsibleUserId || '',
+                contactIds: card.contactIds || [],
                 panelTitle: stepInfo?.panelTitle || 'Painel não encontrado',
                 panelKey: stepInfo?.panelKey || '',
                 stepTitle: stepInfo?.title || 'Etapa não encontrada',
               }
             })
           break
+        }
 
         case 'closedSales':
-        case 'revenue':
-          cards = deals.map((deal: any) => {
+        case 'revenue': {
+          let filteredDeals = deals
+          
+          if (isPanelFiltered) {
+            filteredDeals = deals.filter((deal: any) => {
+              const dealPanelId = deal.pipelineId || ''
+              return filteredPanelIds.includes(dealPanelId)
+            })
+          }
+          
+          cardsToDisplay = filteredDeals.map((deal: any) => {
             const stepInfo = stepMap.get(deal.stageId || '')
             return {
               id: deal.id,
@@ -606,9 +638,10 @@ export default function Dashboard() {
             }
           })
           break
+        }
       }
 
-      setCardDetailsData(cards)
+      setCardDetailsData(cardsToDisplay)
       setChartContacts(contacts.map((c) => ({
         id: c.id,
         name: c.name || '',

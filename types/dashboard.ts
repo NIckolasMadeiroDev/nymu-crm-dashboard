@@ -203,5 +203,17 @@ export interface DashboardData {
     name: string
     email?: string
   }>
+  cards?: Array<{
+    id: string
+    title: string
+    panelId: string
+    stepId: string
+    contactIds: string[]
+    createdAt: string
+    updatedAt: string
+    responsibleUserId?: string
+    monetaryAmount?: number
+    archived?: boolean
+  }>
 }
 

@@ -143,34 +143,141 @@ export class DashboardAdapter {
   }
 
   async getDashboardData(filters: DashboardFilters): Promise<DashboardData> {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[DashboardAdapter] Fetching data from Helena API...')
-    }
+    this.logDebug('Fetching data from Helena API...')
 
-    const cardsService = helenaServiceFactory.getCardsService()
-    const contactsService = helenaServiceFactory.getContactsService()
-    const panelsService = helenaServiceFactory.getPanelsService()
-    const walletsService = helenaServiceFactory.getWalletsService()
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[DashboardAdapter] Fetching cards, contacts, panels, and wallets...')
-    }
-
-    const errors: {
-      cards?: string
-      contacts?: string
-      panels?: string
-      wallets?: string
-    } = {}
-
-    const allPanels = await this.fetchPanels(panelsService, errors)
-    const panelsWithSteps = allPanels
-    const stepMap = this.createStepMap(panelsWithSteps)
+    const services = this.initializeServices()
+    const errors = this.initializeErrors()
     
+    const { allPanels, panelsToProcess, stepMap } = await this.preparePanels(services.panelsService, filters, errors)
+    const { cards, contacts, panels, wallets } = await this.fetchAllData(services, panelsToProcess, allPanels, errors)
+    
+    this.storeContextData(contacts, stepMap, allPanels, cards)
+    this.logFetchedData(cards, contacts, panels, wallets, stepMap, errors)
+
+    const { leads, deals } = this.processData(contacts, cards, stepMap)
+    this.logProcessedData(leads, deals, contacts, panels, wallets, cards, stepMap)
+
+    const { filteredLeads, filteredDeals, filteredContacts } = this.applyFilters(leads, deals, contacts, filters)
+    this.logFilteredData(filteredLeads, filteredDeals, filteredContacts)
+
+    const { dealsData, leadsData } = this.prepareDataStructures(filteredDeals, cards)
+
+    return await this.buildDashboardDataStructure({
+      filteredLeads,
+      filteredDeals,
+      filteredContacts,
+      cards,
+      dealsData,
+      leadsData,
+      filters,
+      panels,
+      errors,
+    })
+  }
+
+  private initializeServices() {
+    return {
+      cardsService: helenaServiceFactory.getCardsService(),
+      contactsService: helenaServiceFactory.getContactsService(),
+      panelsService: helenaServiceFactory.getPanelsService(),
+      walletsService: helenaServiceFactory.getWalletsService(),
+    }
+  }
+
+  private initializeErrors() {
+    return {
+      cards: undefined as string | undefined,
+      contacts: undefined as string | undefined,
+      panels: undefined as string | undefined,
+      wallets: undefined as string | undefined,
+    }
+  }
+
+  private async preparePanels(panelsService: any, filters: DashboardFilters, errors: any) {
+    const allPanels = await this.fetchPanels(panelsService, errors)
+    const stepMap = this.createStepMap(allPanels)
     const panelsToProcess = filters.panelIds && filters.panelIds.length > 0
       ? allPanels.filter((panel: any) => filters.panelIds!.includes(panel.id))
       : allPanels
 
+    this.logPanelFilter(filters, allPanels, panelsToProcess)
+
+    return { allPanels, panelsToProcess, stepMap }
+  }
+
+  private async fetchAllData(services: any, panelsToProcess: any[], allPanels: any[], errors: any) {
+    this.logDebug('Fetching cards, contacts, panels, and wallets...')
+    const [cards, contacts, panels, wallets] = await this.fetchData(
+      services.cardsService,
+      services.contactsService,
+      services.walletsService,
+      panelsToProcess,
+      allPanels,
+      errors
+    )
+    return { cards, contacts, panels, wallets }
+  }
+
+  private storeContextData(contacts: any[], stepMap: Map<string, any>, allPanels: any[], cards: any[]) {
+    ;(this as any).contacts = contacts
+    ;(this as any).stepMap = stepMap
+    ;(this as any).panelsWithSteps = allPanels
+    ;(this as any).allCards = cards
+    ;(this as any).allPanels = allPanels
+  }
+
+  private processData(contacts: any[], cards: any[], stepMap: Map<string, any>) {
+    const leads = this.processLeadsFromContacts(contacts, cards, stepMap)
+    const deals = this.processDealsFromCards(cards, stepMap)
+    return { leads, deals }
+  }
+
+  private applyFilters(leads: LeadLike[], deals: CrmDeal[], contacts: any[], filters: DashboardFilters) {
+    return {
+      filteredLeads: this.filterLeads(leads, filters),
+      filteredDeals: this.filterDeals(deals, filters),
+      filteredContacts: this.filterContacts(contacts, filters),
+    }
+  }
+
+  private prepareDataStructures(filteredDeals: CrmDeal[], cards: any[]) {
+    const dealsData = filteredDeals.map((deal) => ({
+      id: deal.id,
+      title: deal.title || '',
+      value: deal.value || 0,
+      stageId: deal.stageId || '',
+      pipelineId: deal.pipelineId || '',
+      createdAt: deal.createdAt,
+      updatedAt: deal.updatedAt,
+      closedAt: deal.closedAt,
+      owner: deal.owner || '',
+      contactIds: deal.contactIds || [],
+    }))
+
+    const leadsData = cards
+      .filter((card: any) => !card.archived)
+      .map((card: any) => ({
+        id: card.id,
+        title: card.title || '',
+        value: card.monetaryAmount || card.value || 0,
+        stageId: card.stepId || card.stageId || '',
+        pipelineId: card.panelId || card.pipelineId || '',
+        createdAt: card.createdAt,
+        updatedAt: card.updatedAt,
+        owner: card.responsibleUserId || card.ownerId || '',
+        contactIds: card.contactIds || [],
+      }))
+
+    return { dealsData, leadsData }
+  }
+
+  private logDebug(message: string) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[DashboardAdapter] ${message}`)
+    }
+  }
+
+  private logPanelFilter(filters: DashboardFilters, allPanels: any[], panelsToProcess: any[]) {
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] Panel filter:', {
         panelIds: filters.panelIds?.length ? filters.panelIds : 'Todos',
@@ -178,25 +285,9 @@ export class DashboardAdapter {
         filteredPanels: panelsToProcess.length,
       })
     }
+  }
 
-    const [cards, contacts, panels, wallets] = await this.fetchData(
-      cardsService,
-      contactsService,
-      walletsService,
-      panelsToProcess,
-      allPanels,
-      errors
-    )
-    
-    // Store contacts for use in operational metrics
-    ;(this as any).contacts = contacts
-    
-    // Store stepMap and cards for use in other methods
-    ;(this as any).stepMap = stepMap
-    ;(this as any).panelsWithSteps = panelsWithSteps
-    ;(this as any).allCards = cards
-    ;(this as any).allPanels = allPanels
-
+  private logFetchedData(cards: any[], contacts: any[], panels: any[], wallets: any[], stepMap: Map<string, any>, errors: any) {
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] Fetched:', {
         cards: cards.length,
@@ -211,8 +302,58 @@ export class DashboardAdapter {
         errors: Object.keys(errors).length > 0 ? errors : undefined,
       })
     }
+  }
 
-    // Map contacts to leads using real data from cards and tags
+  private logProcessedData(leads: LeadLike[], deals: CrmDeal[], contacts: any[], panels: any[], wallets: any[], cards: any[], stepMap: Map<string, any>) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] Processing data:', {
+        totalLeads: leads.length,
+        totalDeals: deals.length,
+        totalContacts: contacts.length,
+        totalPanels: panels.length,
+        totalWallets: wallets.length,
+        totalCards: cards.length,
+        stepMapSize: stepMap.size,
+        sampleSteps: Array.from(stepMap.entries()).slice(0, 5).map(([id, info]) => ({
+          id,
+          title: info.title,
+          isInitial: info.isInitial,
+          isFinal: info.isFinal,
+        })),
+        leadsWithStatus: leads.filter(l => l.status).length,
+        leadsStatusBreakdown: {
+          contact_list: leads.filter(l => l.status === 'contact_list').length,
+          first_contact: leads.filter(l => l.status === 'first_contact').length,
+          in_group: leads.filter(l => l.status === 'in_group').length,
+          meet_participant: leads.filter(l => l.status === 'meet_participant').length,
+          post_meet: leads.filter(l => l.status === 'post_meet').length,
+          won: leads.filter(l => l.status === 'won').length,
+          lost: leads.filter(l => l.status === 'lost').length,
+          undefined: leads.filter(l => !l.status).length,
+        },
+        cardsWithContactIds: cards.filter((c: any) => c.contactIds && c.contactIds.length > 0).length,
+        sampleCard: cards[0] ? {
+          id: cards[0].id,
+          title: cards[0].title,
+          stepId: cards[0].stepId,
+          contactIds: cards[0].contactIds,
+          stepInfo: cards[0].stepId ? stepMap.get(cards[0].stepId) : null,
+        } : null,
+      })
+    }
+  }
+
+  private logFilteredData(filteredLeads: LeadLike[], filteredDeals: CrmDeal[], filteredContacts: any[]) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DashboardAdapter] Filtered data:', {
+        filteredLeads: filteredLeads.length,
+        filteredDeals: filteredDeals.length,
+        filteredContacts: filteredContacts.length,
+      })
+    }
+  }
+
+  private processLeadsFromContacts(contacts: any[], cards: any[], stepMap: Map<string, any>): LeadLike[] {
     const getStepPosition = (stepInfo: any): number => {
       return typeof stepInfo === 'object' && stepInfo !== null && 'position' in stepInfo
         ? stepInfo.position || 0
@@ -266,7 +407,7 @@ export class DashboardAdapter {
              undefined
     }
 
-    const leads: LeadLike[] = contacts.map((contact) => {
+    return contacts.map((contact) => {
       const contactCards = cards.filter((card: any) => 
         card.contactIds?.includes(contact.id) || card.contactId === contact.id
       )
@@ -298,16 +439,15 @@ export class DashboardAdapter {
         updatedAt: contact.updatedAt,
       }
     })
+  }
 
-    // Convert HelenaCard to CrmDeal format with real data
-    // Include cards in final steps that represent closed/won deals
-    const deals: CrmDeal[] = cards
+  private processDealsFromCards(cards: any[], stepMap: Map<string, any>): CrmDeal[] {
+    return cards
       .filter((card: any) => {
-        if (card.archived) return false // Exclude archived cards
+        if (card.archived) return false
         const stepInfo = stepMap.get(card.stepId || '')
         if (!stepInfo?.isFinal) return false
         
-        // Check if step title indicates a won/completed deal
         const stepTitle = stepInfo.title?.toLowerCase() || ''
         return stepTitle.includes('ganho') || 
                stepTitle.includes('fechado') || 
@@ -327,95 +467,29 @@ export class DashboardAdapter {
         owner: card.responsibleUserId || card.ownerId,
         contactIds: card.contactIds || []
       }))
+  }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[DashboardAdapter] Processing data:', {
-        totalLeads: leads.length,
-        totalDeals: deals.length,
-        totalContacts: contacts.length,
-        totalPanels: panels.length,
-        totalWallets: wallets.length,
-        totalCards: cards.length,
-        stepMapSize: stepMap.size,
-        sampleSteps: Array.from(stepMap.entries()).slice(0, 5).map(([id, info]) => ({
-          id,
-          title: info.title,
-          isInitial: info.isInitial,
-          isFinal: info.isFinal,
-        })),
-        leadsWithStatus: leads.filter(l => l.status).length,
-        leadsStatusBreakdown: {
-          contact_list: leads.filter(l => l.status === 'contact_list').length,
-          first_contact: leads.filter(l => l.status === 'first_contact').length,
-          in_group: leads.filter(l => l.status === 'in_group').length,
-          meet_participant: leads.filter(l => l.status === 'meet_participant').length,
-          post_meet: leads.filter(l => l.status === 'post_meet').length,
-          won: leads.filter(l => l.status === 'won').length,
-          lost: leads.filter(l => l.status === 'lost').length,
-          undefined: leads.filter(l => !l.status).length,
-        },
-        cardsWithContactIds: cards.filter((c: any) => c.contactIds && c.contactIds.length > 0).length,
-        sampleCard: cards[0] ? {
-          id: cards[0].id,
-          title: cards[0].title,
-          stepId: cards[0].stepId,
-          contactIds: cards[0].contactIds,
-          stepInfo: cards[0].stepId ? stepMap.get(cards[0].stepId) : null,
-        } : null,
-      })
-    }
-
-    const filteredLeads = this.filterLeads(leads, filters)
-    const filteredDeals = this.filterDeals(deals, filters)
-    const filteredContacts = this.filterContacts(contacts, filters)
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[DashboardAdapter] Filtered data:', {
-        filteredLeads: filteredLeads.length,
-        filteredDeals: filteredDeals.length,
-        filteredContacts: filteredContacts.length,
-      })
-    }
-
-    // Transformar deals para formato simplificado para client-side filtering
-    const dealsData = filteredDeals.map((deal) => ({
-      id: deal.id,
-      title: deal.title || '',
-      value: deal.value || 0,
-      stageId: deal.stageId || '',
-      pipelineId: deal.pipelineId || '',
-      createdAt: deal.createdAt,
-      updatedAt: deal.updatedAt,
-      closedAt: deal.closedAt,
-      owner: deal.owner || '',
-      contactIds: deal.contactIds || [],
-    }))
-
-    // Transformar cards para formato de leads (todos os cards não arquivados, não apenas final steps)
-    const leadsData = cards
-      .filter((card: any) => !card.archived)
-      .map((card: any) => ({
-        id: card.id,
-        title: card.title || '',
-        value: card.monetaryAmount || card.value || 0,
-        stageId: card.stepId || card.stageId || '',
-        pipelineId: card.panelId || card.pipelineId || '',
-        createdAt: card.createdAt,
-        updatedAt: card.updatedAt,
-        owner: card.responsibleUserId || card.ownerId || '',
-        contactIds: card.contactIds || [],
-      }))
-
-    // Buscar contatos relacionados (tanto de deals quanto de leads)
+  private async buildDashboardDataStructure(params: {
+    filteredLeads: LeadLike[]
+    filteredDeals: CrmDeal[]
+    filteredContacts: any[]
+    cards: any[]
+    dealsData: any[]
+    leadsData: any[]
+    filters: DashboardFilters
+    panels: any[]
+    errors: any
+  }): Promise<DashboardData> {
+    const { filteredLeads, filteredDeals, filteredContacts, cards, dealsData, leadsData, filters, panels, errors } = params
     const contactIds = new Set<string>()
-    dealsData.forEach((deal) => {
+    dealsData      .forEach((deal) => {
       if (deal.contactIds && Array.isArray(deal.contactIds)) {
-        deal.contactIds.forEach((id) => contactIds.add(id))
+        deal.contactIds.forEach((id: string) => contactIds.add(id))
       }
     })
     leadsData.forEach((lead) => {
       if (lead.contactIds && Array.isArray(lead.contactIds)) {
-        lead.contactIds.forEach((id) => contactIds.add(id))
+        lead.contactIds.forEach((id: string) => contactIds.add(id))
       }
     })
 
@@ -436,7 +510,6 @@ export class DashboardAdapter {
         customFields: contact.customFields || {},
       }))
 
-    // Buscar usuários (owners) - tanto de deals quanto de leads
     const userIds = new Set<string>()
     dealsData.forEach((deal) => {
       if (deal.owner) userIds.add(deal.owner)
@@ -463,26 +536,36 @@ export class DashboardAdapter {
       console.error('Error fetching users for dashboard data:', error)
     }
 
-    const dashboardData: DashboardData = {
+    const cardsData = cards
+      .filter((card: any) => !card.archived)
+      .map((card: any) => ({
+        id: card.id,
+        title: card.title || '',
+        panelId: card.panelId || '',
+        stepId: card.stepId || '',
+        contactIds: card.contactIds || [],
+        createdAt: card.createdAt || '',
+        updatedAt: card.updatedAt || '',
+        responsibleUserId: card.responsibleUserId,
+        monetaryAmount: card.monetaryAmount || 0,
+        archived: card.archived || false,
+      }))
+
+    return {
       filters,
       generationActivation: await this.buildGenerationActivation(filteredLeads, filteredContacts),
       salesConversion: await this.buildSalesConversion(filteredDeals),
       conversionRates: this.buildConversionRates(filteredLeads, filteredDeals),
       leadStock: this.buildLeadStock(filteredLeads, filteredContacts),
       salesByConversionTime: this.buildSalesByConversionTime(filteredDeals),
-      // buildLeadQuality usa cards diretamente, mas filtra por painéis selecionados
-      leadQuality: this.buildLeadQuality(leads, deals, filters),
+      leadQuality: this.buildLeadQuality(filteredLeads, filteredDeals, filters),
       operational: await this.buildOperationalMetrics(cards, panels, filters),
       deals: dealsData,
       contacts: contactsData,
       users: usersData,
+      cards: cardsData,
+      ...(Object.keys(errors).length > 0 ? { errors } : {}),
     }
-
-    if (Object.keys(errors).length > 0) {
-      dashboardData.errors = errors
-    }
-
-    return dashboardData
   }
 
   private getDateFromFilter(date: string): string {
