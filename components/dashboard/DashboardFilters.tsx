@@ -154,27 +154,6 @@ export default function DashboardFiltersComponent({
 
         <div>
           <label
-            htmlFor="filter-season"
-            className="block text-xs font-medium text-gray-700 dark:text-gray-300 font-secondary mb-0.5"
-          >
-            Temporada
-          </label>
-          <select
-            id="filter-season"
-            value={filters.season}
-            onChange={(e) => handleChange('season', e.target.value)}
-            aria-label="Filtro de temporada"
-            className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          >
-            <option value="2025.1">2025.1</option>
-            <option value="2024.2">2024.2</option>
-            <option value="2024.1">2024.1</option>
-            <option value="2023.2">2023.2</option>
-          </select>
-        </div>
-
-        <div>
-          <label
             htmlFor="filter-sdr"
             className="block text-xs font-medium text-gray-700 dark:text-gray-300 font-secondary mb-0.5"
           >
