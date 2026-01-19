@@ -132,7 +132,6 @@ export default function WhatsAppPreviewModal({
                     <p className="font-medium mb-1">Filtros aplicados:</p>
                     <ul className="list-disc list-inside space-y-0.5 ml-2">
                       {filters.date && <li>Data: {filters.date}</li>}
-                      {filters.season && <li>Temporada: {filters.season}</li>}
                       {filters.sdr && filters.sdr !== 'Todos' && <li>SDR: {filters.sdr}</li>}
                       {filters.college && filters.college !== 'Todas' && (
                         <li>Faculdade: {filters.college}</li>
