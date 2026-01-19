@@ -51,9 +51,8 @@ export default function WhatsAppPreviewModal({
         aria-labelledby="whatsapp-preview-title"
         onCancel={onClose}
       >
-        <div
+        <section
           className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-2 sm:mx-4"
-          onClick={(e) => e.stopPropagation()}
           aria-label="Prévia da mensagem do WhatsApp"
         >
           <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
@@ -210,7 +209,7 @@ export default function WhatsAppPreviewModal({
               )}
             </button>
           </div>
-        </div>
+        </section>
       </dialog>
     </>
   )

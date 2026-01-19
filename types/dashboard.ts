@@ -67,8 +67,8 @@ export interface SalesByConversionTime {
 
 export interface LeadQuality {
   origin: string
-  meetParticipationRate: number
-  purchaseRate: number
+  totalLeads: number
+  percentageOfTotal: number
 }
 
 export interface WeeklyData {

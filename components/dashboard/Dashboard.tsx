@@ -26,6 +26,7 @@ import HelpModal from '@/components/help/HelpModal'
 import ContactsManagerDashboardModal from './ContactsManagerDashboardModal'
 import CrmDropdownMenu from '@/components/crm/CrmDropdownMenu'
 import DepartmentsManagerModal from '@/components/crm/DepartmentsManagerModal'
+import PanelsManagerModal from '@/components/crm/PanelsManagerModal'
 import FiltersModal, { countActiveFilters } from '@/components/filters/FiltersModal'
 import ChartDetailsModal from './ChartDetailsModal'
 import CardDetailsModal from './CardDetailsModal'
@@ -57,6 +58,7 @@ export default function Dashboard() {
   const [showHelpModal, setShowHelpModal] = useState(false)
   const [showContactsModal, setShowContactsModal] = useState(false)
   const [availablePanels, setAvailablePanels] = useState<Array<{ id: string; title: string; key: string }>>([])
+  const [showPanelsModal, setShowPanelsModal] = useState(false)
   const [showDepartmentsModal, setShowDepartmentsModal] = useState(false)
   const [showChartDetailsModal, setShowChartDetailsModal] = useState(false)
   const [chartDetailsData, setChartDetailsData] = useState<{
@@ -439,12 +441,15 @@ export default function Dashboard() {
     }
 
     if (filters.panelIds && filters.panelIds.length > 0) {
-      const selectedPanel = availablePanels.find((panel) => panel.id === filters.panelIds?.[0])
+      const panelId = filters.panelIds[0]
+      const selectedPanel = availablePanels.find((panel) => panel.id === panelId)
       if (selectedPanel) {
         parts.push(`Painel: ${selectedPanel.title} (${selectedPanel.key})`)
-      } else if (filters.panelIds.length > 0) {
-        parts.push(`Painel: ${filters.panelIds.length} painel(is) selecionado(s)`)
+      } else {
+        parts.push(`Painel: ${panelId}`)
       }
+    } else if (filters.panelIds === undefined || filters.panelIds === null || filters.panelIds.length === 0) {
+      parts.push('Painel: Todos os painéis')
     }
 
     if (parts.length === 0) {
@@ -1179,7 +1184,7 @@ export default function Dashboard() {
               </div>
               <CrmDropdownMenu
                 onContactsClick={() => setShowContactsModal(true)}
-                onPanelsClick={() => {}}
+                onPanelsClick={() => setShowPanelsModal(true)}
                 onDepartmentsClick={() => setShowDepartmentsModal(true)}
               />
               <button
@@ -1373,6 +1378,10 @@ export default function Dashboard() {
           <DepartmentsManagerModal
             open={showDepartmentsModal}
             onClose={() => setShowDepartmentsModal(false)}
+          />
+          <PanelsManagerModal
+            open={showPanelsModal}
+            onClose={() => setShowPanelsModal(false)}
           />
           {dashboardData && (
             <FiltersModal

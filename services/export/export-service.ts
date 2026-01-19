@@ -413,14 +413,12 @@ class ExportService {
     doc.text('Análise por Origem', margin, yPosition.value)
     yPosition.value += 10
 
-    const qualityHeaders = ['Origem', '% Participação Meet', '% Taxa de Compra', 'Performance Média']
+    const qualityHeaders = ['Grupo/Categoria', 'Total de Leads', '% do Total']
     const qualityRows = data.leadQuality.map((item) => {
-      const performance = (item.meetParticipationRate + item.purchaseRate) / 2
       return [
         item.origin,
-        this.formatPercentage(item.meetParticipationRate),
-        this.formatPercentage(item.purchaseRate),
-        this.formatPercentage(performance),
+        item.totalLeads.toString(),
+        this.formatPercentage(item.percentageOfTotal),
       ]
     })
 
@@ -774,10 +772,10 @@ class ExportService {
     }
 
     if (options.includeTables && data.leadQuality) {
-      rows.push('Origem,% Entraram no Meet,% Compraram')
+      rows.push('Grupo/Categoria,Total de Leads,% do Total')
       data.leadQuality.forEach((item) => {
         rows.push(
-          `${item.origin},${item.meetParticipationRate},${item.purchaseRate}`
+          `${item.origin},${item.totalLeads},${item.percentageOfTotal}`
         )
       })
     }
@@ -999,16 +997,14 @@ class ExportService {
     const qualityData: any[][] = [
       ['QUALIDADE DOS LEADS'],
       [''],
-      ['Origem', '% Entraram no Meet', '% Compraram', 'Performance Média'],
+      ['Grupo/Categoria', 'Total de Leads', '% do Total'],
     ]
 
     data.leadQuality.forEach((item) => {
-      const performance = ((item.meetParticipationRate + item.purchaseRate) / 2).toFixed(1)
       qualityData.push([
         item.origin,
-        `${item.meetParticipationRate.toFixed(1)}%`,
-        `${item.purchaseRate.toFixed(1)}%`,
-        `${performance}%`,
+        item.totalLeads.toString(),
+        `${item.percentageOfTotal.toFixed(1)}%`,
       ])
     })
 

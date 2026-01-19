@@ -28,88 +28,98 @@ export class MetricsService {
   /**
    * Calcula métricas derivadas a partir dos dados do dashboard
    */
+  private calculateTotalConversionRate(data: DashboardData): DerivedMetric | null {
+    if (!data.generationActivation || !data.salesConversion) return null
+    const totalConversionRate =
+      data.generationActivation.leadsCreated > 0
+        ? (data.salesConversion.closedSales / data.generationActivation.leadsCreated) * 100
+        : 0
+    return {
+      id: 'total-conversion-rate',
+      name: 'Taxa de Conversão Total',
+      value: totalConversionRate,
+      formula: '(Vendas Fechadas / Leads Criados) * 100',
+      unit: '%',
+    }
+  }
+
+  private calculateAverageTicket(data: DashboardData): DerivedMetric | null {
+    if (!data.salesConversion) return null
+    const averageTicket =
+      data.salesConversion.closedSales > 0
+        ? data.salesConversion.revenueGenerated / data.salesConversion.closedSales
+        : 0
+    return {
+      id: 'average-ticket',
+      name: 'Ticket Médio',
+      value: averageTicket,
+      formula: 'Receita Gerada / Vendas Fechadas',
+      unit: 'R$',
+    }
+  }
+
+  private calculateActivationRate(data: DashboardData): DerivedMetric | null {
+    if (!data.generationActivation) return null
+    const activationRate =
+      data.generationActivation.leadsCreated > 0
+        ? (data.generationActivation.leadsInGroup / data.generationActivation.leadsCreated) * 100
+        : 0
+    return {
+      id: 'activation-rate',
+      name: 'Taxa de Ativação',
+      value: activationRate,
+      formula: '(Leads no Grupo / Leads Criados) * 100',
+      unit: '%',
+    }
+  }
+
+  private calculateEngagementRate(data: DashboardData): DerivedMetric | null {
+    if (!data.generationActivation) return null
+    const engagementRate =
+      data.generationActivation.leadsInGroup > 0
+        ? (data.generationActivation.meetParticipants / data.generationActivation.leadsInGroup) * 100
+        : 0
+    return {
+      id: 'engagement-rate',
+      name: 'Taxa de Engajamento',
+      value: engagementRate,
+      formula: '(Participantes no Meet / Leads no Grupo) * 100',
+      unit: '%',
+    }
+  }
+
+  private calculateEstimatedROI(data: DashboardData): DerivedMetric | null {
+    if (!data.generationActivation || !data.salesConversion) return null
+    const estimatedROI =
+      data.generationActivation.leadsCreated > 0
+        ? data.salesConversion.revenueGenerated / data.generationActivation.leadsCreated
+        : 0
+    return {
+      id: 'estimated-roi',
+      name: 'ROI Estimado por Lead',
+      value: estimatedROI,
+      formula: 'Receita Gerada / Leads Criados',
+      unit: 'R$',
+    }
+  }
+
   calculateDerivedMetrics(data: DashboardData): DerivedMetric[] {
     const metrics: DerivedMetric[] = []
 
-    // Taxa de Conversão Total (Leads Criados → Vendas Fechadas)
-    if (data.generationActivation && data.salesConversion) {
-      const totalConversionRate =
-        data.generationActivation.leadsCreated > 0
-          ? (data.salesConversion.closedSales / data.generationActivation.leadsCreated) * 100
-          : 0
+    const totalConversion = this.calculateTotalConversionRate(data)
+    if (totalConversion) metrics.push(totalConversion)
 
-      metrics.push({
-        id: 'total-conversion-rate',
-        name: 'Taxa de Conversão Total',
-        value: totalConversionRate,
-        formula: '(Vendas Fechadas / Leads Criados) * 100',
-        unit: '%',
-      })
-    }
+    const averageTicket = this.calculateAverageTicket(data)
+    if (averageTicket) metrics.push(averageTicket)
 
-    // Ticket Médio
-    if (data.salesConversion) {
-      const averageTicket =
-        data.salesConversion.closedSales > 0
-          ? data.salesConversion.revenueGenerated / data.salesConversion.closedSales
-          : 0
+    const activationRate = this.calculateActivationRate(data)
+    if (activationRate) metrics.push(activationRate)
 
-      metrics.push({
-        id: 'average-ticket',
-        name: 'Ticket Médio',
-        value: averageTicket,
-        formula: 'Receita Gerada / Vendas Fechadas',
-        unit: 'R$',
-      })
-    }
+    const engagementRate = this.calculateEngagementRate(data)
+    if (engagementRate) metrics.push(engagementRate)
 
-    // Taxa de Ativação (Leads no Grupo / Leads Criados)
-    if (data.generationActivation) {
-      const activationRate =
-        data.generationActivation.leadsCreated > 0
-          ? (data.generationActivation.leadsInGroup / data.generationActivation.leadsCreated) * 100
-          : 0
-
-      metrics.push({
-        id: 'activation-rate',
-        name: 'Taxa de Ativação',
-        value: activationRate,
-        formula: '(Leads no Grupo / Leads Criados) * 100',
-        unit: '%',
-      })
-    }
-
-    // Taxa de Engajamento (Participantes no Meet / Leads no Grupo)
-    if (data.generationActivation) {
-      const engagementRate =
-        data.generationActivation.leadsInGroup > 0
-          ? (data.generationActivation.meetParticipants / data.generationActivation.leadsInGroup) * 100
-          : 0
-
-      metrics.push({
-        id: 'engagement-rate',
-        name: 'Taxa de Engajamento',
-        value: engagementRate,
-        formula: '(Participantes no Meet / Leads no Grupo) * 100',
-        unit: '%',
-      })
-    }
-
-    // ROI Estimado (Receita / Leads Criados)
-    if (data.generationActivation && data.salesConversion) {
-      const estimatedROI =
-        data.generationActivation.leadsCreated > 0
-          ? data.salesConversion.revenueGenerated / data.generationActivation.leadsCreated
-          : 0
-
-      metrics.push({
-        id: 'estimated-roi',
-        name: 'ROI Estimado por Lead',
-        value: estimatedROI,
-        formula: 'Receita Gerada / Leads Criados',
-        unit: 'R$',
-      })
-    }
+    const estimatedROI = this.calculateEstimatedROI(data)
+    if (estimatedROI) metrics.push(estimatedROI)
 
     return metrics
   }
@@ -145,19 +155,18 @@ export class MetricsService {
 
     // Score de Qualidade de Leads
     if (data.leadQuality && data.leadQuality.length > 0) {
-      const avgMeetRate = calculateMean(data.leadQuality.map((lq) => lq.meetParticipationRate))
-      const avgPurchaseRate = calculateMean(data.leadQuality.map((lq) => lq.purchaseRate))
-      const qualityScore = (avgMeetRate + avgPurchaseRate) / 2
+      const totalLeads = data.leadQuality.reduce((sum, lq) => sum + lq.totalLeads, 0)
+      const avgPercentage = calculateMean(data.leadQuality.map((lq) => lq.percentageOfTotal))
 
       metrics.push({
         id: 'lead-quality-score',
-        name: 'Score de Qualidade de Leads',
-        value: qualityScore,
+        name: 'Distribuição de Leads por Categoria',
+        value: avgPercentage,
         components: [
-          { name: 'Taxa Média de Participação no Meet', weight: 50, value: avgMeetRate },
-          { name: 'Taxa Média de Compra', weight: 50, value: avgPurchaseRate },
+          { name: 'Total de Leads', weight: 50, value: totalLeads },
+          { name: 'Percentual Médio do Total', weight: 50, value: avgPercentage },
         ],
-        formula: '(Taxa Média Meet + Taxa Média Compra) / 2',
+        formula: 'Percentual médio de distribuição dos leads por categoria',
       })
     }
 

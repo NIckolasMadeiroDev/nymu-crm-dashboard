@@ -10,7 +10,6 @@ import type {
   WeeklyData,
   TimeSeriesData,
   OperationalDashboardData,
-  OperationalMetrics,
   CapacityMetrics,
   PerformanceMetrics,
   ChannelMetrics,
@@ -38,6 +37,111 @@ import { HelenaApiError } from '@/types/helena'
 import { requestDeduplicator } from './request-deduplicator'
 
 export class DashboardAdapter {
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof HelenaApiError) {
+      const status = error.status
+      if (status === 404) {
+        return 'Not Found (404) - Endpoint não existe'
+      }
+      if (status === 403) {
+        return 'Forbidden (403) - Sem permissão'
+      }
+      if (status === 401) {
+        return 'Unauthorized (401) - Token inválido'
+      }
+      if (status === 429) {
+        return 'Rate Limit (429) - Muitas requisições, aguarde'
+      }
+      return `HTTP ${status || 'Unknown'}: ${error.message}`
+    }
+    return error instanceof Error ? error.message : 'Erro desconhecido'
+  }
+
+  private async fetchPanels(panelsService: any, errors: any): Promise<any[]> {
+    const result = await requestDeduplicator.execute(
+      'getPanelsWithDetails',
+      () => panelsService.getPanelsWithDetails(),
+      2000
+    ).catch((error: unknown) => {
+      const errorMessage = this.getErrorMessage(error)
+      errors.panels = errorMessage
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[DashboardAdapter] Error fetching panels:', errorMessage)
+      }
+      return []
+    })
+    return Array.isArray(result) ? result : []
+  }
+
+  private createStepMap(panelsWithSteps: any[]): Map<string, { title: string; isInitial: boolean; isFinal: boolean; panelId: string }> {
+    const stepMap = new Map<string, { title: string; isInitial: boolean; isFinal: boolean; panelId: string }>()
+    panelsWithSteps.forEach((panel: any) => {
+      if (panel.steps && Array.isArray(panel.steps)) {
+        panel.steps.forEach((step: any) => {
+          if (step.id && !step.archived) {
+            stepMap.set(step.id, {
+              title: step.title || step.name || '',
+              isInitial: step.isInitial || false,
+              isFinal: step.isFinal || false,
+              panelId: panel.id
+            })
+          }
+        })
+      }
+    })
+    return stepMap
+  }
+
+  private async fetchData(cardsService: any, contactsService: any, walletsService: any, panelsToProcess: any[], allPanels: any[], errors: any): Promise<[any[], any[], any[], any[]]> {
+    const cardsPromises = panelsToProcess.map((panel: any) => 
+      cardsService.getAllCardsByPanel(panel.id).catch((error: unknown) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[DashboardAdapter] Error fetching cards for panel ${panel.id}:`, error)
+        }
+        return []
+      })
+    )
+    
+    const results = await Promise.allSettled([
+      Promise.all(cardsPromises).then(cardsArrays => cardsArrays.flat()).catch((error: unknown) => {
+        const errorMessage = this.getErrorMessage(error)
+        errors.cards = errorMessage
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[DashboardAdapter] Error fetching cards:', errorMessage)
+        }
+        return []
+      }),
+      requestDeduplicator.execute(
+        'getAllContacts',
+        () => contactsService.getAllContacts(['tags', 'customFields']),
+        2000
+      ).catch((error: unknown) => {
+        const errorMessage = this.getErrorMessage(error)
+        errors.contacts = errorMessage
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[DashboardAdapter] Error fetching contacts:', errorMessage)
+        }
+        return []
+      }),
+      Promise.resolve(allPanels),
+      walletsService.getAllWallets().catch((error: unknown) => {
+        const errorMessage = this.getErrorMessage(error)
+        errors.wallets = errorMessage
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[DashboardAdapter] Warning: Could not fetch wallets (optional):', errorMessage)
+        }
+        return []
+      }),
+    ])
+
+    const cards = results[0].status === 'fulfilled' && Array.isArray(results[0].value) ? results[0].value : []
+    const contacts = results[1].status === 'fulfilled' && Array.isArray(results[1].value) ? results[1].value : []
+    const panels = results[2].status === 'fulfilled' && Array.isArray(results[2].value) ? results[2].value : []
+    const wallets = results[3].status === 'fulfilled' && Array.isArray(results[3].value) ? results[3].value : []
+    
+    return [cards, contacts, panels, wallets]
+  }
+
   async getDashboardData(filters: DashboardFilters): Promise<DashboardData> {
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] Fetching data from Helena API...')
@@ -59,62 +163,10 @@ export class DashboardAdapter {
       wallets?: string
     } = {}
 
-    const getErrorMessage = (error: unknown): string => {
-      if (error instanceof HelenaApiError) {
-        const status = error.status
-        if (status === 404) {
-          return 'Not Found (404) - Endpoint não existe'
-        }
-        if (status === 403) {
-          return 'Forbidden (403) - Sem permissão'
-        }
-        if (status === 401) {
-          return 'Unauthorized (401) - Token inválido'
-        }
-        if (status === 429) {
-          return 'Rate Limit (429) - Muitas requisições, aguarde'
-        }
-        return `HTTP ${status || 'Unknown'}: ${error.message}`
-      }
-      return error instanceof Error ? error.message : 'Erro desconhecido'
-    }
-
-    // Get all panels with steps using the same method as PanelsManagerModal
-    // Use request deduplicator to prevent multiple simultaneous requests
-    const allPanels = await requestDeduplicator.execute(
-      'getPanelsWithDetails',
-      () => panelsService.getPanelsWithDetails(),
-      2000 // Minimum 2 seconds between panel requests
-    ).catch((error) => {
-      const errorMessage = getErrorMessage(error)
-      errors.panels = errorMessage
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[DashboardAdapter] Error fetching panels:', errorMessage)
-      }
-      return []
-    })
-    
-    // Panels already come with steps from getPanelsWithDetails()
+    const allPanels = await this.fetchPanels(panelsService, errors)
     const panelsWithSteps = allPanels
+    const stepMap = this.createStepMap(panelsWithSteps)
     
-    // Create a map of stepId to step info for quick lookup
-    const stepMap = new Map<string, { title: string; isInitial: boolean; isFinal: boolean; panelId: string }>()
-    panelsWithSteps.forEach((panel: any) => {
-      if (panel.steps && Array.isArray(panel.steps)) {
-        panel.steps.forEach((step: any) => {
-          if (step.id && !step.archived) {
-            stepMap.set(step.id, {
-              title: step.title || step.name || '',
-              isInitial: step.isInitial || false,
-              isFinal: step.isFinal || false,
-              panelId: panel.id
-            })
-          }
-        })
-      }
-    })
-    
-    // Filter panels if panelIds filter is specified
     const panelsToProcess = filters.panelIds && filters.panelIds.length > 0
       ? allPanels.filter((panel: any) => filters.panelIds!.includes(panel.id))
       : allPanels
@@ -127,53 +179,14 @@ export class DashboardAdapter {
       })
     }
 
-    // Get cards from filtered panels (sem IncludeDetails pois o endpoint não aceita)
-    const cardsPromises = panelsToProcess.map((panel: any) => 
-      cardsService.getAllCardsByPanel(panel.id).catch((error) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(`[DashboardAdapter] Error fetching cards for panel ${panel.id}:`, error)
-        }
-        return []
-      })
+    const [cards, contacts, panels, wallets] = await this.fetchData(
+      cardsService,
+      contactsService,
+      walletsService,
+      panelsToProcess,
+      allPanels,
+      errors
     )
-    
-    const results = await Promise.allSettled([
-      Promise.all(cardsPromises).then(cardsArrays => cardsArrays.flat()).catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        errors.cards = errorMessage
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[DashboardAdapter] Error fetching cards:', errorMessage)
-        }
-        return []
-      }),
-      requestDeduplicator.execute(
-        'getAllContacts',
-        () => contactsService.getAllContacts(['tags', 'customFields']),
-        2000 // Minimum 2 seconds between contact requests
-      ).catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        errors.contacts = errorMessage
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[DashboardAdapter] Error fetching contacts:', errorMessage)
-        }
-        return []
-      }),
-      Promise.resolve(allPanels), // Use the panels we already fetched
-      walletsService.getAllWallets().catch((error) => {
-        // Wallets are optional, so we don't fail the entire dashboard if they fail
-        const errorMessage = getErrorMessage(error)
-        errors.wallets = errorMessage
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[DashboardAdapter] Warning: Could not fetch wallets (optional):', errorMessage)
-        }
-        return [] // Return empty array instead of failing
-      }),
-    ])
-
-    const cards = results[0].status === 'fulfilled' ? results[0].value : []
-    const contacts = results[1].status === 'fulfilled' ? results[1].value : []
-    const panels = results[2].status === 'fulfilled' ? results[2].value : []
-    const wallets = results[3].status === 'fulfilled' ? results[3].value : []
     
     // Store contacts for use in operational metrics
     ;(this as any).contacts = contacts
@@ -182,8 +195,7 @@ export class DashboardAdapter {
     ;(this as any).stepMap = stepMap
     ;(this as any).panelsWithSteps = panelsWithSteps
     ;(this as any).allCards = cards
-    ;(this as any).stepMap = stepMap
-    ;(this as any).contacts = contacts
+    ;(this as any).allPanels = allPanels
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] Fetched:', {
@@ -201,80 +213,85 @@ export class DashboardAdapter {
     }
 
     // Map contacts to leads using real data from cards and tags
+    const getStepPosition = (stepInfo: any): number => {
+      return typeof stepInfo === 'object' && stepInfo !== null && 'position' in stepInfo
+        ? stepInfo.position || 0
+        : 0
+    }
+
+    const determineStatusFromStep = (stepInfo: any): string => {
+      if (!stepInfo) return 'contact_list'
+      
+      const stepTitle = stepInfo.title.toLowerCase()
+      
+      if (stepInfo.isFinal) {
+        if (stepTitle.includes('ganho') || stepTitle.includes('cliente ganho') || stepTitle.includes('fechado')) {
+          return 'won'
+        }
+        if (stepTitle.includes('perdido') || stepTitle.includes('cliente perdido') || stepTitle.includes('perda')) {
+          return 'lost'
+        }
+      }
+      
+      if (stepTitle.includes('meet') || stepTitle.includes('participou') || stepTitle.includes('participante')) {
+        return 'meet_participant'
+      }
+      if (stepTitle.includes('pós-meet') || stepTitle.includes('pos-meet') || stepTitle.includes('pos meet') || stepTitle.includes('pós meet')) {
+        return 'post_meet'
+      }
+      if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo') || stepTitle.includes('no grupo')) {
+        return 'in_group'
+      }
+      if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato') || stepTitle.includes('contato inicial')) {
+        return 'first_contact'
+      }
+      if (stepTitle.includes('lista') || stepTitle.includes('contato') || stepInfo.isInitial) {
+        return 'contact_list'
+      }
+      
+      return 'contact_list'
+    }
+
+    const getContactSource = (contact: any): string => {
+      return contact.tags?.[0]?.name || 
+             contact.customFields?.source as string | undefined ||
+             contact.customFields?.origem as string | undefined ||
+             'Unknown'
+    }
+
+    const getContactCollege = (contact: any): string | undefined => {
+      return contact.customFields?.college as string | undefined ||
+             contact.customFields?.faculdade as string | undefined ||
+             contact.customFields?.universidade as string | undefined ||
+             undefined
+    }
+
     const leads: LeadLike[] = contacts.map((contact) => {
-      // Find cards associated with this contact
       const contactCards = cards.filter((card: any) => 
         card.contactIds?.includes(contact.id) || card.contactId === contact.id
       )
       
-      // Determine status based on card step - use the most advanced card
-      let status: string | undefined = undefined
+      let status = 'contact_list'
       if (contactCards.length > 0) {
-        // Sort cards by step position to get the most advanced one
-        const sortedCards = contactCards.sort((a: any, b: any) => {
+        const sortedCards = [...contactCards].sort((a: any, b: any) => {
           const stepA = stepMap.get(a.stepId || '')
           const stepB = stepMap.get(b.stepId || '')
-          // Safely get "position", otherwise default to 0
-          const posA = typeof stepA === 'object' && stepA !== null && 'position' in stepA ? (stepA as any).position || 0 : 0
-          const posB = typeof stepB === 'object' && stepB !== null && 'position' in stepB ? (stepB as any).position || 0 : 0
-          return posB - posA // Higher position = more advanced
+          const posA = getStepPosition(stepA)
+          const posB = getStepPosition(stepB)
+          return posB - posA
         })
         
-        const card = sortedCards[0] // Use most advanced card's step
+        const card = sortedCards[0]
         const stepInfo = stepMap.get(card.stepId || '')
-        if (stepInfo) {
-          // Map step title to status - more flexible matching
-          const stepTitle = stepInfo.title.toLowerCase()
-          
-          // Check for final steps first
-          if (stepInfo.isFinal) {
-            if (stepTitle.includes('ganho') || stepTitle.includes('ganho') || stepTitle.includes('cliente ganho') || stepTitle.includes('fechado')) {
-              status = 'won'
-            } else if (stepTitle.includes('perdido') || stepTitle.includes('cliente perdido') || stepTitle.includes('perda')) {
-              status = 'lost'
-            }
-          }
-          
-          // If not final, check intermediate steps
-          if (!status) {
-            if (stepTitle.includes('meet') || stepTitle.includes('participou') || stepTitle.includes('participante')) {
-              status = 'meet_participant'
-            } else if (stepTitle.includes('pós-meet') || stepTitle.includes('pos-meet') || stepTitle.includes('pos meet') || stepTitle.includes('pós meet')) {
-              status = 'post_meet'
-            } else if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo') || stepTitle.includes('no grupo')) {
-              status = 'in_group'
-            } else if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato') || stepTitle.includes('contato inicial')) {
-              status = 'first_contact'
-            } else if (stepTitle.includes('lista') || stepTitle.includes('contato') || stepInfo.isInitial) {
-              status = 'contact_list'
-            }
-          }
-        }
+        status = determineStatusFromStep(stepInfo)
       }
-      
-      // Default to contact_list if no card found
-      if (!status) {
-        status = 'contact_list'
-      }
-      
-      // Get source from tags or customFields
-      const source = contact.tags?.[0]?.name || 
-                    contact.customFields?.source as string | undefined ||
-                    contact.customFields?.origem as string | undefined ||
-                    'Unknown'
-      
-      // Get college from customFields
-      const college = contact.customFields?.college as string | undefined ||
-                     contact.customFields?.faculdade as string | undefined ||
-                     contact.customFields?.universidade as string | undefined ||
-                     undefined
       
       return {
         id: contact.id,
         name: contact.name,
-        source,
+        source: getContactSource(contact),
         status,
-        college,
+        college: getContactCollege(contact),
         tags: contact.tags,
         customFields: contact.customFields,
         createdAt: contact.createdAt,
@@ -288,7 +305,7 @@ export class DashboardAdapter {
       .filter((card: any) => {
         if (card.archived) return false // Exclude archived cards
         const stepInfo = stepMap.get(card.stepId || '')
-        if (!stepInfo || !stepInfo.isFinal) return false
+        if (!stepInfo?.isFinal) return false
         
         // Check if step title indicates a won/completed deal
         const stepTitle = stepInfo.title?.toLowerCase() || ''
@@ -453,8 +470,8 @@ export class DashboardAdapter {
       conversionRates: this.buildConversionRates(filteredLeads, filteredDeals),
       leadStock: this.buildLeadStock(filteredLeads, filteredContacts),
       salesByConversionTime: this.buildSalesByConversionTime(filteredDeals),
-      // buildLeadQuality usa cards diretamente, não precisa de leads/deals filtrados
-      leadQuality: this.buildLeadQuality(leads, deals),
+      // buildLeadQuality usa cards diretamente, mas filtra por painéis selecionados
+      leadQuality: this.buildLeadQuality(leads, deals, filters),
       operational: await this.buildOperationalMetrics(cards, panels, filters),
       deals: dealsData,
       contacts: contactsData,
@@ -564,7 +581,6 @@ export class DashboardAdapter {
     const revenueGenerated = deals.reduce((sum, deal) => sum + (deal.value || 0), 0)
     
     // Calculate closing rate based on total active cards vs won cards
-    const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
     const activeCards = allCards.filter((card: any) => !card.archived)
     const totalCards = activeCards.length
@@ -670,8 +686,17 @@ export class DashboardAdapter {
     // Filter only active (non-archived) cards
     const activeCards = allCards.filter((card: any) => !card.archived)
     
+    type StepCategory = 'contactList' | 'firstContact' | 'inGroup' | 'postMeet' | 'other'
+    type ByStepItem = {
+      stepId: string
+      stepTitle: string
+      count: number
+      value: number
+      category: StepCategory
+    }
+    
     // Helper function to categorize a step
-    const categorizeStep = (stepInfo: any, stepTitle: string): 'contactList' | 'firstContact' | 'inGroup' | 'postMeet' | 'other' => {
+    const categorizeStep = (stepInfo: any, stepTitle: string): StepCategory => {
       if (stepInfo.isInitial || stepTitle.includes('lista') || stepTitle.includes('contato') || stepTitle.includes('novo') || stepTitle.includes('carência')) {
         return 'contactList'
       } else if (stepTitle.includes('abordado') || stepTitle.includes('primeiro contato') || stepTitle.includes('contato inicial')) {
@@ -714,13 +739,7 @@ export class DashboardAdapter {
     let inGroupValue = 0
     let postMeetValue = 0
     
-    const byStep: Array<{
-      stepId: string
-      stepTitle: string
-      count: number
-      value: number
-      category: 'contactList' | 'firstContact' | 'inGroup' | 'postMeet' | 'other'
-    }> = []
+    const byStep: ByStepItem[] = []
     
     cardsByStep.forEach((data, stepId) => {
       byStep.push({
@@ -728,7 +747,7 @@ export class DashboardAdapter {
         stepTitle: data.stepTitle,
         count: data.count,
         value: data.value,
-        category: data.category as 'contactList' | 'firstContact' | 'inGroup' | 'postMeet' | 'other',
+        category: data.category as StepCategory,
       })
       
       switch (data.category) {
@@ -828,84 +847,93 @@ export class DashboardAdapter {
     })
   }
 
-  private buildLeadQuality(leads: LeadLike[], deals: CrmDeal[]): LeadQuality[] {
+  private buildLeadQuality(leads: LeadLike[], deals: CrmDeal[], filters: DashboardFilters): LeadQuality[] {
     // Usar cards diretamente para análise de qualidade dos leads
     const allCards = (this as any).allCards || [] as HelenaCard[]
-    const stepMap = (this as any).stepMap || new Map()
-    const contacts = (this as any).contacts || []
+    const allPanels = (this as any).allPanels || []
+    
+    // Filtrar painéis baseado no filtro
+    const filteredPanels = filters.panelIds && filters.panelIds.length > 0
+      ? allPanels.filter((panel: any) => filters.panelIds!.includes(panel.id))
+      : allPanels
     
     if (process.env.NODE_ENV === 'development') {
       console.log('[DashboardAdapter] buildLeadQuality - Using cards directly:', {
         totalCards: allCards.length,
         totalDeals: deals.length,
+        filteredPanels: filteredPanels.length,
+        panelIds: filters.panelIds || 'Todos',
         sampleCard: allCards[0] ? {
           id: allCards[0].id,
           title: allCards[0].title,
-          tags: allCards[0].tags,
-          monetaryAmount: allCards[0].monetaryAmount,
+          panelId: allCards[0].panelId,
           stepId: allCards[0].stepId,
         } : null,
       })
     }
 
-    // Função auxiliar para categorizar valor monetário
-    const getValueCategory = (value: number | null | undefined): string => {
-      if (!value || value === 0) return 'Sem valor'
-      if (value >= 500) return 'Alto valor (≥R$500)'
-      if (value >= 100) return 'Médio valor (R$100-499)'
-      return 'Baixo valor (<R$100)'
-    }
+    // Criar mapa de panelId -> panel info (key e title) apenas para painéis filtrados
+    const panelMap = new Map<string, { key: string; title: string }>()
+    filteredPanels.forEach((panel: any) => {
+      if (panel.id) {
+        panelMap.set(panel.id, {
+          key: panel.key || panel.id,
+          title: panel.title || 'Painel Desconhecido',
+        })
+      }
+    })
 
-    // Função auxiliar para categorizar etapa do funil
-    const getFunnelStage = (stepId: string | null | undefined): string => {
-      if (!stepId) return 'Sem etapa'
-      const stepInfo = stepMap.get(stepId)
-      if (!stepInfo) return 'Etapa desconhecida'
-      
-      if (stepInfo.isFinal) return 'Final (Fechado)'
-      if (stepInfo.isInitial) return 'Inicial (Novo)'
-      return 'Meio (Em andamento)'
-    }
-
-    // Criar um mapa de grupos de cards (leads)
+    // Criar um mapa de grupos de cards (leads) agrupados por Painel + Etapa
     const groupsMap = new Map<string, HelenaCard[]>()
     
-    // Filtrar apenas cards não arquivados
-    const activeCards = allCards.filter((card: HelenaCard) => !card.archived)
+    // Filtrar apenas cards não arquivados E que pertencem aos painéis filtrados
+    const filteredPanelIds = new Set(filteredPanels.map((p: any) => p.id))
+    const activeCards = allCards.filter((card: HelenaCard) => {
+      if (card.archived) return false
+      const panelId = card.panelId || card.pipelineId || ''
+      return filteredPanelIds.has(panelId)
+    })
     
+    // Criar um stepMap filtrado apenas com steps dos painéis filtrados
+    const filteredStepMap = new Map<string, { title: string; isInitial: boolean; isFinal: boolean; panelId: string }>()
+    filteredPanels.forEach((panel: any) => {
+      if (panel.steps && Array.isArray(panel.steps)) {
+        panel.steps.forEach((step: any) => {
+          if (step.id && !step.archived) {
+            filteredStepMap.set(step.id, {
+              title: step.title || step.name || '',
+              isInitial: step.isInitial || false,
+              isFinal: step.isFinal || false,
+              panelId: panel.id
+            })
+          }
+        })
+      }
+    })
+
     activeCards.forEach((card: HelenaCard) => {
+      const panelId = card.panelId || card.pipelineId || ''
+      const stepId = card.stepId || card.stageId || ''
+      
+      // Só usar stepInfo se o step pertencer a um painel filtrado
+      const stepInfo = filteredStepMap.get(stepId)
+      const panelInfo = panelMap.get(panelId)
+      
+      // Pular cards que não pertencem a painéis filtrados
+      if (!panelInfo) {
+        return
+      }
+      
+      // Criar chave de agrupamento: "Painel {key} - {stepTitle}"
       let groupKey = 'Sem categoria'
       
-      // Prioridade de agrupamento:
-      // 1. Tags do card (primeira tag) - maior prioridade
-      if (card.tags && card.tags.length > 0 && card.tags[0].name) {
-        groupKey = `Tag: ${card.tags[0].name}`
-      }
-      // 2. Tentar obter informações do contato associado
-      else if (card.contactIds && card.contactIds.length > 0) {
-        const contact = contacts.find((c: any) => card.contactIds?.includes(c.id))
-        if (contact) {
-          // Tentar por tag do contato
-          if (contact.tags && contact.tags.length > 0 && contact.tags[0].name) {
-            groupKey = `Tag: ${contact.tags[0].name}`
-          }
-          // Tentar por faculdade
-          else if (contact.customFields?.college || contact.customFields?.faculdade) {
-            groupKey = `Faculdade: ${contact.customFields.college || contact.customFields.faculdade}`
-          }
-          // Tentar por origem
-          else if (contact.customFields?.source || contact.customFields?.origem) {
-            groupKey = `Origem: ${contact.customFields.source || contact.customFields.origem}`
-          }
-        }
-      }
-      // 3. Valor monetário (se não tem tag ou contato)
-      if (groupKey === 'Sem categoria' && card.monetaryAmount && card.monetaryAmount > 0) {
-        groupKey = getValueCategory(card.monetaryAmount)
-      }
-      // 4. Etapa do funil (última opção)
-      if (groupKey === 'Sem categoria' && card.stepId) {
-        groupKey = getFunnelStage(card.stepId)
+      if (panelInfo && stepInfo) {
+        const panelLabel = panelInfo.key ? `Painel ${panelInfo.key}` : panelInfo.title
+        const stepTitle = stepInfo.title || 'Sem etapa'
+        groupKey = `${panelLabel} - ${stepTitle}`
+      } else if (panelInfo && !stepInfo) {
+        const panelLabel = panelInfo.key ? `Painel ${panelInfo.key}` : panelInfo.title
+        groupKey = `${panelLabel} - Sem etapa`
       }
       
       if (!groupsMap.has(groupKey)) {
@@ -927,70 +955,33 @@ export class DashboardAdapter {
     // Calcular métricas para cada grupo
     const qualityData: LeadQuality[] = []
     
+    // Calcular total de leads para calcular percentuais
+    const totalAllLeads = activeCards.length
+    
     groupsMap.forEach((groupCards, groupKey) => {
-      // Cards que participaram de meet (baseado na etapa)
-      const meetParticipants = groupCards.filter((card: HelenaCard) => {
-        const stepInfo = stepMap.get(card.stepId || '')
-        if (!stepInfo) return false
-        const stepTitle = stepInfo.title?.toLowerCase() || ''
-        return stepTitle.includes('meet') || 
-               stepTitle.includes('participou') || 
-               stepTitle.includes('participante') ||
-               stepInfo.isFinal // Etapas finais também contam como participantes
-      }).length
-      
-      // Encontrar deals (cards fechados) neste grupo
-      const groupDeals = groupCards.filter((card: HelenaCard) => {
-        const stepInfo = stepMap.get(card.stepId || '')
-        if (!stepInfo) return false
-        return stepInfo.isFinal && (
-          stepInfo.title?.toLowerCase().includes('ganho') ||
-          stepInfo.title?.toLowerCase().includes('fechado') ||
-          stepInfo.title?.toLowerCase().includes('concluído')
-        )
-      })
-      
-      const purchases = groupDeals.length
       const totalLeads = groupCards.length
       
-      // Taxa de participação em meet (baseado em progresso no funil)
-      const meetParticipationRate = totalLeads > 0 
-        ? (meetParticipants / totalLeads) * 100 
-        : 0
-      
-      // Taxa de compra (de participantes para compradores)
-      const purchaseRate = meetParticipants > 0 
-        ? (purchases / meetParticipants) * 100 
+      // Calcular percentual do total
+      const percentageOfTotal = totalAllLeads > 0 
+        ? (totalLeads / totalAllLeads) * 100 
         : 0
 
       // Só adicionar grupos com pelo menos alguns cards
       if (totalLeads > 0) {
-        // Criar displayOrigin removendo prefixos para exibição mais limpa
-        let displayOrigin = groupKey
-        if (groupKey.startsWith('Tag: ')) {
-          displayOrigin = groupKey.replace('Tag: ', '')
-        } else if (groupKey.startsWith('Faculdade: ')) {
-          displayOrigin = groupKey.replace('Faculdade: ', '')
-        } else if (groupKey.startsWith('Origem: ')) {
-          displayOrigin = groupKey.replace('Origem: ', '')
-        }
-        
         qualityData.push({
-          origin: displayOrigin,
-          meetParticipationRate: Math.round(meetParticipationRate * 100) / 100,
-          purchaseRate: Math.round(purchaseRate * 100) / 100,
+          origin: groupKey,
+          totalLeads,
+          percentageOfTotal: Math.round(percentageOfTotal * 100) / 100,
         })
       }
     })
 
-    // Ordenar por número de leads (maior primeiro), depois por taxa de conversão
+    // Ordenar por número de leads (maior primeiro), depois por percentual do total
     return qualityData.sort((a, b) => {
-      const aLeads = groupsMap.get(a.origin)?.length || 0
-      const bLeads = groupsMap.get(b.origin)?.length || 0
-      if (aLeads !== bLeads) {
-        return bLeads - aLeads
+      if (a.totalLeads !== b.totalLeads) {
+        return b.totalLeads - a.totalLeads
       }
-      return b.purchaseRate - a.purchaseRate
+      return b.percentageOfTotal - a.percentageOfTotal
     })
   }
 
@@ -1067,7 +1058,7 @@ export class DashboardAdapter {
     const isCompleted = (card: HelenaCard): boolean => {
       if (card.archived) return false
       const stepInfo = stepMap.get(card.stepId || '')
-      return stepInfo && stepInfo.isFinal
+      return stepInfo?.isFinal ?? false
     }
 
     // Cards created before period
@@ -1183,7 +1174,7 @@ export class DashboardAdapter {
       if (!panel?.steps) return
       const step = panel.steps.find((s: any) => s.id === card.stepId)
       
-      if (step && step.isFinal && card.createdAt && card.updatedAt) {
+      if (step?.isFinal && card.createdAt && card.updatedAt) {
         const created = new Date(card.createdAt).getTime()
         const updated = new Date(card.updatedAt).getTime()
         const durationHours = (updated - created) / (60 * 60 * 1000)

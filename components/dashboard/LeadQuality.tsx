@@ -2,13 +2,14 @@
 
 import { useState, useMemo } from 'react'
 import type { LeadQuality } from '@/types/dashboard'
+import { formatNumber } from '@/utils/format-currency'
 
 interface LeadQualityProps {
   readonly data: LeadQuality[]
   readonly useNewDesign?: boolean
 }
 
-type SortColumn = 'origin' | 'meetParticipationRate' | 'purchaseRate'
+type SortColumn = 'origin' | 'totalLeads' | 'percentageOfTotal'
 type SortDirection = 'asc' | 'desc' | null
 type GroupFilter = 'all' | 'tags' | 'college' | 'source'
 
@@ -61,10 +62,10 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
         let comparison = 0
         if (sortColumn === 'origin') {
           comparison = a.origin.localeCompare(b.origin)
-        } else if (sortColumn === 'meetParticipationRate') {
-          comparison = a.meetParticipationRate - b.meetParticipationRate
-        } else if (sortColumn === 'purchaseRate') {
-          comparison = a.purchaseRate - b.purchaseRate
+        } else if (sortColumn === 'totalLeads') {
+          comparison = a.totalLeads - b.totalLeads
+        } else if (sortColumn === 'percentageOfTotal') {
+          comparison = a.percentageOfTotal - b.percentageOfTotal
         }
         return sortDirection === 'asc' ? comparison : -comparison
       })
@@ -208,15 +209,15 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                 <th
                   role="columnheader"
                   scope="col"
-                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-white nymu-dark:text-white uppercase tracking-wider font-secondary transition-colors ${
+                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-white nymu-dark:text-white uppercase tracking-wider font-secondary transition-colors whitespace-nowrap ${
                   sortColumn === 'origin' ? 'bg-blue-50 dark:bg-blue-900/30 nymu-dark:bg-blue-900/30' : ''
                 }`}
               >
                 <div className="flex items-center gap-2 group">
-                  <span className="font-semibold">Grupo/Categoria</span>
+                  <span className="font-semibold whitespace-nowrap">Grupo/Categoria</span>
                   <button
                     onClick={() => handleSort('origin')}
-                    className="p-1 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 group-hover:bg-gray-200"
+                    className="p-1 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 group-hover:bg-gray-200 flex-shrink-0"
                     aria-label="Ordenar por grupo"
                     title="Clique para ordenar"
                   >
@@ -227,38 +228,38 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                 <th
                   role="columnheader"
                   scope="col"
-                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-white nymu-dark:text-white uppercase tracking-wider font-secondary transition-colors ${
-                  sortColumn === 'meetParticipationRate' ? 'bg-blue-50 dark:bg-blue-900/30 nymu-dark:bg-blue-900/30' : ''
+                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-white nymu-dark:text-white uppercase tracking-wider font-secondary transition-colors whitespace-nowrap ${
+                  sortColumn === 'totalLeads' ? 'bg-blue-50 dark:bg-blue-900/30 nymu-dark:bg-blue-900/30' : ''
                 }`}
               >
                 <div className="flex items-center gap-2 group">
-                  <span className="font-semibold">% Entraram no Meet</span>
+                  <span className="font-semibold whitespace-nowrap">Total de Leads</span>
                   <button
-                    onClick={() => handleSort('meetParticipationRate')}
-                    className="p-1 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 group-hover:bg-gray-200"
-                    aria-label="Ordenar por percentual de entrada no meet"
+                    onClick={() => handleSort('totalLeads')}
+                    className="p-1 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 group-hover:bg-gray-200 flex-shrink-0"
+                    aria-label="Ordenar por total de leads"
                     title="Clique para ordenar (maior para menor)"
                   >
-                    {getSortIcon('meetParticipationRate')}
+                    {getSortIcon('totalLeads')}
                   </button>
                 </div>
                 </th>
                 <th
                   role="columnheader"
                   scope="col"
-                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-white nymu-dark:text-white uppercase tracking-wider font-secondary transition-colors ${
-                  sortColumn === 'purchaseRate' ? 'bg-blue-50 dark:bg-blue-900/30 nymu-dark:bg-blue-900/30' : ''
+                className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-gray-700 dark:text-white nymu-dark:text-white uppercase tracking-wider font-secondary transition-colors whitespace-nowrap ${
+                  sortColumn === 'percentageOfTotal' ? 'bg-blue-50 dark:bg-blue-900/30 nymu-dark:bg-blue-900/30' : ''
                 }`}
               >
                 <div className="flex items-center gap-2 group">
-                  <span className="font-semibold">% Compraram</span>
+                  <span className="font-semibold whitespace-nowrap">% do Total</span>
                   <button
-                    onClick={() => handleSort('purchaseRate')}
-                    className="p-1 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 group-hover:bg-gray-200"
-                    aria-label="Ordenar por percentual de compra"
+                    onClick={() => handleSort('percentageOfTotal')}
+                    className="p-1 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 group-hover:bg-gray-200 flex-shrink-0"
+                    aria-label="Ordenar por percentual do total"
                     title="Clique para ordenar (maior para menor)"
                   >
-                    {getSortIcon('purchaseRate')}
+                    {getSortIcon('percentageOfTotal')}
                   </button>
                 </div>
                 </th>
@@ -278,53 +279,33 @@ export default function LeadQualityComponent({ data, useNewDesign = true }: Lead
                 >
                   <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                     <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
-                        {item.origin.replace(/^(Tag:|Faculdade:)\s*/i, '')}
+                        {item.origin}
                       </div>
-                      {item.origin.toLowerCase().startsWith('tag:') && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Tag</div>
-                      )}
-                      {item.origin.toLowerCase().startsWith('faculdade:') && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Faculdade</div>
-                      )}
                     </td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <div className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
+                      {formatNumber(item.totalLeads)}
+                    </div>
+                  </td>
                   <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                     {useNewDesign ? (
                       <div className="flex items-center gap-2">
                         <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
-                          {item.meetParticipationRate.toFixed(0)}%
+                          {item.percentageOfTotal.toFixed(1)}%
                         </span>
                         <div className="w-16 sm:w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
-                            style={{ width: `${item.meetParticipationRate}%` }}
+                            style={{ width: `${item.percentageOfTotal}%` }}
                           />
                         </div>
                       </div>
                     ) : (
                       <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
-                        {item.meetParticipationRate.toFixed(0)}%
+                        {item.percentageOfTotal.toFixed(1)}%
                       </div>
                     )}
-                    </td>
-                  <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                    {useNewDesign ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
-                          {item.purchaseRate.toFixed(0)}%
-                        </span>
-                        <div className="w-16 sm:w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-500"
-                            style={{ width: `${item.purchaseRate}%` }}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-sm sm:text-base font-medium text-gray-900 dark:text-white nymu-dark:text-white font-secondary">
-                        {item.purchaseRate.toFixed(0)}%
-                      </div>
-                    )}
-                    </td>
+                  </td>
                   </tr>
                 )
               })}
