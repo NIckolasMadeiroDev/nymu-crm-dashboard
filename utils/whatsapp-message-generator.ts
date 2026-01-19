@@ -26,10 +26,6 @@ export function generateWhatsAppMessage(
       message += `📅 Data: ${filters.date}\n`
     }
 
-    if (filters.season) {
-      message += `📆 Temporada: ${filters.season}\n`
-    }
-
     if (filters.sdr && filters.sdr !== 'Todos') {
       message += `👤 SDR: ${filters.sdr}\n`
     }

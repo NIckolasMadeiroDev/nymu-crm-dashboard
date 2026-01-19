@@ -71,7 +71,6 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Filtros Disponíveis:</h4>
                   <ul className="list-disc list-inside space-y-1 ml-4">
                     <li><strong>Data:</strong> Selecione um período específico para análise</li>
-                    <li><strong>Temporada:</strong> Filtre por semestre acadêmico (ex: 2025.1, 2024.2)</li>
                     <li><strong>SDR:</strong> Visualize dados de um vendedor específico ou todos</li>
                     <li><strong>Faculdade:</strong> Filtre por instituição de ensino</li>
                     <li><strong>Origem:</strong> Analise leads de uma origem específica</li>
@@ -366,7 +365,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <h4 className="font-semibold mb-2 text-gray-900 dark:text-white nymu-dark:text-white">Funcionalidades:</h4>
                   <ul className="list-disc list-inside space-y-1 ml-4">
                     <li><strong>Análise Estatística:</strong> Médias, medianas, desvios padrão e tendências</li>
-                    <li><strong>Comparações:</strong> Compare períodos, temporadas ou origens diferentes</li>
+                    <li><strong>Comparações:</strong> Compare períodos ou origens diferentes</li>
                     <li><strong>Insights Automáticos:</strong> O sistema identifica padrões e anomalias</li>
                     <li><strong>Recomendações:</strong> Sugestões baseadas nos dados analisados</li>
                     <li><strong>Drill-down:</strong> Navegue por níveis de detalhe dos dados</li>

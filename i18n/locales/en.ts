@@ -25,7 +25,6 @@ export const en = {
     subtitle: 'Overview of lead generation, activation and conversion',
     filters: 'Filters',
     date: 'Date',
-    season: 'Season',
     sdr: 'SDR',
     college: 'College',
     origin: 'Origin',

@@ -13,7 +13,6 @@ export interface DataSource {
     sdrs: string[]
     colleges: string[]
     origins: string[]
-    seasons: string[]
     panels: Array<{ id: string; title: string; key: string }>
   }>
 }
@@ -33,7 +32,6 @@ class HelenaDataSource implements DataSource {
     sdrs: string[]
     colleges: string[]
     origins: string[]
-    seasons: string[]
     panels: Array<{ id: string; title: string; key: string }>
   }> {
     try {
@@ -96,7 +94,6 @@ class HelenaDataSource implements DataSource {
         sdrs: sdrs.length > 0 ? sdrs : ['Todos'],
         colleges: colleges.length > 0 ? colleges : ['Todas'],
         origins: origins.length > 0 ? origins : [],
-        seasons: ['2025.1', '2024.2', '2024.1', '2023.2'],
         panels: availablePanels || [],
       }
     } catch (error) {
@@ -105,7 +102,6 @@ class HelenaDataSource implements DataSource {
         sdrs: ['Todos'],
         colleges: ['Todas'],
         origins: [],
-        seasons: ['2025.1', '2024.2', '2024.1', '2023.2'],
         panels: [],
       }
     }

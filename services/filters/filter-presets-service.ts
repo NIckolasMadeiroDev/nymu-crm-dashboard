@@ -62,7 +62,6 @@ class FilterPresetsService {
         name: 'Hoje',
         filters: {
           date: formatDate(today),
-          season: '2025.1',
           sdr: 'Todos',
           college: 'Todas',
           origin: '',
@@ -76,7 +75,6 @@ class FilterPresetsService {
         name: 'Última Semana',
         filters: {
           date: formatDate(lastWeek),
-          season: '2025.1',
           sdr: 'Todos',
           college: 'Todas',
           origin: '',
@@ -89,7 +87,6 @@ class FilterPresetsService {
         name: 'Último Mês',
         filters: {
           date: formatDate(lastMonth),
-          season: '2025.1',
           sdr: 'Todos',
           college: 'Todas',
           origin: '',
@@ -102,7 +99,6 @@ class FilterPresetsService {
         name: 'Último Trimestre',
         filters: {
           date: formatDate(lastQuarter),
-          season: '2025.1',
           sdr: 'Todos',
           college: 'Todas',
           origin: '',

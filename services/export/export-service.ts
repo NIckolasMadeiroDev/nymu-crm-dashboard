@@ -165,7 +165,6 @@ class ExportService {
     const filterTexts: string[] = []
     
     if (filters.date) filterTexts.push(`Data: ${filters.date}`)
-    if (filters.season) filterTexts.push(`Temporada: ${filters.season}`)
     if (filters.sdr && filters.sdr !== 'Todos') filterTexts.push(`SDR: ${filters.sdr}`)
     if (filters.college && filters.college !== 'Todas') filterTexts.push(`Faculdade: ${filters.college}`)
     if (filters.origin && filters.origin !== '') filterTexts.push(`Origem: ${filters.origin}`)
@@ -829,7 +828,6 @@ class ExportService {
   private buildExcelFilterRows(filters: NonNullable<Partial<DashboardData>['filters']>): any[][] {
     const filterRows: any[][] = [['FILTROS APLICADOS']]
     if (filters.date) filterRows.push(['Data:', filters.date])
-    if (filters.season) filterRows.push(['Temporada:', filters.season])
     if (filters.sdr) filterRows.push(['SDR:', filters.sdr])
     if (filters.college) filterRows.push(['Faculdade:', filters.college])
     if (filters.origin) filterRows.push(['Origem:', filters.origin])

@@ -25,7 +25,6 @@ export const es = {
     subtitle: 'Visión general de generación, activación y conversión de leads',
     filters: 'Filtros',
     date: 'Fecha',
-    season: 'Temporada',
     sdr: 'SDR',
     college: 'Universidad',
     origin: 'Origen',

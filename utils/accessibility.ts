@@ -8,7 +8,6 @@ export const ARIA_LABELS = {
   },
   filters: {
     date: 'Filtro de data',
-    season: 'Filtro de temporada',
     sdr: 'Filtro de SDR',
     college: 'Filtro de faculdade',
     origin: 'Filtro de origem',
