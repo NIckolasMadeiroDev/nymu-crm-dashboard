@@ -29,12 +29,14 @@ interface GenerationActivationProps {
 
 export default function GenerationActivation({ data }: GenerationActivationProps) {
   const chartData = useMemo(() => {
+    const sortedData = [...data.leadsCreatedByWeek].reverse()
+    
     return {
-      labels: data.leadsCreatedByWeek.map((w) => w.label),
+      labels: sortedData.map((w) => w.label),
       datasets: [
         {
           label: 'Leads Criados',
-          data: data.leadsCreatedByWeek.map((w) => w.value),
+          data: sortedData.map((w) => w.value),
           backgroundColor: 'rgba(59, 130, 246, 0.5)',
           borderColor: 'rgba(59, 130, 246, 1)',
           borderWidth: 1,

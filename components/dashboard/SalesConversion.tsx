@@ -61,12 +61,14 @@ export default function SalesConversion({ data, onDataPointClick }: Readonly<Sal
       return value
     }
 
+    const sortedData = [...data.salesByWeek].reverse()
+
     return {
-      labels: data.salesByWeek.map((w) => w.label),
+      labels: sortedData.map((w) => w.label),
       datasets: [
         {
           label: 'Vendas',
-          data: data.salesByWeek.map((w) => scaleData(w.value)),
+          data: sortedData.map((w) => scaleData(w.value)),
           backgroundColor: 'rgba(16, 185, 129, 0.5)',
           borderColor: 'rgba(16, 185, 129, 1)',
           borderWidth: 1,
@@ -211,7 +213,8 @@ export default function SalesConversion({ data, onDataPointClick }: Readonly<Sal
     onClick: (event: any, elements: any[]) => {
       if (elements && elements.length > 0 && onDataPointClick) {
         const element = elements[0]
-        const weekData = data.salesByWeek[element.index]
+        const sortedData = [...data.salesByWeek].reverse()
+        const weekData = sortedData[element.index]
         if (weekData) {
           onDataPointClick(weekData.week, weekData.label)
         }

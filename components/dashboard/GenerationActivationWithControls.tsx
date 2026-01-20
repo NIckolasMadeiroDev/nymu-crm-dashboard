@@ -17,31 +17,28 @@ export default function GenerationActivationWithControls({
   onDataPointClick,
 }: GenerationActivationWithControlsProps) {
   const chartConfig: ChartConfig = useMemo(() => {
-    // Calcular estatísticas para tooltips
-    const totalLeads = data.leadsCreatedByWeek.reduce((sum, w) => sum + w.value, 0)
-    const averageLeads = totalLeads / data.leadsCreatedByWeek.length
+    const sortedData = [...data.leadsCreatedByWeek].reverse()
     
-    // Formatar labels de forma mais compacta mas legível
-    const formattedData = data.leadsCreatedByWeek.map((w, index) => {
-      // No eixo X, mostrar apenas "Sem X" (sem datas)
+    const totalLeads = sortedData.reduce((sum, w) => sum + w.value, 0)
+    const averageLeads = totalLeads / sortedData.length
+    
+    const formattedData = sortedData.map((w, index) => {
       const displayLabel = `Sem ${w.week}`
       
-      // Calcular variação em relação à média
       const variation = averageLeads > 0 ? ((w.value - averageLeads) / averageLeads * 100).toFixed(1) : '0'
       const isAboveAverage = w.value > averageLeads
       
       return {
-        name: displayLabel, // Label resumido para eixo X
+        name: displayLabel,
         value: w.value,
         week: w.week,
-        fullLabel: w.label, // Label completo para tooltip
-        // Informações extras para tooltip detalhado
+        fullLabel: w.label,
         weekNumber: w.week,
         totalLeads: w.value,
         variation: variation,
         isAboveAverage: isAboveAverage,
         position: index + 1,
-        totalWeeks: data.leadsCreatedByWeek.length,
+        totalWeeks: sortedData.length,
       }
     })
     
@@ -51,7 +48,7 @@ export default function GenerationActivationWithControls({
       data: formattedData,
       xAxisKey: 'name',
       yAxisKey: 'value',
-      height: 200, // Aumentar altura para melhor visualização
+      height: 200,
       xAxisLabel: 'Semana',
       yAxisLabel: 'Leads Criados',
     }
@@ -60,16 +57,14 @@ export default function GenerationActivationWithControls({
   const handleDataPointClick = (clickData: any) => {
     console.log('[GenerationActivationWithControls] handleDataPointClick called with:', clickData)
     if (onDataPointClick && clickData) {
-      // Adaptar o formato dos dados do ChartFactory para o formato esperado
       if (clickData.name && clickData.value !== undefined) {
-        // Se já tem week no clickData, usar diretamente
         if (clickData.week !== undefined) {
           console.log('[GenerationActivationWithControls] Using week from clickData:', clickData.week, clickData.name)
           onDataPointClick(clickData.week, clickData.name)
         } else {
-          // Encontrar a semana correspondente pelo label ou usar fullLabel se disponível
           const labelToFind = clickData.fullLabel || clickData.name
-          const weekData = data.leadsCreatedByWeek.find((w) => w.label === labelToFind || w.label.includes(clickData.name))
+          const sortedData = [...data.leadsCreatedByWeek].reverse()
+          const weekData = sortedData.find((w) => w.label === labelToFind || w.label.includes(clickData.name))
           console.log('[GenerationActivationWithControls] Found weekData:', weekData)
           if (weekData) {
             console.log('[GenerationActivationWithControls] Calling onDataPointClick with:', weekData.week, weekData.label)

@@ -17,30 +17,28 @@ export default function SalesConversionWithControls({
   onDataPointClick,
 }: SalesConversionWithControlsProps) {
   const chartConfig: ChartConfig = useMemo(() => {
-    // Calcular estatísticas para tooltips
-    const totalSales = data.salesByWeek.reduce((sum, w) => sum + w.value, 0)
-    const averageSales = totalSales / data.salesByWeek.length
+    const sortedData = [...data.salesByWeek].reverse()
     
-    const chartData = data.salesByWeek.map((w, index) => {
-      // No eixo X, mostrar apenas "Sem X" (sem datas)
+    const totalSales = sortedData.reduce((sum, w) => sum + w.value, 0)
+    const averageSales = totalSales / sortedData.length
+    
+    const chartData = sortedData.map((w, index) => {
       const displayLabel = `Sem ${w.week}`
       
-      // Calcular variação em relação à média
       const variation = averageSales > 0 ? ((w.value - averageSales) / averageSales * 100).toFixed(1) : '0'
       const isAboveAverage = w.value > averageSales
       
       return {
-        name: displayLabel, // Label resumido para eixo X
+        name: displayLabel,
         value: w.value,
         week: w.week,
-        fullLabel: w.label, // Label completo para tooltip
-        // Informações extras para tooltip detalhado
+        fullLabel: w.label,
         weekNumber: w.week,
         totalSales: w.value,
         variation: variation,
         isAboveAverage: isAboveAverage,
         position: index + 1,
-        totalWeeks: data.salesByWeek.length,
+        totalWeeks: sortedData.length,
       }
     })
 
@@ -64,17 +62,14 @@ export default function SalesConversionWithControls({
   const handleDataPointClick = (clickData: any) => {
     console.log('[SalesConversionWithControls] handleDataPointClick called with:', clickData)
     if (onDataPointClick && clickData) {
-      // Adaptar o formato dos dados do ChartFactory para o formato esperado
-      // O Recharts passa o payload diretamente
       if (clickData.name && clickData.value !== undefined) {
-        // Se já tem week no clickData, usar diretamente
         if (clickData.week !== undefined) {
           console.log('[SalesConversionWithControls] Using week from clickData:', clickData.week, clickData.name)
           onDataPointClick(clickData.week, clickData.name)
         } else {
-          // Encontrar a semana correspondente pelo label ou usar fullLabel se disponível
           const labelToFind = clickData.fullLabel || clickData.name
-          const weekData = data.salesByWeek.find((w) => w.label === labelToFind || w.label.includes(clickData.name))
+          const sortedData = [...data.salesByWeek].reverse()
+          const weekData = sortedData.find((w) => w.label === labelToFind || w.label.includes(clickData.name))
           console.log('[SalesConversionWithControls] Found weekData:', weekData)
           if (weekData) {
             console.log('[SalesConversionWithControls] Calling onDataPointClick with:', weekData.week, weekData.label)
