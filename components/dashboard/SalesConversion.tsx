@@ -80,67 +80,65 @@ export default function SalesConversion({ data, onDataPointClick }: Readonly<Sal
 
   const yAxisDomain = useMemo(() => {
     if (maxValue === 0) {
-      return [0, 100] // Valor padrão quando não há dados
+      return [0, 100]
     }
 
-    let paddingPercent = 0.15 // Padrão 15%
-    if (maxValue < 50) {
-      paddingPercent = 0.5 // 50% para valores muito pequenos
-    } else if (maxValue < 200) {
-      paddingPercent = 0.3 // 30% para valores pequenos
-    } else if (maxValue < 1000) {
-      paddingPercent = 0.2 // 20% para valores médios
+    const getPaddingPercent = (value: number): number => {
+      if (value < 50) return 0.5
+      if (value < 200) return 0.3
+      if (value < 1000) return 0.2
+      return 0.15
     }
 
+    const calculateRoundedMax = (value: number, magnitude: number): number => {
+      let rounded = Math.ceil(value / magnitude) * magnitude
+      if (rounded <= value) {
+        rounded += magnitude
+      }
+      return rounded
+    }
+
+    const calculateAdaptiveMax = (maxWithPadding: number, scaledValue: number): number => {
+      const scaledMax = maxWithPadding / adaptiveScale.scale
+      const magnitude = Math.pow(10, Math.floor(Math.log10(scaledMax)))
+      let roundedMax = calculateRoundedMax(scaledMax, magnitude)
+
+      const minRequiredMax = (scaledValue / adaptiveScale.scale) * 1.2
+      if (roundedMax < minRequiredMax) {
+        roundedMax = calculateRoundedMax(minRequiredMax, magnitude)
+      }
+
+      return roundedMax
+    }
+
+    const calculateNonAdaptiveMax = (maxWithPadding: number, value: number): number => {
+      const magnitude = Math.pow(10, Math.floor(Math.log10(maxWithPadding)))
+      let roundedMax = calculateRoundedMax(maxWithPadding, magnitude)
+
+      if (value < 10) {
+        roundedMax = calculateRoundedMax(maxWithPadding, 2)
+      } else if (value < 50) {
+        roundedMax = calculateRoundedMax(maxWithPadding, 5)
+      }
+
+      const minRequiredMax = value * 1.15
+      if (roundedMax < minRequiredMax) {
+        roundedMax = calculateRoundedMax(minRequiredMax, magnitude)
+      }
+
+      return roundedMax
+    }
+
+    const paddingPercent = getPaddingPercent(maxValue)
     const maxWithPadding = maxValue * (1 + paddingPercent)
 
     if (useAdaptive && adaptiveScale.scale > 1) {
-
-      const scaledMax = maxWithPadding / adaptiveScale.scale
-
-      const magnitude = Math.pow(10, Math.floor(Math.log10(scaledMax)))
-      let roundedMax = Math.ceil(scaledMax / magnitude) * magnitude
-
-      if (roundedMax <= scaledMax) {
-        roundedMax += magnitude
-      }
-
-      const minRequiredMax = (maxValue / adaptiveScale.scale) * 1.2
-      if (roundedMax < minRequiredMax) {
-        roundedMax = Math.ceil(minRequiredMax / magnitude) * magnitude
-        if (roundedMax <= minRequiredMax) {
-          roundedMax += magnitude
-        }
-      }
-
-      return [0, roundedMax]
-    } else {
-
-      const magnitude = Math.pow(10, Math.floor(Math.log10(maxWithPadding)))
-      let roundedMax = Math.ceil(maxWithPadding / magnitude) * magnitude
-
-      if (roundedMax <= maxWithPadding) {
-        roundedMax += magnitude
-      }
-
-      if (maxValue < 10) {
-        roundedMax = Math.ceil(maxWithPadding / 2) * 2
-        if (roundedMax <= maxWithPadding) roundedMax += 2
-      } else if (maxValue < 50) {
-        roundedMax = Math.ceil(maxWithPadding / 5) * 5
-        if (roundedMax <= maxWithPadding) roundedMax += 5
-      }
-
-      const minRequiredMax = maxValue * 1.15
-      if (roundedMax < minRequiredMax) {
-        roundedMax = Math.ceil(minRequiredMax / magnitude) * magnitude
-        if (roundedMax <= minRequiredMax) {
-          roundedMax += magnitude
-        }
-      }
-
+      const roundedMax = calculateAdaptiveMax(maxWithPadding, maxValue)
       return [0, roundedMax]
     }
+
+    const roundedMax = calculateNonAdaptiveMax(maxWithPadding, maxValue)
+    return [0, roundedMax]
   }, [maxValue, useAdaptive, adaptiveScale])
 
   const chartOptions = useMemo(() => ({
@@ -174,7 +172,7 @@ export default function SalesConversion({ data, onDataPointClick }: Readonly<Sal
     scales: {
       y: {
         beginAtZero: true,
-        max: yAxisDomain[1], // Sempre definir o máximo para garantir que valores altos sejam exibidos
+        max: yAxisDomain[1],
         ticks: {
           callback: function (value: any) {
 
@@ -188,7 +186,7 @@ export default function SalesConversion({ data, onDataPointClick }: Readonly<Sal
             size: isSmallScreen ? 9 : 10,
           },
           maxTicksLimit: isSmallScreen ? 5 : 8,
-          stepSize: undefined, // Deixar Chart.js calcular automaticamente
+          stepSize: undefined,
         },
         ...(useAdaptive && adaptiveScale.unit ? {
           title: {
@@ -213,7 +211,7 @@ export default function SalesConversion({ data, onDataPointClick }: Readonly<Sal
     onClick: (event: any, elements: any[]) => {
       if (elements && elements.length > 0 && onDataPointClick) {
         const element = elements[0]
-        const sortedData = [...data.salesByWeek].reverse()
+        const sortedData = [...data.salesByWeek].sort((a, b) => a.week - b.week)
         const weekData = sortedData[element.index]
         if (weekData) {
           onDataPointClick(weekData.week, weekData.label)

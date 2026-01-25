@@ -600,14 +600,11 @@ export class DashboardAdapter {
     leads: LeadLike[],
     contacts: HelenaContact[]
   ): Promise<GenerationActivationMetrics> {
-    // Use real card data for more accurate metrics
     const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
     
-    // Filter only active (non-archived) cards
     const activeCards = allCards.filter((card: any) => !card.archived)
     
-    // Count cards by step type
     let leadsCreated = activeCards.length
     let leadsInGroup = 0
     let meetParticipants = 0
@@ -625,23 +622,20 @@ export class DashboardAdapter {
       }
     })
     
-    // Fallback to leads if no cards
     if (leadsCreated === 0) {
       leadsCreated = leads.length
       leadsInGroup = leads.filter((lead) => lead.status === 'in_group').length
       meetParticipants = leads.filter((lead) => lead.status === 'meet_participant').length
     }
 
-    // Use cards for weekly grouping if available, otherwise use leads
     const leadsByWeek = activeCards.length > 0 
       ? this.groupCardsByWeek(activeCards)
       : this.groupLeadsByWeek(leads)
       
-    // Importar funções de formatação de data
     const { getWeekDateRange, formatDateRange } = await import('@/utils/date-ranges')
     
     const leadsCreatedByWeek: WeeklyData[] = leadsByWeek.map((count, index) => {
-      const weekNumber = index + 1
+      const weekNumber = 12 - index
       const { startDate, endDate } = getWeekDateRange(weekNumber)
       const dateRange = formatDateRange(startDate, endDate)
       return {
@@ -663,7 +657,6 @@ export class DashboardAdapter {
     const closedSales = deals.length
     const revenueGenerated = deals.reduce((sum, deal) => sum + (deal.value || 0), 0)
     
-    // Calculate closing rate based on total active cards vs won cards
     const allCards = (this as any).allCards || []
     const activeCards = allCards.filter((card: any) => !card.archived)
     const totalCards = activeCards.length
@@ -671,11 +664,10 @@ export class DashboardAdapter {
     const targetRate = 75
 
     const salesByWeek = this.groupDealsByWeek(deals)
-    // Importar funções de formatação de data
     const { getWeekDateRange, formatDateRange } = await import('@/utils/date-ranges')
     
     const salesByWeekData: WeeklyData[] = salesByWeek.map((count, index) => {
-      const weekNumber = index + 1
+      const weekNumber = 12 - index
       const { startDate, endDate } = getWeekDateRange(weekNumber)
       const dateRange = formatDateRange(startDate, endDate)
       return {
@@ -698,14 +690,11 @@ export class DashboardAdapter {
     leads: LeadLike[],
     deals: CrmDeal[]
   ): ConversionRates {
-    // Use real card data for more accurate conversion rates
     const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
     
-    // Filter only active (non-archived) cards
     const activeCards = allCards.filter((card: any) => !card.archived)
     
-    // Count cards by step type
     let leadsCreated = 0
     let leadsInGroup = 0
     let meetParticipants = 0
@@ -714,9 +703,8 @@ export class DashboardAdapter {
       const stepInfo = stepMap.get(card.stepId || '')
       if (stepInfo) {
         const stepTitle = stepInfo.title.toLowerCase()
-        leadsCreated++ // All cards count as created leads
+        leadsCreated++
         
-        // More flexible matching
         if (stepTitle.includes('grupo') || stepTitle.includes('entrou no grupo') || stepTitle.includes('no grupo')) {
           leadsInGroup++
         }
@@ -725,20 +713,16 @@ export class DashboardAdapter {
           meetParticipants++
         }
       } else {
-        // Count cards without step info as created
         leadsCreated++
       }
     })
     
-    // Also count from leads status
     const leadsInGroupFromStatus = leads.filter((lead) => lead.status === 'in_group' || lead.status === 'meet_participant' || lead.status === 'post_meet').length
     const meetParticipantsFromStatus = leads.filter((lead) => lead.status === 'meet_participant' || lead.status === 'post_meet').length
     
-    // Use maximum to ensure we capture all
     leadsInGroup = Math.max(leadsInGroup, leadsInGroupFromStatus)
     meetParticipants = Math.max(meetParticipants, meetParticipantsFromStatus)
     
-    // Fallback to leads if no cards
     if (leadsCreated === 0) {
       leadsCreated = leads.length
     }
@@ -762,11 +746,9 @@ export class DashboardAdapter {
   }
 
   private buildLeadStock(leads: LeadLike[], contacts: HelenaContact[]): LeadStock {
-    // Use real card data to count leads in each stage with values
     const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
     
-    // Filter only active (non-archived) cards
     const activeCards = allCards.filter((card: any) => !card.archived)
     
     type StepCategory = 'contactList' | 'firstContact' | 'inGroup' | 'postMeet' | 'other'
@@ -778,7 +760,6 @@ export class DashboardAdapter {
       category: StepCategory
     }
     
-    // Helper function to categorize a step
     const categorizeStep = (stepInfo: any, stepTitle: string): StepCategory => {
       if (stepInfo.isInitial || stepTitle.includes('lista') || stepTitle.includes('contato') || stepTitle.includes('novo') || stepTitle.includes('carência')) {
         return 'contactList'
@@ -792,7 +773,6 @@ export class DashboardAdapter {
       return 'other'
     }
     
-    // Count cards and values by step
     const cardsByStep = new Map<string, { count: number; value: number; category: string; stepTitle: string }>()
     
     activeCards.forEach((card: any) => {
@@ -812,7 +792,6 @@ export class DashboardAdapter {
       cardsByStep.set(stepId, existing)
     })
     
-    // Aggregate by category
     let contactList = 0
     let firstContact = 0
     let inGroup = 0
@@ -853,7 +832,6 @@ export class DashboardAdapter {
       }
     })
     
-    // Sort byStep by count (descending)
     byStep.sort((a, b) => b.count - a.count)
     
     const totalValue = contactListValue + firstContactValue + inGroupValue + postMeetValue
@@ -931,11 +909,9 @@ export class DashboardAdapter {
   }
 
   private buildLeadQuality(leads: LeadLike[], deals: CrmDeal[], filters: DashboardFilters): LeadQuality[] {
-    // Usar cards diretamente para análise de qualidade dos leads
     const allCards = (this as any).allCards || [] as HelenaCard[]
     const allPanels = (this as any).allPanels || []
     
-    // Filtrar painéis baseado no filtro
     const filteredPanels = filters.panelIds && filters.panelIds.length > 0
       ? allPanels.filter((panel: any) => filters.panelIds!.includes(panel.id))
       : allPanels
@@ -955,7 +931,6 @@ export class DashboardAdapter {
       })
     }
 
-    // Criar mapa de panelId -> panel info (key e title) apenas para painéis filtrados
     const panelMap = new Map<string, { key: string; title: string }>()
     filteredPanels.forEach((panel: any) => {
       if (panel.id) {
@@ -966,10 +941,8 @@ export class DashboardAdapter {
       }
     })
 
-    // Criar um mapa de grupos de cards (leads) agrupados por Painel + Etapa
     const groupsMap = new Map<string, HelenaCard[]>()
     
-    // Filtrar apenas cards não arquivados E que pertencem aos painéis filtrados
     const filteredPanelIds = new Set(filteredPanels.map((p: any) => p.id))
     const activeCards = allCards.filter((card: HelenaCard) => {
       if (card.archived) return false
@@ -977,7 +950,6 @@ export class DashboardAdapter {
       return filteredPanelIds.has(panelId)
     })
     
-    // Criar um stepMap filtrado apenas com steps dos painéis filtrados
     const filteredStepMap = new Map<string, { title: string; isInitial: boolean; isFinal: boolean; panelId: string }>()
     filteredPanels.forEach((panel: any) => {
       if (panel.steps && Array.isArray(panel.steps)) {
@@ -998,16 +970,13 @@ export class DashboardAdapter {
       const panelId = card.panelId || card.pipelineId || ''
       const stepId = card.stepId || card.stageId || ''
       
-      // Só usar stepInfo se o step pertencer a um painel filtrado
       const stepInfo = filteredStepMap.get(stepId)
       const panelInfo = panelMap.get(panelId)
       
-      // Pular cards que não pertencem a painéis filtrados
       if (!panelInfo) {
         return
       }
       
-      // Criar chave de agrupamento: "Painel {key} - {stepTitle}"
       let groupKey = 'Sem categoria'
       
       if (panelInfo && stepInfo) {
@@ -1035,21 +1004,17 @@ export class DashboardAdapter {
       })
     }
 
-    // Calcular métricas para cada grupo
     const qualityData: LeadQuality[] = []
     
-    // Calcular total de leads para calcular percentuais
     const totalAllLeads = activeCards.length
     
     groupsMap.forEach((groupCards, groupKey) => {
       const totalLeads = groupCards.length
       
-      // Calcular percentual do total
       const percentageOfTotal = totalAllLeads > 0 
         ? (totalLeads / totalAllLeads) * 100 
         : 0
 
-      // Só adicionar grupos com pelo menos alguns cards
       if (totalLeads > 0) {
         qualityData.push({
           origin: groupKey,
@@ -1059,7 +1024,6 @@ export class DashboardAdapter {
       }
     })
 
-    // Ordenar por número de leads (maior primeiro), depois por percentual do total
     return qualityData.sort((a, b) => {
       if (a.totalLeads !== b.totalLeads) {
         return b.totalLeads - a.totalLeads
@@ -1128,28 +1092,24 @@ export class DashboardAdapter {
     const periodDate = new Date(filters.date)
     periodDate.setHours(0, 0, 0, 0)
     const periodStart = periodDate.getTime()
-    const periodEnd = periodDate.getTime() + 24 * 60 * 60 * 1000 // End of day
+    const periodEnd = periodDate.getTime() + 24 * 60 * 60 * 1000
 
-    // Helper to check if card is in non-final step (pending) - use stepMap
     const isPending = (card: HelenaCard): boolean => {
       if (card.archived) return false
       const stepInfo = stepMap.get(card.stepId || '')
       return stepInfo && !stepInfo.isFinal
     }
 
-    // Helper to check if card is completed (in final step) - use stepMap
     const isCompleted = (card: HelenaCard): boolean => {
       if (card.archived) return false
       const stepInfo = stepMap.get(card.stepId || '')
       return stepInfo?.isFinal ?? false
     }
 
-    // Cards created before period
     const pendingBeforePeriod = cards.filter(
       card => card.createdAt && new Date(card.createdAt).getTime() < periodStart && isPending(card)
     ).length
 
-    // Cards created in period
     const newInPeriod = cards.filter(
       card => {
         const createdAt = card.createdAt ? new Date(card.createdAt).getTime() : 0
@@ -1157,7 +1117,6 @@ export class DashboardAdapter {
       }
     ).length
 
-    // Cards completed in period
     const completedInPeriod = cards.filter(
       card => {
         const updatedAt = card.updatedAt ? new Date(card.updatedAt).getTime() : 0
@@ -1165,7 +1124,6 @@ export class DashboardAdapter {
       }
     ).length
 
-    // Cards pending after period
     const pendingAfterPeriod = cards.filter(
       card => {
         const createdAt = card.createdAt ? new Date(card.createdAt).getTime() : 0
@@ -1173,8 +1131,7 @@ export class DashboardAdapter {
       }
     ).length
 
-    // Calculate capacity metrics
-    const daysInPeriod = 1 // For single day period, adjust if needed
+    const daysInPeriod = 1
     const capacity: CapacityMetrics = {
       new: {
         total: newInPeriod,
@@ -1187,17 +1144,13 @@ export class DashboardAdapter {
       performance: newInPeriod > 0 ? Number((completedInPeriod / newInPeriod).toFixed(2)) : 0,
     }
 
-    // Calculate performance metrics (wait time and duration)
     const performance = this.buildPerformanceMetrics(cards, panels, filters)
 
-    // Calculate channel metrics
     const contacts = (this as any).contacts || []
     const channels = await this.buildChannelMetrics(cards, contacts)
 
-    // Calculate tag metrics
     const topTags = this.buildTagMetrics(cards)
 
-    // Calculate daily volume
     const dailyVolume = this.buildDailyVolume(cards, filters)
 
     return {
@@ -1225,22 +1178,18 @@ export class DashboardAdapter {
     const periodStart = periodDate.getTime()
     const periodEnd = periodDate.getTime() + 24 * 60 * 60 * 1000
 
-    // Get cards that were created in period and have user interaction
     const cardsWithInteraction = cards.filter(card => {
       const createdAt = card.createdAt ? new Date(card.createdAt).getTime() : 0
       return createdAt >= periodStart && createdAt < periodEnd && card.responsibleUserId
     })
 
-    // Calculate wait time (time from creation to first non-initial step)
     const waitTimes: number[] = []
     cardsWithInteraction.forEach(card => {
-      // For now, use updatedAt - createdAt as approximation
-      // In a real scenario, you'd check notes to find when card moved to first non-initial step
       if (card.createdAt && card.updatedAt) {
         const created = new Date(card.createdAt).getTime()
         const updated = new Date(card.updatedAt).getTime()
         const waitMinutes = (updated - created) / (60 * 1000)
-        if (waitMinutes > 0 && waitMinutes < 24 * 60) { // Reasonable wait time
+        if (waitMinutes > 0 && waitMinutes < 24 * 60) {
           waitTimes.push(waitMinutes)
         }
       }
@@ -1250,7 +1199,6 @@ export class DashboardAdapter {
       ? waitTimes.reduce((sum, time) => sum + time, 0) / waitTimes.length
       : 0
 
-    // Calculate duration (time from creation to completion)
     const durations: number[] = []
     cards.forEach(card => {
       const panel = panels.find(p => p.id === card.panelId)
@@ -1258,11 +1206,11 @@ export class DashboardAdapter {
       const step = panel.steps.find((s: any) => s.id === card.stepId)
       
       if (step?.isFinal && card.createdAt && card.updatedAt) {
-        const created = new Date(card.createdAt).getTime()
-        const updated = new Date(card.updatedAt).getTime()
-        const durationHours = (updated - created) / (60 * 60 * 1000)
-        if (durationHours > 0 && durationHours < 365 * 24) { // Reasonable duration
-          durations.push(durationHours)
+      const created = new Date(card.createdAt).getTime()
+      const updated = new Date(card.updatedAt).getTime()
+      const durationHours = (updated - created) / (60 * 60 * 1000)
+      if (durationHours > 0 && durationHours < 365 * 24) {
+        durations.push(durationHours)
         }
       }
     })
@@ -1293,12 +1241,10 @@ export class DashboardAdapter {
     const allContacts = contacts || (this as any).contacts || []
     const channelMap = new Map<string, number>()
 
-    // Buscar departments com canais
     let departmentsWithChannels: any[] = []
     try {
       const departmentsService = helenaServiceFactory.getDepartmentsService()
       const allDepartments = await departmentsService.listDepartments()
-      // Buscar detalhes de cada department para obter canais
       departmentsWithChannels = await Promise.all(
         allDepartments.map(async (dept) => {
           try {
@@ -1313,7 +1259,6 @@ export class DashboardAdapter {
       console.warn('[DashboardAdapter] Error fetching departments for channels:', error)
     }
 
-    // Criar mapa de channelId -> channelName
     const channelIdToName = new Map<string, string>()
     departmentsWithChannels.forEach((dept) => {
       if (dept.channels && Array.isArray(dept.channels)) {
@@ -1329,10 +1274,7 @@ export class DashboardAdapter {
     cards.forEach(card => {
       let channelFound = false
 
-      // Tentar encontrar canal através de sessionId ou metadata
       if (card.sessionId) {
-        // sessionId pode estar relacionado ao canal
-        // Verificar se há alguma relação no metadata
         if (card.metadata && typeof card.metadata === 'object') {
           const metadata = card.metadata as any
           if (metadata.channelId && channelIdToName.has(metadata.channelId)) {
@@ -1344,10 +1286,8 @@ export class DashboardAdapter {
         }
       }
 
-      // Se não encontrou por sessionId, tentar por tags (canais podem estar como tags)
       if (!channelFound && card.tags && card.tags.length > 0) {
         card.tags.forEach(tag => {
-          // Verificar se o nome da tag corresponde a algum canal conhecido
           const matchingChannel = Array.from(channelIdToName.values()).find(
             name => name.toLowerCase().includes(tag.name.toLowerCase()) || 
                    tag.name.toLowerCase().includes(name.toLowerCase())
@@ -1357,7 +1297,6 @@ export class DashboardAdapter {
             channelMap.set(matchingChannel, count + 1)
             channelFound = true
           } else {
-            // Usar tag como canal se não encontrar correspondência
             const count = channelMap.get(tag.name) || 0
             channelMap.set(tag.name, count + 1)
             channelFound = true
@@ -1365,7 +1304,6 @@ export class DashboardAdapter {
         })
       }
 
-      // Se ainda não encontrou, tentar por contact source
       if (!channelFound && card.contactIds && card.contactIds.length > 0) {
         const contact = allContacts.find((c: { id: string }) => card.contactIds?.includes(c.id))
         if (contact?.customFields?.source) {
@@ -1376,7 +1314,6 @@ export class DashboardAdapter {
         }
       }
 
-      // Se não encontrou nenhum canal, marcar como "Sem canal"
       if (!channelFound) {
         const count = channelMap.get('Sem canal') || 0
         channelMap.set('Sem canal', count + 1)
@@ -1403,7 +1340,6 @@ export class DashboardAdapter {
 
     return Array.from(tagMap.entries())
       .map(([tagId, data]) => {
-        // Find tag name from cards
         const cardWithTag = cards.find(c => c.tags?.some(t => t.id === tagId))
         const tagName = cardWithTag?.tags?.find(t => t.id === tagId)?.name || 'Sem nome'
         
@@ -1416,7 +1352,7 @@ export class DashboardAdapter {
         }
       })
       .sort((a, b) => b.count - a.count)
-      .slice(0, 50) // Top 50 tags
+      .slice(0, 50)
   }
 
   private buildDailyVolume(cards: HelenaCard[], filters: DashboardFilters): DailyVolumeData[] {
@@ -1425,7 +1361,6 @@ export class DashboardAdapter {
     const periodStart = periodDate.getTime()
     const periodEnd = periodDate.getTime() + 24 * 60 * 60 * 1000
 
-    // Group cards by day within the period
     const dailyMap = new Map<string, number>()
 
     cards.forEach(card => {

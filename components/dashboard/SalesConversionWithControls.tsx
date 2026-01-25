@@ -17,7 +17,7 @@ export default function SalesConversionWithControls({
   onDataPointClick,
 }: SalesConversionWithControlsProps) {
   const chartConfig: ChartConfig = useMemo(() => {
-    const sortedData = [...data.salesByWeek].reverse()
+    const sortedData = [...data.salesByWeek].sort((a, b) => a.week - b.week)
     
     const totalSales = sortedData.reduce((sum, w) => sum + w.value, 0)
     const averageSales = totalSales / sortedData.length
@@ -52,7 +52,7 @@ export default function SalesConversionWithControls({
       data: chartData,
       xAxisKey: 'name',
       yAxisKey: 'value',
-      height: 200, // Aumentar altura para melhor visualização
+      height: 200,
       useAdaptive,
       xAxisLabel: 'Semana',
       yAxisLabel: 'Vendas',
@@ -61,26 +61,24 @@ export default function SalesConversionWithControls({
 
   const handleDataPointClick = (clickData: any) => {
     console.log('[SalesConversionWithControls] handleDataPointClick called with:', clickData)
-    if (onDataPointClick && clickData) {
-      if (clickData.name && clickData.value !== undefined) {
-        if (clickData.week !== undefined) {
-          console.log('[SalesConversionWithControls] Using week from clickData:', clickData.week, clickData.name)
-          onDataPointClick(clickData.week, clickData.name)
-        } else {
-          const labelToFind = clickData.fullLabel || clickData.name
-          const sortedData = [...data.salesByWeek].reverse()
-          const weekData = sortedData.find((w) => w.label === labelToFind || w.label.includes(clickData.name))
-          console.log('[SalesConversionWithControls] Found weekData:', weekData)
-          if (weekData) {
-            console.log('[SalesConversionWithControls] Calling onDataPointClick with:', weekData.week, weekData.label)
-            onDataPointClick(weekData.week, weekData.label)
-          }
-        }
-      } else {
-        console.log('[SalesConversionWithControls] clickData format not recognized:', clickData)
+    if (!onDataPointClick || !clickData) return
+    if (!clickData.name || clickData.value === undefined) return
+    
+    if (clickData.week !== undefined) {
+      console.log('[SalesConversionWithControls] Using week from clickData:', clickData.week, clickData.name)
+      onDataPointClick(clickData.week, clickData.name)
+      return
+    }
+    
+    {
+      const labelToFind = clickData.fullLabel || clickData.name
+      const sortedData = [...data.salesByWeek].sort((a, b) => a.week - b.week)
+      const weekData = sortedData.find((w) => w.label === labelToFind || w.label.includes(clickData.name))
+      console.log('[SalesConversionWithControls] Found weekData:', weekData)
+      if (weekData) {
+        console.log('[SalesConversionWithControls] Calling onDataPointClick with:', weekData.week, weekData.label)
+        onDataPointClick(weekData.week, weekData.label)
       }
-    } else {
-      console.log('[SalesConversionWithControls] onDataPointClick not available or clickData is null')
     }
   }
 

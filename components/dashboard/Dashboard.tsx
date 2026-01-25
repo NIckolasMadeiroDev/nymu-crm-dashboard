@@ -110,13 +110,87 @@ export default function Dashboard() {
       globalThis.window.addEventListener('random-filter-notification-changed', handlePreferenceChange as EventListener)
     }
 
-    if (preferences.chartOrder && preferences.chartOrder.length > 0) {
+    const initializeChartOrder = () => {
+      if (!preferences.chartOrder || preferences.chartOrder.length === 0) return
+      
       const savedOrder = preferences.chartOrder
       const missingCharts = defaultChartOrder.filter((id) => !savedOrder.includes(id))
       if (missingCharts.length === 0) {
         setChartOrder(savedOrder)
       } else {
         setChartOrder([...savedOrder, ...missingCharts])
+      }
+    }
+    
+    initializeChartOrder()
+
+    const findDefaultPanel = (panels: Array<{ id: string; title: string; key: string }>) => {
+      return panels.find((panel) => 
+        panel.key === '02' || panel.title.includes('Máquina de Vendas')
+      )
+    }
+
+    const createDefaultFilters = (panelId?: string): DashboardData['filters'] => ({
+      date: '2025-12-17',
+      sdr: 'Todos',
+      college: 'Todas',
+      origin: '',
+      panelIds: panelId ? [panelId] : undefined,
+    })
+
+    const loadFiltersWithDefaultPanel = async (currentFilters: DashboardData['filters']) => {
+      try {
+        const filtersResponse = await fetch('/api/dashboard/filters')
+        if (!filtersResponse.ok) {
+          loadDashboardDataRef.current?.(currentFilters, false)
+          return
+        }
+        
+        const filtersData = await filtersResponse.json()
+        const panels = filtersData.panels || []
+        const defaultPanel = findDefaultPanel(panels)
+        
+        if (defaultPanel) {
+          const updatedFilters: DashboardData['filters'] = {
+            date: currentFilters.date || '2025-12-17',
+            sdr: currentFilters.sdr || 'Todos',
+            college: currentFilters.college || 'Todas',
+            origin: currentFilters.origin || '',
+            dateTo: currentFilters.dateTo,
+            panelIds: [defaultPanel.id],
+          }
+          dashboardPreferencesService.saveFilters(updatedFilters)
+          loadDashboardDataRef.current?.(updatedFilters, false)
+        } else {
+          loadDashboardDataRef.current?.(currentFilters, false)
+        }
+      } catch (error) {
+        console.error('Error loading default panel:', error)
+        loadDashboardDataRef.current?.(currentFilters, false)
+      }
+    }
+
+    const loadDefaultFilters = async () => {
+      try {
+        const filtersResponse = await fetch('/api/dashboard/filters')
+        if (!filtersResponse.ok) {
+          loadDashboardDataRef.current?.(createDefaultFilters(), false)
+          return
+        }
+        
+        const filtersData = await filtersResponse.json()
+        const panels = filtersData.panels || []
+        const defaultPanel = findDefaultPanel(panels)
+        const defaultFilters = createDefaultFilters(defaultPanel?.id)
+        
+        if (defaultPanel) {
+          dashboardPreferencesService.saveFilters(defaultFilters)
+        }
+        
+        loadDashboardDataRef.current?.(defaultFilters, false)
+      } catch (error) {
+        console.error('Error loading default filters:', error)
+        loadDashboardDataRef.current?.(createDefaultFilters(), false)
       }
     }
 
@@ -136,92 +210,11 @@ export default function Dashboard() {
 
     if (filtersToLoad) {
       if (!filtersToLoad.panelIds || filtersToLoad.panelIds.length === 0) {
-        const loadDefaultPanel = async () => {
-          const currentFilters = filtersToLoad
-          if (!currentFilters) return
-          
-          try {
-            const filtersResponse = await fetch('/api/dashboard/filters')
-            if (filtersResponse.ok) {
-              const filtersData = await filtersResponse.json()
-              const panels = filtersData.panels || []
-              const defaultPanel = panels.find((panel: { id: string; title: string; key: string }) => 
-                panel.key === '02' || panel.title.includes('Máquina de Vendas')
-              )
-              
-              if (defaultPanel) {
-                const updatedFilters: DashboardData['filters'] = {
-                  date: currentFilters.date || '2025-12-17',
-                  sdr: currentFilters.sdr || 'Todos',
-                  college: currentFilters.college || 'Todas',
-                  origin: currentFilters.origin || '',
-                  dateTo: currentFilters.dateTo,
-                  panelIds: [defaultPanel.id],
-                }
-                dashboardPreferencesService.saveFilters(updatedFilters)
-                loadDashboardDataRef.current?.(updatedFilters, false)
-              } else {
-                loadDashboardDataRef.current?.(currentFilters, false)
-              }
-            } else {
-              loadDashboardDataRef.current?.(currentFilters, false)
-            }
-          } catch (error) {
-            console.error('Error loading default panel:', error)
-            loadDashboardDataRef.current?.(currentFilters, false)
-          }
-        }
-        loadDefaultPanel()
+        loadFiltersWithDefaultPanel(filtersToLoad)
       } else {
         loadDashboardDataRef.current?.(filtersToLoad, false)
       }
     } else {
-      const loadDefaultFilters = async () => {
-        try {
-          const filtersResponse = await fetch('/api/dashboard/filters')
-          if (filtersResponse.ok) {
-            const filtersData = await filtersResponse.json()
-            const panels = filtersData.panels || []
-            const defaultPanel = panels.find((panel: { id: string; title: string; key: string }) => 
-              panel.key === '02' || panel.title.includes('Máquina de Vendas')
-            )
-            
-            const defaultFilters: DashboardData['filters'] = {
-              date: '2025-12-17',
-              sdr: 'Todos',
-              college: 'Todas',
-              origin: '',
-              panelIds: defaultPanel ? [defaultPanel.id] : undefined,
-            }
-            
-            if (defaultPanel) {
-              dashboardPreferencesService.saveFilters(defaultFilters)
-            }
-            
-            loadDashboardDataRef.current?.(defaultFilters, false)
-          } else {
-            const defaultFilters: DashboardData['filters'] = {
-              date: '2025-12-17',
-              sdr: 'Todos',
-              college: 'Todas',
-              origin: '',
-              panelIds: undefined,
-            }
-            loadDashboardDataRef.current?.(defaultFilters, false)
-          }
-        } catch (error) {
-          console.error('Error loading default filters:', error)
-          const defaultFilters: DashboardData['filters'] = {
-            date: '2025-12-17',
-            sdr: 'Todos',
-            college: 'Todas',
-            origin: '',
-            panelIds: undefined,
-          }
-          loadDashboardDataRef.current?.(defaultFilters, false)
-        }
-      }
-      
       loadDefaultFilters()
     }
 
@@ -915,7 +908,7 @@ export default function Dashboard() {
               const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
               const weekIndex = diffWeeks
               const requestedWeek = period.value
-              return weekIndex === (requestedWeek - 1) && weekIndex >= 0 && weekIndex < 12
+              return weekIndex === (12 - requestedWeek) && weekIndex >= 0 && weekIndex < 12
             } else if (period.type === 'days' && typeof period.value === 'number') {
               const days = period.value
               const now = new Date()
@@ -1026,7 +1019,7 @@ export default function Dashboard() {
               const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
               const weekIndex = diffWeeks
               const requestedWeek = period.value
-              return weekIndex === (requestedWeek - 1) && weekIndex >= 0 && weekIndex < 12
+              return weekIndex === (12 - requestedWeek) && weekIndex >= 0 && weekIndex < 12
             } else if (period.type === 'days' && typeof period.value === 'number') {
               const days = period.value
               const now = new Date()

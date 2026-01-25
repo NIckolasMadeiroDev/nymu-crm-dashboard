@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { dataSourceAdapter } from '@/services/data/data-source-adapter'
 import { helenaServiceFactory } from '@/services/helena/helena-service-factory'
 import { formatCurrency } from '@/utils/format-currency'
 import { requestDeduplicator } from '@/services/helena/adapters/request-deduplicator'
@@ -16,24 +15,20 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Determinar o tipo de gráfico e como filtrar
     const chartTitleLower = chartTitle?.toLowerCase() || ''
     const isLeadsCreated = chartTitleLower.includes('leads criados') || 
                            chartTitleLower.includes('geração')
     const isLeadStock = chartTitleLower.includes('estoque de leads')
     const isSalesByConversionTime = chartTitleLower.includes('tempo de conversão')
 
-    // Buscar todos os cards (deals) e contatos
     const cardsService = helenaServiceFactory.getCardsService()
     const contactsService = helenaServiceFactory.getContactsService()
     const panelsService = helenaServiceFactory.getPanelsService()
 
-    // Buscar todos os painéis para obter os steps
-    // Use request deduplicator to prevent multiple simultaneous requests
     const panels = await requestDeduplicator.execute(
       'getPanelsWithDetails',
       () => panelsService.getPanelsWithDetails(),
-      2000 // Minimum 2 seconds between panel requests
+      2000
     )
     const stepMap = new Map<string, any>()
 
@@ -49,10 +44,8 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Buscar todos os cards
     let allCards: any[] = []
     if (filters.panelIds && filters.panelIds.length > 0) {
-      // Buscar cards dos painéis selecionados
       const cardsPromises = filters.panelIds.map((panelId: string) =>
         cardsService.getAllCardsByPanel(panelId).catch(() => [])
       )
@@ -61,7 +54,6 @@ export async function POST(request: NextRequest) {
         .filter((result) => result.status === 'fulfilled')
         .flatMap((result) => (result as PromiseFulfilledResult<any[]>).value)
     } else {
-      // Buscar cards de todos os painéis
       const departmentPanels = panels.filter(
         (p: any) => !p.archived && p.scope === 'DEPARTMENT'
       )
@@ -74,37 +66,18 @@ export async function POST(request: NextRequest) {
         .flatMap((result) => (result as PromiseFulfilledResult<any[]>).value)
     }
 
-    // Filtrar cards baseado no tipo de gráfico
     const deals = allCards
       .filter((card: any) => {
         if (card.archived) return false
         
         if (isLeadsCreated) {
-          // Para "Leads Criados", buscar todos os cards não arquivados
-          // Mas precisamos ter createdAt
           if (!card.createdAt) return false
           return true
         } else if (isLeadStock) {
-          // Para "Estoque de Leads", buscar todos os cards não arquivados
-          // O filtro por categoria será feito depois baseado no stepId
           return true
-        } else if (isSalesByConversionTime) {
-          // Para "Vendas por Tempo de Conversão", buscar apenas vendas fechadas
+        } else if (isSalesByConversionTime || !isLeadsCreated && !isLeadStock) {
           const stepInfo = stepMap.get(card.stepId || '')
-          if (!stepInfo || !stepInfo.isFinal) return false
-
-          const stepTitle = stepInfo.title?.toLowerCase() || ''
-          return (
-            stepTitle.includes('ganho') ||
-            stepTitle.includes('fechado') ||
-            stepTitle.includes('concluído') ||
-            stepTitle.includes('vendido') ||
-            stepTitle.includes('cliente ganho')
-          )
-        } else {
-          // Para "Vendas", buscar apenas deals fechados (cards em etapas finais)
-          const stepInfo = stepMap.get(card.stepId || '')
-          if (!stepInfo || !stepInfo.isFinal) return false
+          if (!stepInfo?.isFinal) return false
 
           const stepTitle = stepInfo.title?.toLowerCase() || ''
           return (
@@ -129,111 +102,87 @@ export async function POST(request: NextRequest) {
         contactIds: card.contactIds || [],
       }))
 
-    // Log para debug
     if (process.env.NODE_ENV === 'development') {
       console.log(`[API] After initial filter: deals.length=${deals.length}`)
     }
 
-    // Filtrar deals por período e categoria (se aplicável)
+    const matchesLeadStockCategory = (deal: any, category: string, stepInfo: any): boolean => {
+      if (category === 'contactlist' || category === 'contact_list') {
+        return !stepInfo.isFinal && stepInfo.position === 0
+      }
+      if (category === 'firstcontact' || category === 'first_contact') {
+        return !stepInfo.isFinal && stepInfo.position > 0 && stepInfo.position <= 1
+      }
+      if (category === 'ingroup' || category === 'in_group') {
+        return !stepInfo.isFinal && stepInfo.position > 1 && stepInfo.position <= 2
+      }
+      if (category === 'postmeet' || category === 'post_meet') {
+        return !stepInfo.isFinal && stepInfo.position > 2
+      }
+      return true
+    }
+
+    const matchesWeekPeriod = (dealDate: Date, requestedWeek: number): boolean => {
+      const now = Date.now()
+      const cardTime = dealDate.getTime()
+      const diffMs = now - cardTime
+      const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
+      const weekIndex = diffWeeks
+      const matches = weekIndex === (12 - requestedWeek) && weekIndex >= 0 && weekIndex < 12
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[API] Week filter: cardDate=${dealDate.toISOString()}, diffWeeks=${diffWeeks}, weekIndex=${weekIndex}, requestedWeek=${requestedWeek}, matches=${matches}`)
+      }
+      
+      return matches
+    }
+
+    const matchesDaysPeriod = (dealDate: Date, days: number): boolean => {
+      const now = new Date()
+      const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+      return dealDate >= daysAgo && dealDate <= now
+    }
+
+    const matchesDatePeriod = (dealDate: Date, periodValue: string): boolean => {
+      const periodDate = new Date(periodValue)
+      return (
+        dealDate.getFullYear() === periodDate.getFullYear() &&
+        dealDate.getMonth() === periodDate.getMonth() &&
+        dealDate.getDate() === periodDate.getDate()
+      )
+    }
+
     const filteredDeals = deals.filter((deal: any) => {
-      // Para LeadStock, filtrar por categoria se especificada
       if (isLeadStock && period.type === 'date' && typeof period.value === 'string') {
         const stepInfo = stepMap.get(deal.stepId || '')
         if (!stepInfo) return false
-        
-        const category = period.value.toLowerCase().replace(/\s+/g, '')
-        const stepTitle = stepInfo.title?.toLowerCase() || ''
-        
-        // Mapear categorias para etapas (aceitar tanto camelCase quanto minúsculas)
-        if (category === 'contactlist' || category === 'contact_list') {
-          // Lista de Contato - etapa inicial
-          return !stepInfo.isFinal && stepInfo.position === 0
-        } else if (category === 'firstcontact' || category === 'first_contact') {
-          // Primeiro Contato - primeira etapa após inicial
-          return !stepInfo.isFinal && stepInfo.position > 0 && stepInfo.position <= 1
-        } else if (category === 'ingroup' || category === 'in_group') {
-          // No Grupo - etapas intermediárias
-          return !stepInfo.isFinal && stepInfo.position > 1 && stepInfo.position <= 2
-        } else if (category === 'postmeet' || category === 'post_meet') {
-          // Pós-Meet - etapas próximas ao final
-          return !stepInfo.isFinal && stepInfo.position > 2
-        }
-        // Se não corresponder a nenhuma categoria específica, retornar todos
-        return true
+        const category = period.value.toLowerCase().split(/\s+/).join('')
+        return matchesLeadStockCategory(deal, category, stepInfo)
       }
 
-      // Para leads criados, usar createdAt; para vendas, usar closedAt ou updatedAt
       const dateField = isLeadsCreated ? deal.createdAt : (deal.closedAt || deal.updatedAt)
       if (!dateField) return false
 
       const dealDate = new Date(dateField)
 
       if (period.type === 'week') {
-        // Para "Leads Criados por Semana", usar a mesma lógica do dashboard
-        // que calcula semanas relativas (0 = esta semana, 1 = semana passada, etc.)
-        if (isLeadsCreated) {
-          const now = Date.now()
-          const cardTime = dealDate.getTime()
-          const diffMs = now - cardTime
-          const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
-          
-          // O gráfico usa week 1, 2, 3... mas o cálculo retorna 0, 1, 2...
-          // Então precisamos converter: week 3 = diffWeeks 2
-          // Sem 1 = esta semana (diffWeeks 0)
-          // Sem 2 = semana passada (diffWeeks 1)
-          // Sem 3 = 2 semanas atrás (diffWeeks 2)
-          const weekIndex = diffWeeks
-          const requestedWeek = typeof period.value === 'number' ? period.value : Number.parseInt(String(period.value), 10)
-          
-          const matches = weekIndex === (requestedWeek - 1) && weekIndex >= 0 && weekIndex < 12
-          
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[API] Week filter: cardDate=${dealDate.toISOString()}, diffWeeks=${diffWeeks}, weekIndex=${weekIndex}, requestedWeek=${requestedWeek}, matches=${matches}`)
-          }
-          
-          return matches
-        } else {
-          // Para vendas, usar a mesma lógica do dashboard: semanas relativas
-          const now = Date.now()
-          const cardTime = dealDate.getTime()
-          const diffMs = now - cardTime
-          const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
-          
-          // O gráfico usa week 1, 2, 3... mas o cálculo retorna 0, 1, 2...
-          // Sem 1 = esta semana (diffWeeks 0)
-          // Sem 2 = semana passada (diffWeeks 1)
-          // Sem 3 = 2 semanas atrás (diffWeeks 2)
-          const weekIndex = diffWeeks
-          const requestedWeek = typeof period.value === 'number' ? period.value : Number.parseInt(String(period.value), 10)
-          
-          const matches = weekIndex === (requestedWeek - 1) && weekIndex >= 0 && weekIndex < 12
-          
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[API] Sales week filter: cardDate=${dealDate.toISOString()}, diffWeeks=${diffWeeks}, weekIndex=${weekIndex}, requestedWeek=${requestedWeek}, matches=${matches}`)
-          }
-          
-          return matches
-        }
-      } else if (period.type === 'days') {
-        const days = typeof period.value === 'number' ? period.value : 0
-        const now = new Date()
-        const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
-        return dealDate >= daysAgo && dealDate <= now
-      } else if (period.type === 'date') {
-        // Para LeadStock, já foi filtrado acima
-        if (isLeadStock) return true
-        
-        const periodDate = new Date(period.value as string)
-        return (
-          dealDate.getFullYear() === periodDate.getFullYear() &&
-          dealDate.getMonth() === periodDate.getMonth() &&
-          dealDate.getDate() === periodDate.getDate()
-        )
+        const requestedWeek = typeof period.value === 'number' ? period.value : Number.parseInt(String(period.value), 10)
+        return matchesWeekPeriod(dealDate, requestedWeek)
       }
+      
+      if (period.type === 'days') {
+        const days = typeof period.value === 'number' ? period.value : 0
+        return matchesDaysPeriod(dealDate, days)
+      }
+      
+      if (period.type === 'date') {
+        if (isLeadStock) return true
+        return matchesDatePeriod(dealDate, period.value as string)
+      }
+      
       return false
     })
 
-    // Buscar contatos associados
     const contactIds = new Set<string>()
     filteredDeals.forEach((deal: any) => {
       if (deal.contactIds && Array.isArray(deal.contactIds)) {
@@ -252,7 +201,6 @@ export async function POST(request: NextRequest) {
         .map((result) => (result as PromiseFulfilledResult<any>).value)
     }
 
-    // Buscar informações de usuários
     const usersService = helenaServiceFactory.getUsersService()
     const userIds = new Set<string>()
     filteredDeals.forEach((deal: any) => {
@@ -269,12 +217,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Log para debug
     if (process.env.NODE_ENV === 'development') {
       console.log(`[API] After period filter: filteredDeals.length=${filteredDeals.length}`)
     }
 
-    // Enriquecer deals com informações formatadas
     const enrichedDeals = filteredDeals.map((deal: any) => {
       const dealDate = isLeadsCreated ? new Date(deal.createdAt) : new Date(deal.closedAt || deal.updatedAt)
       const contact = contacts.find((c) => deal.contactIds?.includes(c.id))
@@ -282,7 +228,6 @@ export async function POST(request: NextRequest) {
 
       return {
         ...deal,
-        // Datas formatadas
         createdAtFormatted: deal.createdAt
           ? new Date(deal.createdAt).toLocaleDateString('pt-BR', {
               day: '2-digit',
@@ -310,16 +255,12 @@ export async function POST(request: NextRequest) {
               minute: '2-digit',
             })
           : null,
-        // Valor formatado
         valueFormatted: formatCurrency(deal.value || 0),
-        // Informações de contato
         contactName: contact?.name || deal.title || 'Sem contato associado',
         contactEmail: contact?.email || null,
         contactPhone: contact?.phone || null,
-        // Informações de responsável
         ownerName: user?.name || deal.owner || 'Não atribuído',
         ownerEmail: user?.email || null,
-        // Data relevante para o período
         relevantDate: dealDate.toISOString(),
         relevantDateFormatted: dealDate.toLocaleDateString('pt-BR', {
           day: '2-digit',

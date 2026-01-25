@@ -17,7 +17,7 @@ export default function GenerationActivationWithControls({
   onDataPointClick,
 }: GenerationActivationWithControlsProps) {
   const chartConfig: ChartConfig = useMemo(() => {
-    const sortedData = [...data.leadsCreatedByWeek].reverse()
+    const sortedData = [...data.leadsCreatedByWeek].sort((a, b) => a.week - b.week)
     
     const totalLeads = sortedData.reduce((sum, w) => sum + w.value, 0)
     const averageLeads = totalLeads / sortedData.length
@@ -56,26 +56,24 @@ export default function GenerationActivationWithControls({
 
   const handleDataPointClick = (clickData: any) => {
     console.log('[GenerationActivationWithControls] handleDataPointClick called with:', clickData)
-    if (onDataPointClick && clickData) {
-      if (clickData.name && clickData.value !== undefined) {
-        if (clickData.week !== undefined) {
-          console.log('[GenerationActivationWithControls] Using week from clickData:', clickData.week, clickData.name)
-          onDataPointClick(clickData.week, clickData.name)
-        } else {
-          const labelToFind = clickData.fullLabel || clickData.name
-          const sortedData = [...data.leadsCreatedByWeek].reverse()
-          const weekData = sortedData.find((w) => w.label === labelToFind || w.label.includes(clickData.name))
-          console.log('[GenerationActivationWithControls] Found weekData:', weekData)
-          if (weekData) {
-            console.log('[GenerationActivationWithControls] Calling onDataPointClick with:', weekData.week, weekData.label)
-            onDataPointClick(weekData.week, weekData.label)
-          }
-        }
-      } else {
-        console.log('[GenerationActivationWithControls] clickData format not recognized:', clickData)
+    if (!onDataPointClick || !clickData) return
+    if (!clickData.name || clickData.value === undefined) return
+    
+    if (clickData.week !== undefined) {
+      console.log('[GenerationActivationWithControls] Using week from clickData:', clickData.week, clickData.name)
+      onDataPointClick(clickData.week, clickData.name)
+      return
+    }
+    
+    {
+      const labelToFind = clickData.fullLabel || clickData.name
+      const sortedData = [...data.leadsCreatedByWeek].sort((a, b) => a.week - b.week)
+      const weekData = sortedData.find((w) => w.label === labelToFind || w.label.includes(clickData.name))
+      console.log('[GenerationActivationWithControls] Found weekData:', weekData)
+      if (weekData) {
+        console.log('[GenerationActivationWithControls] Calling onDataPointClick with:', weekData.week, weekData.label)
+        onDataPointClick(weekData.week, weekData.label)
       }
-    } else {
-      console.log('[GenerationActivationWithControls] onDataPointClick not available or clickData is null')
     }
   }
 

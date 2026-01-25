@@ -29,7 +29,7 @@ interface GenerationActivationProps {
 
 export default function GenerationActivation({ data }: GenerationActivationProps) {
   const chartData = useMemo(() => {
-    const sortedData = [...data.leadsCreatedByWeek].reverse()
+    const sortedData = [...data.leadsCreatedByWeek].sort((a, b) => a.week - b.week)
     
     return {
       labels: sortedData.map((w) => w.label),
