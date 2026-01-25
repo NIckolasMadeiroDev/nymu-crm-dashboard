@@ -9,7 +9,7 @@ import {
   type FilterPreset,
 } from '@/services/filters/filter-presets-service'
 interface FilterPresetsProps {
-  readonly onSelectPreset: (filters: DashboardFilters) => void
+  readonly onSelectPreset: (filters: DashboardFilters) => Promise<void>
   readonly currentFilters: DashboardFilters
   readonly onPresetSelected?: (presetId: string | null) => void
 }
@@ -26,7 +26,7 @@ export default function FilterPresets({
     setPresets(filterPresetsService.getPresets())
   }, [])
 
-  const handleSelectPreset = (presetId: string) => {
+  const handleSelectPreset = async (presetId: string) => {
     if (!presetId) {
       setSelectedPresetId(null)
       onPresetSelected?.(null)
@@ -36,7 +36,11 @@ export default function FilterPresets({
     if (preset) {
       setSelectedPresetId(presetId)
       onPresetSelected?.(presetId)
-      onSelectPreset(preset.filters)
+      const filtersToApply = {
+        ...preset.filters,
+        panelIds: currentFilters.panelIds,
+      }
+      await onSelectPreset(filtersToApply)
     }
   }
 

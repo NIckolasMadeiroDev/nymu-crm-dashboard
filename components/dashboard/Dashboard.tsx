@@ -441,7 +441,7 @@ export default function Dashboard() {
     loadDashboardData()
   }
 
-  const handleFilterChange = (filters: DashboardData['filters']) => {
+  const handleFilterChange = async (filters: DashboardData['filters']): Promise<void> => {
     const currentPanelIds = dashboardData?.filters?.panelIds
     
     const mergedFilters: DashboardData['filters'] = {
@@ -451,7 +451,7 @@ export default function Dashboard() {
     
     dashboardPreferencesService.saveFilters(mergedFilters)
 
-    loadDashboardData(mergedFilters, true)
+    await loadDashboardData(mergedFilters, true)
   }
 
   const handlePanelChange = async (panelId: string) => {

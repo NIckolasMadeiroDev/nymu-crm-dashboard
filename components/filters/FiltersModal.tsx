@@ -13,7 +13,7 @@ interface FiltersModalProps {
   readonly isOpen: boolean
   readonly onClose: () => void
   readonly filters: DashboardFilters
-  readonly onFilterChange: (filters: DashboardFilters) => void
+  readonly onFilterChange: (filters: DashboardFilters) => Promise<void>
   readonly selectedPresetId?: string | null
   readonly onPresetUpdated?: () => void
 }
@@ -182,7 +182,6 @@ export default function FiltersModal({
         ...localFilters,
         panelIds: localFilters.panelIds || filters.panelIds,
       }
-      onFilterChange(mergedFilters)
       
       // Mostrar toast de confirmação
       toast.success('Filtros aplicados! Carregando dados...', {
@@ -190,15 +189,15 @@ export default function FiltersModal({
         icon: '✅',
       })
       
-      // Aguardar um tempo mínimo para garantir que o usuário veja o feedback
-      // e os dados comecem a carregar
-      await new Promise(resolve => setTimeout(resolve, 600))
+      // Aguardar o carregamento completo dos dados antes de fechar o modal
+      await onFilterChange(mergedFilters)
       
-      // Fechar o modal após aplicar os filtros
+      // Fechar o modal após os dados serem carregados
       onClose()
     } catch (error) {
       console.error('Erro ao aplicar filtros:', error)
       toast.error('Erro ao aplicar filtros. Tente novamente.')
+    } finally {
       setIsApplyingFilters(false)
     }
   }
