@@ -157,7 +157,7 @@ export class DashboardAdapter {
     const { leads, deals } = this.processData(contacts, cards, stepMap)
     this.logProcessedData(leads, deals, contacts, panels, wallets, cards, stepMap)
 
-    const { filteredLeads, filteredDeals, filteredContacts } = this.applyFilters(leads, deals, contacts, filters)
+    const { filteredLeads, filteredDeals, filteredContacts } = await this.applyFilters(leads, deals, contacts, filters)
     this.logFilteredData(filteredLeads, filteredDeals, filteredContacts)
 
     const { dealsData, leadsData } = this.prepareDataStructures(filteredDeals, cards)
@@ -232,10 +232,10 @@ export class DashboardAdapter {
     return { leads, deals }
   }
 
-  private applyFilters(leads: LeadLike[], deals: CrmDeal[], contacts: any[], filters: DashboardFilters) {
+  private async applyFilters(leads: LeadLike[], deals: CrmDeal[], contacts: any[], filters: DashboardFilters) {
     return {
       filteredLeads: this.filterLeads(leads, filters),
-      filteredDeals: this.filterDeals(deals, filters),
+      filteredDeals: await this.filterDeals(deals, filters),
       filteredContacts: this.filterContacts(contacts, filters),
     }
   }
@@ -583,13 +583,36 @@ export class DashboardAdapter {
     })
   }
 
-  private filterDeals(deals: CrmDeal[], filters: DashboardFilters): CrmDeal[] {
-    return deals.filter((deal) => {
-      if (filters.sdr && filters.sdr !== 'Todos' && deal.owner !== filters.sdr) {
-        return false
+  private async filterDeals(deals: CrmDeal[], filters: DashboardFilters): Promise<CrmDeal[]> {
+    if (!filters.sdr || filters.sdr === 'Todos') {
+      return deals
+    }
+
+    try {
+      const { helenaServiceFactory } = await import('../helena-service-factory')
+      const usersService = helenaServiceFactory.getUsersService()
+      const allUsers = await usersService.getAllUsers()
+      
+      const nameToIdMap = new Map<string, string>()
+      allUsers.forEach((user: any) => {
+        if (user.id && user.name) {
+          nameToIdMap.set(user.name, user.id)
+        }
+      })
+
+      const selectedUserId = nameToIdMap.get(filters.sdr)
+      
+      if (!selectedUserId) {
+        return deals
       }
-      return true
-    })
+
+      return deals.filter((deal) => {
+        return deal.owner === selectedUserId
+      })
+    } catch (error) {
+      console.error('Error filtering deals by SDR:', error)
+      return deals
+    }
   }
 
   private filterContacts(contacts: HelenaContact[], filters: DashboardFilters): HelenaContact[] {
@@ -1053,15 +1076,20 @@ export class DashboardAdapter {
     return { startDate, endDate }
   }
 
-  private groupLeadsByWeek(leads: LeadLike[], filters: DashboardFilters): number[] {
+  private groupItemsByWeek<T>(
+    items: T[],
+    filters: DashboardFilters,
+    getDate: (item: T) => string
+  ): number[] {
     const weeks: number[] = new Array(12).fill(0)
     const periodBase = this.getPeriodBase(filters)
+    const weekDuration = 7 * 24 * 60 * 60 * 1000
 
     if (!periodBase) {
-      leads.forEach((lead) => {
-        const leadDate = new Date(lead.createdAt)
+      items.forEach((item) => {
+        const itemDate = new Date(getDate(item))
         const weekIndex = Math.floor(
-          (Date.now() - leadDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+          (Date.now() - itemDate.getTime()) / weekDuration
         )
 
         if (weekIndex >= 0 && weekIndex < 12) {
@@ -1071,17 +1099,15 @@ export class DashboardAdapter {
       return weeks
     }
 
-    const weekDuration = 7 * 24 * 60 * 60 * 1000
-
-    leads.forEach((lead) => {
-      const leadDate = new Date(lead.createdAt)
-      const leadTime = leadDate.getTime()
+    items.forEach((item) => {
+      const itemDate = new Date(getDate(item))
+      const itemTime = itemDate.getTime()
       
-      if (leadTime < periodBase.startDate.getTime() || leadTime > periodBase.endDate.getTime()) {
+      if (itemTime < periodBase.startDate.getTime() || itemTime > periodBase.endDate.getTime()) {
         return
       }
 
-      const diffFromStart = leadTime - periodBase.startDate.getTime()
+      const diffFromStart = itemTime - periodBase.startDate.getTime()
       const weekIndex = Math.floor(diffFromStart / weekDuration)
 
       if (weekIndex >= 0 && weekIndex < 12) {
@@ -1091,86 +1117,18 @@ export class DashboardAdapter {
     })
 
     return weeks
+  }
+
+  private groupLeadsByWeek(leads: LeadLike[], filters: DashboardFilters): number[] {
+    return this.groupItemsByWeek(leads, filters, (lead) => lead.createdAt)
   }
 
   private groupDealsByWeek(deals: CrmDeal[], filters: DashboardFilters): number[] {
-    const weeks: number[] = new Array(12).fill(0)
-    const periodBase = this.getPeriodBase(filters)
-
-    if (!periodBase) {
-      deals.forEach((deal) => {
-        const dealDate = new Date(deal.createdAt)
-        const weekIndex = Math.floor(
-          (Date.now() - dealDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
-        )
-
-        if (weekIndex >= 0 && weekIndex < 12) {
-          weeks[weekIndex]++
-        }
-      })
-      return weeks
-    }
-
-    const weekDuration = 7 * 24 * 60 * 60 * 1000
-
-    deals.forEach((deal) => {
-      const dealDate = new Date(deal.closedAt || deal.updatedAt || deal.createdAt)
-      const dealTime = dealDate.getTime()
-      
-      if (dealTime < periodBase.startDate.getTime() || dealTime > periodBase.endDate.getTime()) {
-        return
-      }
-
-      const diffFromStart = dealTime - periodBase.startDate.getTime()
-      const weekIndex = Math.floor(diffFromStart / weekDuration)
-
-      if (weekIndex >= 0 && weekIndex < 12) {
-        const mappedIndex = Math.min(weekIndex, 11)
-        weeks[mappedIndex]++
-      }
-    })
-
-    return weeks
+    return this.groupItemsByWeek(deals, filters, (deal) => deal.closedAt || deal.updatedAt || deal.createdAt)
   }
 
   private groupCardsByWeek(cards: any[], filters: DashboardFilters): number[] {
-    const weeks: number[] = new Array(12).fill(0)
-    const periodBase = this.getPeriodBase(filters)
-
-    if (!periodBase) {
-      cards.forEach((card) => {
-        const cardDate = new Date(card.createdAt)
-        const weekIndex = Math.floor(
-          (Date.now() - cardDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
-        )
-
-        if (weekIndex >= 0 && weekIndex < 12) {
-          weeks[weekIndex]++
-        }
-      })
-      return weeks
-    }
-
-    const weekDuration = 7 * 24 * 60 * 60 * 1000
-
-    cards.forEach((card) => {
-      const cardDate = new Date(card.createdAt)
-      const cardTime = cardDate.getTime()
-      
-      if (cardTime < periodBase.startDate.getTime() || cardTime > periodBase.endDate.getTime()) {
-        return
-      }
-
-      const diffFromStart = cardTime - periodBase.startDate.getTime()
-      const weekIndex = Math.floor(diffFromStart / weekDuration)
-
-      if (weekIndex >= 0 && weekIndex < 12) {
-        const mappedIndex = Math.min(weekIndex, 11)
-        weeks[mappedIndex]++
-      }
-    })
-
-    return weeks
+    return this.groupItemsByWeek(cards, filters, (card) => card.createdAt)
   }
 
   private async buildOperationalMetrics(
@@ -1315,14 +1273,14 @@ export class DashboardAdapter {
         averageSeconds: Math.round((avgWaitMinutes % 1) * 60),
         formatted: `${Math.floor(avgWaitMinutes)} min ${Math.round((avgWaitMinutes % 1) * 60)} seg`,
         consideredCount: waitTimes.length,
-        trend: 'stable', // Could be calculated based on previous periods
+        trend: 'stable',
       },
       duration: {
         averageHours: Math.floor(avgDurationHours),
         averageMinutes: Math.round((avgDurationHours % 1) * 60),
         formatted: `${Math.floor(avgDurationHours)}h ${Math.round((avgDurationHours % 1) * 60)}min`,
         consideredCount: durations.length,
-        trend: 'stable', // Could be calculated based on previous periods
+        trend: 'stable',
       },
     }
   }

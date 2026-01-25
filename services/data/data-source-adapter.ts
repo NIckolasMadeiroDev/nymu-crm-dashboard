@@ -65,13 +65,27 @@ class HelenaDataSource implements DataSource {
         )
       )
 
-      const sdrs: string[] = Array.from(
+      const usersService = helenaServiceFactory.getUsersService()
+      const allUsers = await usersService.getAllUsers()
+      const userIdToNameMap = new Map<string, string>()
+      allUsers.forEach((user: any) => {
+        if (user.id && user.name) {
+          userIdToNameMap.set(user.id, user.name)
+        }
+      })
+
+      const uniqueUserIds = Array.from(
         new Set(
           deals
-            .map((deal: any) => deal.owner)
+            .map((deal: any) => deal.owner || deal.responsibleUserId)
             .filter(Boolean)
         )
       )
+
+      const sdrs: string[] = uniqueUserIds
+        .map((userId: string) => userIdToNameMap.get(userId) || userId)
+        .filter(Boolean)
+        .sort()
 
       const colleges: string[] = Array.from(
         new Set(

@@ -48,7 +48,7 @@ export default function FiltersModal({
   // Inicializar filtros locais quando o modal abre ou quando os filtros externos mudam
   useEffect(() => {
     if (isOpen) {
-      const initializedFilters = { ...filters }
+      const initializedFilters = { ...filters, origin: '' }
       if (filters.date && !filters.dateTo) {
         initializedFilters.dateTo = calculateDateTo(filters.date)
       }
@@ -181,6 +181,7 @@ export default function FiltersModal({
       const mergedFilters: DashboardFilters = {
         ...localFilters,
         panelIds: localFilters.panelIds || filters.panelIds,
+        origin: '',
       }
       
       // Mostrar toast de confirmação
@@ -291,7 +292,7 @@ export default function FiltersModal({
                 htmlFor="filter-sdr"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary mb-2"
               >
-                SDR
+                SDR - Responsável
               </label>
               <select
                 id="filter-sdr"
@@ -334,7 +335,7 @@ export default function FiltersModal({
               </select>
             </div>
 
-            <div>
+            <div className="hidden">
               <label
                 htmlFor="filter-origin"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary mb-2"
@@ -343,18 +344,13 @@ export default function FiltersModal({
               </label>
               <select
                 id="filter-origin"
-                value={localFilters.origin}
-                onChange={(e) => handleChange('origin', e.target.value)}
-                disabled={isApplyingFilters}
+                value=""
+                onChange={() => {}}
+                disabled={true}
                 aria-label="Filtro de origem"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">Todas</option>
-                {availableOrigins.map((origin) => (
-                  <option key={origin} value={origin}>
-                    {origin}
-                  </option>
-                ))}
               </select>
             </div>
           </div>
