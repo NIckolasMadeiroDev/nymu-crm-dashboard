@@ -38,6 +38,7 @@ export default function SettingsModal({
   const [showDarkColors, setShowDarkColors] = useState(false)
   const [lightColors, setLightColors] = useState<DefaultThemeColors>(themeService.getAlternativeLightTheme())
   const [darkColors, setDarkColors] = useState<DefaultThemeColors>(themeService.getAlternativeDarkTheme())
+  const [randomFilterNotificationEnabled, setRandomFilterNotificationEnabled] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -46,6 +47,7 @@ export default function SettingsModal({
       setCustomThemes(themeService.getCustomThemes())
       setLightColors(themeService.getAlternativeLightTheme())
       setDarkColors(themeService.getAlternativeDarkTheme())
+      setRandomFilterNotificationEnabled(dashboardPreferencesService.isRandomFilterNotificationEnabled())
 
       if (theme === 'custom') {
         const customId = themeService.getCurrentCustomThemeId()
@@ -326,6 +328,41 @@ export default function SettingsModal({
                   />
                 </div>
               )}
+            </div>
+
+            <div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
+                    Exibir Aviso de Filtros Aplicados
+                  </span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Exibe o aviso com os filtros ativos entre o Dashboard e os botões de funções do sistema
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={randomFilterNotificationEnabled}
+                  aria-label="Exibir Aviso de Filtros Aplicados"
+                  onClick={() => {
+                    const enabled = !randomFilterNotificationEnabled
+                    setRandomFilterNotificationEnabled(enabled)
+                    dashboardPreferencesService.setRandomFilterNotificationEnabled(enabled)
+                  }}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    randomFilterNotificationEnabled
+                      ? 'bg-blue-600 dark:bg-blue-500'
+                      : 'bg-gray-200 dark:bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      randomFilterNotificationEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
             <div>

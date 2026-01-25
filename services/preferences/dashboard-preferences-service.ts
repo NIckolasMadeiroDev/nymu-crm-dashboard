@@ -9,6 +9,7 @@ export interface DashboardPreferences {
   filters: DashboardFilters | null
   chartOrder?: string[]
   widgetHeight?: WidgetHeight
+  randomFilterNotificationEnabled?: boolean
 }
 
 const STORAGE_KEY = 'crm-dashboard-preferences'
@@ -19,6 +20,7 @@ class DashboardPreferencesService {
     selectedPresetId: null,
     filters: null,
     widgetHeight: 'normal',
+    randomFilterNotificationEnabled: false,
   }
 
   getPreferences(): DashboardPreferences {
@@ -35,6 +37,7 @@ class DashboardPreferencesService {
           selectedPresetId: parsed.selectedPresetId ?? this.defaultPreferences.selectedPresetId,
           filters: parsed.filters || this.defaultPreferences.filters,
           widgetHeight: parsed.widgetHeight || this.defaultPreferences.widgetHeight,
+          randomFilterNotificationEnabled: parsed.randomFilterNotificationEnabled ?? this.defaultPreferences.randomFilterNotificationEnabled,
         }
       }
     } catch (error) {
@@ -98,6 +101,17 @@ class DashboardPreferencesService {
         return 500
       default:
         return 360
+    }
+  }
+
+  isRandomFilterNotificationEnabled(): boolean {
+    return this.getPreferences().randomFilterNotificationEnabled ?? false
+  }
+
+  setRandomFilterNotificationEnabled(enabled: boolean): void {
+    this.savePreferences({ randomFilterNotificationEnabled: enabled })
+    if (globalThis.window !== undefined) {
+      globalThis.window.dispatchEvent(new CustomEvent('random-filter-notification-changed', { detail: { enabled } }))
     }
   }
 

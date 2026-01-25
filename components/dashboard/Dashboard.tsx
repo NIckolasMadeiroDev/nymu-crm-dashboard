@@ -52,7 +52,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [loadingPanel, setLoadingPanel] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showFiltersInfo, setShowFiltersInfo] = useState(true)
+  const [showFiltersInfo, setShowFiltersInfo] = useState(false)
   const [hasPermanentErrors, setHasPermanentErrors] = useState(false)
   const [showFiltersModal, setShowFiltersModal] = useState(false)
   const [showHelpModal, setShowHelpModal] = useState(false)
@@ -97,6 +97,19 @@ export default function Dashboard() {
     if (preferences.chartLayout) {
       setChartLayout(preferences.chartLayout)
     }
+    const isNotificationEnabled = dashboardPreferencesService.isRandomFilterNotificationEnabled()
+    setShowFiltersInfo(isNotificationEnabled)
+
+    const handlePreferenceChange = () => {
+      const enabled = dashboardPreferencesService.isRandomFilterNotificationEnabled()
+      setShowFiltersInfo(enabled)
+    }
+
+    if (globalThis.window !== undefined) {
+      globalThis.window.addEventListener('storage', handlePreferenceChange)
+      globalThis.window.addEventListener('random-filter-notification-changed', handlePreferenceChange as EventListener)
+    }
+
     if (preferences.chartOrder && preferences.chartOrder.length > 0) {
       const savedOrder = preferences.chartOrder
       const missingCharts = defaultChartOrder.filter((id) => !savedOrder.includes(id))
@@ -212,6 +225,12 @@ export default function Dashboard() {
       loadDefaultFilters()
     }
 
+    return () => {
+      if (globalThis.window !== undefined) {
+        globalThis.window.removeEventListener('storage', handlePreferenceChange)
+        globalThis.window.removeEventListener('random-filter-notification-changed', handlePreferenceChange as EventListener)
+      }
+    }
   }, [defaultChartOrder])
 
   const handlePresetSelected = (presetId: string | null) => {
@@ -1682,7 +1701,10 @@ export default function Dashboard() {
             {dashboardData?.filters && showFiltersInfo && (
               <div className="mb-3 sm:mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 relative">
                 <button
-                  onClick={() => setShowFiltersInfo(false)}
+                  onClick={() => {
+                    setShowFiltersInfo(false)
+                    dashboardPreferencesService.setRandomFilterNotificationEnabled(false)
+                  }}
                   className="absolute top-2 right-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-1"
                   aria-label="Fechar informações de filtros"
                 >
