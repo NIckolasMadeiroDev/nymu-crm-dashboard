@@ -42,6 +42,7 @@ import { filterPresetsService } from '@/services/filters/filter-presets-service'
 import type { DrillContext } from '@/services/drill/drill-service'
 import type { CrmDeal } from '@/types/crm'
 import type { HelenaContact } from '@/types/helena'
+import { getWeekDateRange } from '@/utils/date-ranges'
 
 export default function Dashboard() {
   const { t } = useLanguage()
@@ -441,9 +442,16 @@ export default function Dashboard() {
   }
 
   const handleFilterChange = (filters: DashboardData['filters']) => {
-    dashboardPreferencesService.saveFilters(filters)
+    const currentPanelIds = dashboardData?.filters?.panelIds
+    
+    const mergedFilters: DashboardData['filters'] = {
+      ...filters,
+      panelIds: filters.panelIds || currentPanelIds,
+    }
+    
+    dashboardPreferencesService.saveFilters(mergedFilters)
 
-    loadDashboardData(filters, true)
+    loadDashboardData(mergedFilters, true)
   }
 
   const handlePanelChange = async (panelId: string) => {
@@ -474,27 +482,39 @@ export default function Dashboard() {
     if (filters.date) {
       const [year, month, day] = filters.date.split('-').map(Number)
       const dateObj = new Date(year, month - 1, day)
-      const formattedDate = dateObj.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
+      dateObj.setHours(0, 0, 0, 0)
       
       const dateTo = filters.dateTo || (() => {
         const endDate = new Date(dateObj)
-        endDate.setMonth(endDate.getMonth() + 6)
+        endDate.setDate(endDate.getDate() + (12 * 7))
         return endDate.toISOString().split('T')[0]
       })()
       
       const [yearTo, monthTo, dayTo] = dateTo.split('-').map(Number)
       const dateToObj = new Date(yearTo, monthTo - 1, dayTo)
-      const formattedDateTo = dateToObj.toLocaleDateString('pt-BR', {
+      dateToObj.setHours(23, 59, 59, 999)
+      
+      const periodBase = {
+        startDate: dateObj,
+        endDate: dateToObj,
+      }
+      
+      const week1Range = getWeekDateRange(1, periodBase)
+      const week12Range = getWeekDateRange(12, periodBase)
+      
+      const formattedStart = week1Range.startDate.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
       })
       
-      parts.push(`Período: ${formattedDate} a ${formattedDateTo}`)
+      const formattedEnd = week12Range.endDate.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+      
+      parts.push(`Período: ${formattedStart} a ${formattedEnd}`)
     }
 
     if (filters.sdr && filters.sdr !== 'Todos') {

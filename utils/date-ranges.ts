@@ -1,4 +1,36 @@
-export function getWeekDateRange(weekNumber: number): { startDate: Date; endDate: Date } {
+export function getWeekDateRange(weekNumber: number, periodBase?: { startDate: Date; endDate: Date }): { startDate: Date; endDate: Date } {
+  if (periodBase) {
+    const weekDuration = 7 * 24 * 60 * 60 * 1000
+    
+    if (weekNumber === 1) {
+      const startDate = new Date(periodBase.startDate)
+      startDate.setHours(0, 0, 0, 0)
+      
+      const weekEndMs = startDate.getTime() + weekDuration - 1
+      const endDate = new Date(Math.min(weekEndMs, periodBase.endDate.getTime()))
+      endDate.setHours(23, 59, 59, 999)
+      
+      return {
+        startDate,
+        endDate,
+      }
+    }
+    
+    const weekStartMs = periodBase.startDate.getTime() + ((weekNumber - 1) * weekDuration)
+    const weekEndMs = weekStartMs + weekDuration - 1
+    
+    const startDate = new Date(weekStartMs)
+    startDate.setHours(0, 0, 0, 0)
+    
+    const endDate = new Date(Math.min(weekEndMs, periodBase.endDate.getTime()))
+    endDate.setHours(23, 59, 59, 999)
+    
+    return {
+      startDate,
+      endDate,
+    }
+  }
+  
   const now = Date.now()
   
   const weeksAgo = 12 - weekNumber

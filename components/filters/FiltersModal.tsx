@@ -38,7 +38,7 @@ export default function FiltersModal({
   const calculateDateTo = useCallback((dateFrom: string): string => {
     if (!dateFrom) return ''
     const date = new Date(dateFrom)
-    date.setMonth(date.getMonth() + 6)
+    date.setDate(date.getDate() + (12 * 7))
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')
@@ -178,8 +178,11 @@ export default function FiltersModal({
   const handleApplyFilters = async () => {
     setIsApplyingFilters(true)
     try {
-      // Aplicar os filtros locais
-      onFilterChange(localFilters)
+      const mergedFilters: DashboardFilters = {
+        ...localFilters,
+        panelIds: localFilters.panelIds || filters.panelIds,
+      }
+      onFilterChange(mergedFilters)
       
       // Mostrar toast de confirmação
       toast.success('Filtros aplicados! Carregando dados...', {
@@ -271,7 +274,7 @@ export default function FiltersModal({
                 htmlFor="filter-date-to"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 font-secondary mb-2"
               >
-                Data Final (6 meses)
+                Data Final (12 semanas)
               </label>
               <input
                 id="filter-date-to"

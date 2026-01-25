@@ -553,8 +553,8 @@ export class DashboardAdapter {
 
     return {
       filters,
-      generationActivation: await this.buildGenerationActivation(filteredLeads, filteredContacts),
-      salesConversion: await this.buildSalesConversion(filteredDeals),
+      generationActivation: await this.buildGenerationActivation(filteredLeads, filteredContacts, filters),
+      salesConversion: await this.buildSalesConversion(filteredDeals, filters),
       conversionRates: this.buildConversionRates(filteredLeads, filteredDeals),
       leadStock: this.buildLeadStock(filteredLeads, filteredContacts),
       salesByConversionTime: this.buildSalesByConversionTime(filteredDeals),
@@ -598,7 +598,8 @@ export class DashboardAdapter {
 
   private async buildGenerationActivation(
     leads: LeadLike[],
-    contacts: HelenaContact[]
+    contacts: HelenaContact[],
+    filters: DashboardFilters
   ): Promise<GenerationActivationMetrics> {
     const stepMap = (this as any).stepMap as Map<string, any>
     const allCards = (this as any).allCards || []
@@ -628,15 +629,16 @@ export class DashboardAdapter {
       meetParticipants = leads.filter((lead) => lead.status === 'meet_participant').length
     }
 
+    const periodBase = this.getPeriodBase(filters)
     const leadsByWeek = activeCards.length > 0 
-      ? this.groupCardsByWeek(activeCards)
-      : this.groupLeadsByWeek(leads)
+      ? this.groupCardsByWeek(activeCards, filters)
+      : this.groupLeadsByWeek(leads, filters)
       
     const { getWeekDateRange, formatDateRange } = await import('@/utils/date-ranges')
     
     const leadsCreatedByWeek: WeeklyData[] = leadsByWeek.map((count, index) => {
       const weekNumber = 12 - index
-      const { startDate, endDate } = getWeekDateRange(weekNumber)
+      const { startDate, endDate } = getWeekDateRange(weekNumber, periodBase)
       const dateRange = formatDateRange(startDate, endDate)
       return {
         week: weekNumber,
@@ -653,7 +655,7 @@ export class DashboardAdapter {
     }
   }
 
-  private async buildSalesConversion(deals: CrmDeal[]): Promise<SalesConversionMetrics> {
+  private async buildSalesConversion(deals: CrmDeal[], filters: DashboardFilters): Promise<SalesConversionMetrics> {
     const closedSales = deals.length
     const revenueGenerated = deals.reduce((sum, deal) => sum + (deal.value || 0), 0)
     
@@ -663,12 +665,13 @@ export class DashboardAdapter {
     const closingRate = totalCards > 0 ? (closedSales / totalCards) * 100 : 0
     const targetRate = 75
 
-    const salesByWeek = this.groupDealsByWeek(deals)
+    const periodBase = this.getPeriodBase(filters)
+    const salesByWeek = this.groupDealsByWeek(deals, filters)
     const { getWeekDateRange, formatDateRange } = await import('@/utils/date-ranges')
     
     const salesByWeekData: WeeklyData[] = salesByWeek.map((count, index) => {
       const weekNumber = 12 - index
-      const { startDate, endDate } = getWeekDateRange(weekNumber)
+      const { startDate, endDate } = getWeekDateRange(weekNumber, periodBase)
       const dateRange = formatDateRange(startDate, endDate)
       return {
         week: weekNumber,
@@ -1032,51 +1035,138 @@ export class DashboardAdapter {
     })
   }
 
-  private groupLeadsByWeek(leads: LeadLike[]): number[] {
+  private getPeriodBase(filters: DashboardFilters): { startDate: Date; endDate: Date } | undefined {
+    if (!filters.date) return undefined
+    
+    const startDate = new Date(filters.date)
+    startDate.setHours(0, 0, 0, 0)
+    
+    const endDate = filters.dateTo 
+      ? new Date(filters.dateTo)
+      : (() => {
+          const calculated = new Date(startDate)
+          calculated.setDate(calculated.getDate() + (12 * 7))
+          return calculated
+        })()
+    endDate.setHours(23, 59, 59, 999)
+    
+    return { startDate, endDate }
+  }
+
+  private groupLeadsByWeek(leads: LeadLike[], filters: DashboardFilters): number[] {
     const weeks: number[] = new Array(12).fill(0)
+    const periodBase = this.getPeriodBase(filters)
+
+    if (!periodBase) {
+      leads.forEach((lead) => {
+        const leadDate = new Date(lead.createdAt)
+        const weekIndex = Math.floor(
+          (Date.now() - leadDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+        )
+
+        if (weekIndex >= 0 && weekIndex < 12) {
+          weeks[weekIndex]++
+        }
+      })
+      return weeks
+    }
+
+    const weekDuration = 7 * 24 * 60 * 60 * 1000
 
     leads.forEach((lead) => {
       const leadDate = new Date(lead.createdAt)
-      const weekIndex = Math.floor(
-        (Date.now() - leadDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
-      )
+      const leadTime = leadDate.getTime()
+      
+      if (leadTime < periodBase.startDate.getTime() || leadTime > periodBase.endDate.getTime()) {
+        return
+      }
+
+      const diffFromStart = leadTime - periodBase.startDate.getTime()
+      const weekIndex = Math.floor(diffFromStart / weekDuration)
 
       if (weekIndex >= 0 && weekIndex < 12) {
-        weeks[weekIndex]++
+        const mappedIndex = Math.min(weekIndex, 11)
+        weeks[mappedIndex]++
       }
     })
 
     return weeks
   }
 
-  private groupDealsByWeek(deals: CrmDeal[]): number[] {
+  private groupDealsByWeek(deals: CrmDeal[], filters: DashboardFilters): number[] {
     const weeks: number[] = new Array(12).fill(0)
+    const periodBase = this.getPeriodBase(filters)
+
+    if (!periodBase) {
+      deals.forEach((deal) => {
+        const dealDate = new Date(deal.createdAt)
+        const weekIndex = Math.floor(
+          (Date.now() - dealDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+        )
+
+        if (weekIndex >= 0 && weekIndex < 12) {
+          weeks[weekIndex]++
+        }
+      })
+      return weeks
+    }
+
+    const weekDuration = 7 * 24 * 60 * 60 * 1000
 
     deals.forEach((deal) => {
-      const dealDate = new Date(deal.createdAt)
-      const weekIndex = Math.floor(
-        (Date.now() - dealDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
-      )
+      const dealDate = new Date(deal.closedAt || deal.updatedAt || deal.createdAt)
+      const dealTime = dealDate.getTime()
+      
+      if (dealTime < periodBase.startDate.getTime() || dealTime > periodBase.endDate.getTime()) {
+        return
+      }
+
+      const diffFromStart = dealTime - periodBase.startDate.getTime()
+      const weekIndex = Math.floor(diffFromStart / weekDuration)
 
       if (weekIndex >= 0 && weekIndex < 12) {
-        weeks[weekIndex]++
+        const mappedIndex = Math.min(weekIndex, 11)
+        weeks[mappedIndex]++
       }
     })
 
     return weeks
   }
 
-  private groupCardsByWeek(cards: any[]): number[] {
+  private groupCardsByWeek(cards: any[], filters: DashboardFilters): number[] {
     const weeks: number[] = new Array(12).fill(0)
+    const periodBase = this.getPeriodBase(filters)
+
+    if (!periodBase) {
+      cards.forEach((card) => {
+        const cardDate = new Date(card.createdAt)
+        const weekIndex = Math.floor(
+          (Date.now() - cardDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+        )
+
+        if (weekIndex >= 0 && weekIndex < 12) {
+          weeks[weekIndex]++
+        }
+      })
+      return weeks
+    }
+
+    const weekDuration = 7 * 24 * 60 * 60 * 1000
 
     cards.forEach((card) => {
       const cardDate = new Date(card.createdAt)
-      const weekIndex = Math.floor(
-        (Date.now() - cardDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
-      )
+      const cardTime = cardDate.getTime()
+      
+      if (cardTime < periodBase.startDate.getTime() || cardTime > periodBase.endDate.getTime()) {
+        return
+      }
+
+      const diffFromStart = cardTime - periodBase.startDate.getTime()
+      const weekIndex = Math.floor(diffFromStart / weekDuration)
 
       if (weekIndex >= 0 && weekIndex < 12) {
-        weeks[weekIndex]++
+        const mappedIndex = Math.min(weekIndex, 11)
+        weeks[mappedIndex]++
       }
     })
 
